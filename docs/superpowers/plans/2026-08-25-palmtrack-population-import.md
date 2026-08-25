@@ -312,7 +312,7 @@ git commit -m "feat: validate synthetic population imports"
 **Files:**
 - Create: `supabase/migrations/202608250002_population_import.sql`
 - Create: `supabase/tests/database/002_population_import.test.sql`
-- Create: `supabase/tests/rollback/202608250002_population_import_rollback.sql`
+- Create: `supabase/rollback/202608250002_population_import_rollback.sql`
 - Modify: `package.json`
 
 **Interfaces:**
@@ -425,7 +425,7 @@ Expected: both migrations apply; Safety Skeleton 55 assertions remain green; pop
 
 - [ ] **Step 5: Rehearse compensating rollback on a disposable local database**
 
-`supabase/tests/rollback/202608250002_population_import_rollback.sql` must revoke/drop the three public RPCs and new trigger functions, drop `population_member`, drop `population_import`, drop `population_import_status`, and restore the exact pre-002 `private.append_audit_event` definition/ACL/owner from migration 001. The script begins with a guard that refuses execution unless both new tables exist. The PowerShell/Docker wrapper resolves the Supabase local database container from `docker ps`, validates the project label equals `palmtrack`, and pipes the script only to that container; it never accepts a URL or remote host.
+`supabase/rollback/202608250002_population_import_rollback.sql` must revoke/drop the three public RPCs and new trigger functions, drop `population_member`, drop `population_import`, drop `population_import_status`, and restore the exact pre-002 `private.append_audit_event` definition/ACL/owner from migration 001. It stays outside `supabase/tests/` because the CLI treats every SQL file below that directory as pgTAP. The script begins with a guard that refuses execution unless both new tables exist. The PowerShell/Docker wrapper resolves the Supabase local database container from `docker ps`, validates the project label equals `palmtrack`, and pipes the script only to that container; it never accepts a URL or remote host.
 
 Run the rollback through `docker exec -i` against the local database, run the 55 Safety Skeleton pgTAP assertions, then run `npx supabase db reset --local` and the complete database suite again. Expected: rollback leaves 001 functional, reset reapplies 002, and both suites pass. Never run the compensating script against hosted Supabase.
 
@@ -441,7 +441,7 @@ Run the rollback through `docker exec -i` against the local database, run the 55
 ```
 
 ```powershell
-git add package.json package-lock.json supabase/migrations/202608250002_population_import.sql supabase/tests/database/002_population_import.test.sql supabase/tests/rollback/202608250002_population_import_rollback.sql
+git add package.json package-lock.json supabase/migrations/202608250002_population_import.sql supabase/tests/database/002_population_import.test.sql supabase/rollback/202608250002_population_import_rollback.sql
 git commit -m "feat: persist immutable population imports"
 ```
 

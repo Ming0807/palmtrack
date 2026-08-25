@@ -569,3 +569,17 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Read-only migration history showed version `202608250001` already matched local and remote before the file was run again |
 | Resolution / status | `resolved` — do not rerun `202608250001`; apply each new ordered migration once through migration tooling and verify history before any manual SQL execution |
 | Related commit | population import design/plan documentation commit |
+
+### DEV-20260825-041 — Rollback script was discovered as a pgTAP test
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T15:42:00Z` |
+| Environment | Supabase local database suite |
+| Severity | low |
+| Component | migration rollback rehearsal |
+| Error code / sanitized message | `NO_TEST_PLAN` — the Supabase CLI treated a compensating rollback SQL file below `supabase/tests/` as pgTAP |
+| Impact | The migration and 98 database assertions passed, but the aggregate test command exited non-zero after executing the rollback file |
+| Reproduction / evidence | `supabase test db` recursively discovered every SQL file below its tests directory |
+| Resolution / status | `resolved` — move operational rollback SQL to `supabase/rollback/`; a clean reset, both database files, and database lint now pass |
+| Related commit | population import persistence commit |
