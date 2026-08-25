@@ -1,6 +1,6 @@
 # ADR-0002: Single workspace V1 with future-tenancy seam
 
-- Status: Design draft — awaiting user review
+- Status: Accepted (2026-08-25)
 - Date: 2026-08-25
 
 ## Context

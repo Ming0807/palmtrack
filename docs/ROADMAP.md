@@ -4,7 +4,7 @@ Roadmap นี้จัดให้ทีม 2–3 คนทำงาน 4–6 �
 
 ## Phase 0 — documentation foundation (current)
 
-จัดทำ requirement/protocol/architecture/data/UX/security/test/deployment/ADR, ตรวจ traceability และเสนอให้ผู้ใช้ review สถานะปัจจุบัน: **Design draft — awaiting user review** ห้ามวางแผนหรือเริ่ม implementation จนกว่าผู้ใช้จะอนุมัติ written design และ review gate ลงมติ
+จัดทำ requirement/protocol/architecture/data/UX/security/test/deployment/ADR และตรวจ traceability เสร็จแล้ว Written-design review ผ่านและผู้ใช้อนุมัติให้เข้าสู่ UX/UI prototype กับ implementation planning เมื่อ 2026-08-25 โดย gates สำหรับ questionnaire, privacy/retention, restore และข้อมูลจริงยังมีผลเหมือนเดิม
 
 ## Questionnaire approval gate (separate artifact)
 

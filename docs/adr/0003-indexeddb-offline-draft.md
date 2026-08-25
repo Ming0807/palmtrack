@@ -1,6 +1,6 @@
 # ADR-0003: IndexedDB device-local offline draft
 
-- Status: Design draft — awaiting user review
+- Status: Accepted (2026-08-25)
 - Date: 2026-08-25
 
 ## Context

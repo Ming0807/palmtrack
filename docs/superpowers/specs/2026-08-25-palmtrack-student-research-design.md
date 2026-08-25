@@ -1,7 +1,7 @@
 # PalmTrack student research design synthesis
 
 - Date: 2026-08-25
-- Status: Design draft — awaiting user review
+- Status: Accepted for UX prototype and implementation planning (2026-08-25)
 - Scope: single-workspace, zero-cost, non-commercial student research V1
 
 ## Design
@@ -18,4 +18,10 @@ Security ใช้ exact role allowlist และ deny-by-default RLS/object aut
 
 Reviewer (`research_manager` for protocol/scope and `admin` for architecture/security) must record approval that: every V1 ID is traced/testable; sampling/consent/withdrawal/formula/role rules are consistent; questionnaire remains a separately approved artifact; privacy/retention/real-data authority is identified; free-tier backup/restore plan is feasible; and no unresolved design decision blocks the first vertical slice
 
-Only after the user approves this written design and both role reviews pass may the team write an implementation plan. Questionnaire-dependent response implementation/collection additionally requires its artifact approval gate. A failed gate returns changes to the authoritative document and updates traceability in the same review; it does not permit implicit decisions in code.
+Written-design review ผ่านและผู้ใช้อนุมัติให้เดินหน้าเมื่อ 2026-08-25 จึงเริ่ม UX/UI prototype และเขียน implementation plan ได้ Questionnaire-dependent response implementation/collection ยังต้องผ่าน artifact approval gate แยก และข้อมูลจริงยังต้องผ่าน privacy/retention/restore gates การไม่ผ่าน gate ใดต้องย้อนแก้ authoritative document และ traceability; ห้ามตัดสินใจโดยนัยในโค้ด
+
+## Approval evidence
+
+- `research_manager` scope/protocol axis: ผู้ใช้อนุมัติ role, consent, sampling, data model และ workflow ทีละส่วนในการ design session วันที่ 2026-08-25 และสั่งให้นำแผนฉบับรวมไปสร้างเอกสาร
+- `admin` architecture/security axis: Luna final documentation review ของ commit `751884c` ให้ผล PASS โดยไม่มี Critical/Important หลังตรวจ authorization, withdrawal, audit, cohort, questionnaire gate และ Git state
+- User gate: ผู้ใช้สั่ง `PLEASE IMPLEMENT THIS PLAN`, ต่อด้วยการให้ตั้ง goal และเดินหน้าต่อเมื่อ 2026-08-25 จึงถือเป็น approval สำหรับ UX prototype และ implementation planning เท่านั้น ไม่ใช่การอนุมัติใช้ข้อมูลจริง

@@ -1,6 +1,6 @@
 # ADR-0001: Next.js and Supabase modular monolith
 
-- Status: Design draft — awaiting user review
+- Status: Accepted (2026-08-25)
 - Date: 2026-08-25
 
 ## Context

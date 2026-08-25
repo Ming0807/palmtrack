@@ -1,6 +1,6 @@
 # ADR-0004: Zero-cost hosting with explicit risk
 
-- Status: Design draft — awaiting user review
+- Status: Accepted (2026-08-25)
 - Date: 2026-08-25
 
 ## Context

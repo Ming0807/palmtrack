@@ -37,3 +37,31 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Invoking the WSL bash path failed; a PowerShell fallback generated the diff review package successfully |
 | Resolution / status | `resolved` — use the generated PowerShell diff package for this review; verify WSL installation/configuration before requiring that script path again |
 | Related commit | initial documentation root commit (`docs: establish PalmTrack project foundation`) |
+
+### DEV-20260825-003 — Optional skill adapter rejected global install
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:06:24Z` |
+| Environment | skill installation session |
+| Severity | low |
+| Component | Skills CLI adapter installation |
+| Error code / sanitized message | `OPTIONAL_ADAPTER_GLOBAL_INSTALL_UNSUPPORTED` — one optional adapter rejected global skill installation after the Codex copy succeeded |
+| Impact | ไม่มีผลต่อ Codex; สกิล `impeccable` พร้อมใช้งาน แต่ adapter ที่ไม่รองรับ global mode ไม่ถูกติดตั้ง |
+| Reproduction / evidence | Skills CLI reported the Codex skill copy as installed and separately reported the unsupported adapter |
+| Resolution / status | `resolved` — verify and use the Codex copy at the installed user-level skill path; do not retry the unsupported adapter |
+| Related commit | product/design context commit |
+
+### DEV-20260825-004 — Pre-approval verifier rejected accepted status
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:06:24Z` |
+| Environment | post-approval documentation verification |
+| Severity | low |
+| Component | documentation gate verifier |
+| Error code / sanitized message | `LEGACY_GATE_ASSERTION` — verifier rejected the new `Accepted` document status because it encoded the former pre-approval gate |
+| Impact | Legacy verification stopped before the remaining post-approval checks; no tracked data was lost |
+| Reproduction / evidence | Running the original task verifier after explicit user approval reached its intentional contradictory-approval assertion |
+| Resolution / status | `mitigated` — retain the original verifier as evidence for the initial commit and use a post-approval verification set for subsequent product/design commits |
+| Related commit | product/design context commit |
