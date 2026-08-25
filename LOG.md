@@ -541,3 +541,31 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Every finding pointed to one Supabase-generated temporary bundle already excluded from Git |
 | Resolution / status | `resolved` — add `supabase/.temp/**` and `supabase/.branches/**` to ESLint global ignores; full lint, typecheck, 108 tests, and production build passed |
 | Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-039 — Chained commit command did not stop after diff check warning
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T15:03:26Z` |
+| Environment | local Git documentation commit |
+| Severity | low |
+| Component | design-document verification command |
+| Error code / sanitized message | `DIFF_CHECK_CHAIN_CONTINUED` — `git diff --cached --check` reported a trailing blank line but the following commit still ran |
+| Impact | The design commit initially contained one whitespace-only warning; content and repository security were unaffected |
+| Reproduction / evidence | The PowerShell command used semicolon-separated checks without an explicit `$LASTEXITCODE` guard |
+| Resolution / status | `resolved` — remove the trailing blank line, amend the commit, verify `git show --check`, and require explicit exit-code guards before later mutating commands |
+| Related commit | population import design/plan documentation commit |
+
+### DEV-20260825-040 — Applied hosted migration was pasted into SQL Editor again
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T15:03:26Z` |
+| Environment | Supabase hosted SQL Editor |
+| Severity | low |
+| Component | ordered migration operation |
+| Error code / sanitized message | `42P07` — relation `workspace` already exists |
+| Impact | The repeated migration transaction stopped at the existing table; no table deletion or schema reset was required |
+| Reproduction / evidence | Read-only migration history showed version `202608250001` already matched local and remote before the file was run again |
+| Resolution / status | `resolved` — do not rerun `202608250001`; apply each new ordered migration once through migration tooling and verify history before any manual SQL execution |
+| Related commit | population import design/plan documentation commit |

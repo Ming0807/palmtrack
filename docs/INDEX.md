@@ -26,6 +26,7 @@
 | [UX/UI prototype plan](superpowers/plans/2026-08-25-palmtrack-ui-prototype.md) | Approved for execution | admin | ขั้นตอน scaffold, test-first prototype, visual QA และ handoff ไป Safety Skeleton |
 | [Safety Skeleton plan](superpowers/plans/2026-08-25-palmtrack-safety-skeleton.md) | Approved for execution | admin | auth/profile/5 roles/workspace seam/RLS/audit/Thai shell แบบ local-first และ deny-by-default |
 | [Population import design](superpowers/specs/2026-08-25-palmtrack-population-import-design.md) | Approved for implementation | research_manager | FR-02 synthetic CSV validation, atomic import, immutable accepted snapshot, RLS/audit และ production UI |
+| [Population import plan](superpowers/plans/2026-08-25-palmtrack-population-import.md) | Approved for execution | admin | แผน TDD สำหรับ domain parser, local SQL/RLS/audit, server action, production UI และ local authenticated evidence |
 
 ไฟล์ระดับ root: [product context](../PRODUCT.md), [implemented design system](../DESIGN.md), [project overview](../README.md), [contribution instructions](../AGENTS.md) และ [sanitized development error/incident ledger](../LOG.md) (ไม่ใช่ application runtime log)
 

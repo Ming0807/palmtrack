@@ -18,13 +18,13 @@
 
 ผู้มีสิทธิ์อัปโหลด CSV สังเคราะห์ขนาดไม่เกิน 1 MiB ซึ่งใช้ UTF-8 และมี header ตรงตามลำดับ `farmer_code,stratum_code,eligible,exclusion_reason_code` ระบบตรวจทั้งไฟล์ก่อนเขียนฐานข้อมูล แสดงจำนวนทั้งหมด/ผ่าน/ไม่ผ่านและ error reason ต่อแถวโดยไม่สะท้อนค่าดิบที่อาจเป็น PII ผู้ใช้แก้ไฟล์ต้นทางแล้วนำเข้าใหม่; UI ไม่มี inline row editor
 
-เมื่อ validation ผ่าน ผู้ใช้ยืนยันด้วย `source_label`, `reference_date` และ schema version คงที่ `synthetic-population-v1` Server ส่ง normalized rows และ SHA-256 input digest ไป RPC transaction เดียวเพื่อสร้าง `population_import` และ `population_member` ทั้งชุดพร้อม audit หากแถวใดผิด transaction ต้องไม่เหลือ partial batch ผู้ใช้กดยอมรับ batch เพื่อเปลี่ยน `validated → accepted`; accepted batch และสมาชิกแก้ไข/ลบไม่ได้ และ sampling slice ภายหลังจะอ้าง batch นี้เป็น immutable snapshot
+เมื่อ validation ผ่าน ผู้ใช้ยืนยันด้วย `source_label`, `reference_date`, synthetic source authorization reference, schema version คงที่ `synthetic-population-v1` และ eligibility rule version คงที่ `synthetic-eligibility-v1` Server ส่ง normalized rows และ SHA-256 input digest ไป RPC transaction เดียวเพื่อสร้าง `population_import` และ `population_member` ทั้งชุดพร้อม audit หากแถวใดผิด transaction ต้องไม่เหลือ partial batch ผู้ใช้กดยอมรับ batch เพื่อเปลี่ยน `validated → accepted`; accepted batch และสมาชิกแก้ไข/ลบไม่ได้ และ sampling slice ภายหลังจะอ้าง batch นี้เป็น immutable snapshot Contract สังเคราะห์นี้ไม่ถือเป็นการอนุมัติ source หรือ eligibility rule สำหรับข้อมูลจริง
 
 หลักฐานตรวจรับของ slice คือ `FR-02`, `FR-15`, `NFR-01`, `NFR-03`, `NFR-05`, `NFR-06`, `NFR-08` ผ่าน `INT-01`, `E2E-02`, `E2E-15`, `SEC-02`, `RLS-09` ส่วน sampling IDs และ sampling lifecycle ยังไม่ถูกอ้างว่าเสร็จ
 
 ## Data and lifecycle
 
-`population_import` มี `workspace_id`, `source_label`, `reference_date`, `schema_version`, `input_digest`, `total_count`, `eligible_count`, `excluded_count`, `status`, attribution และ timestamps โดย status ของ slice นี้มี `validated | accepted | rejected` เท่านั้น `accepted_at` ตั้งครั้งเดียวพร้อม audit
+`population_import` มี `workspace_id`, `source_label`, `source_authorization_ref`, `reference_date`, `schema_version`, `eligibility_rule_version`, `input_digest`, `total_count`, `eligible_count`, `excluded_count`, `status`, attribution และ timestamps โดย status ของ slice นี้มี `validated | accepted` เท่านั้น ไฟล์ที่ validation ไม่ผ่านไม่ถูก persist จึงไม่มี persisted `rejected` row `accepted_at` ตั้งครั้งเดียวพร้อม audit
 
 `population_member` มี parent import, `farmer_code`, `stratum_code`, `eligible`, optional `exclusion_reason_code` และ canonical `row_number` รหัสต้องเป็นตัวพิมพ์ใหญ่ ASCII รูปแบบ `SYN-[0-9]{3,6}` สำหรับ slice สังเคราะห์, `stratum_code` เป็นตัวพิมพ์ใหญ่ ASCII `[A-Z0-9_-]{1,24}`, `eligible=true` ต้องไม่มี exclusion reason และ `eligible=false` ต้องมี reason จาก allowlist `OUT_OF_SCOPE | DUPLICATE_SOURCE | INELIGIBLE_RULE` ห้ามมีชื่อ เบอร์โทร ที่อยู่ พิกัด หรือ free text ใน schema นี้
 
@@ -37,6 +37,7 @@ Digest คำนวณจาก UTF-8 canonical rows ที่เรียงต
 - แถบหัวเรื่องระบุ workspace เดียวและ badge `ข้อมูลสังเคราะห์เท่านั้น`
 - ขั้นตอนเรียงเป็น `เลือกไฟล์ → ตรวจทั้งชุด → ยืนยันแหล่งข้อมูล → รับ snapshot` บน evidence route เดียว ไม่ใช้ grid ของ KPI cards
 - validation summary ใช้ตัวเลขหลักสามค่าและรายการ error แบบ row/reason ที่ไม่ echo raw cell; error download เป็น CSV ที่มีเพียง `row_number,reason_code,field_code`
+- confirmation แสดง source authorization reference และ eligibility rule version ที่ใช้กับ fixture สังเคราะห์อย่างชัดเจน; ไม่มี control เปลี่ยนเป็น rule จริงใน slice นี้
 - accepted snapshot แสดง digest แบบย่อพร้อม control คัดลอกค่าเต็ม, actor/time ไทย และสถานะ immutable ไม่มีปุ่มแก้ไข
 - control ที่ยังไม่ทำงานจริง เช่น `สร้างการสุ่ม`, assignment หรือ export ไม่แสดงเป็น enabled action; อาจแสดงข้อความลำดับถัดไปแบบ read-only
 
@@ -67,6 +68,6 @@ Mobile 360 px ใช้ step stack และ error rows แบบ key/value; des
 ## Verification contract
 
 - Domain tests ต้องพิสูจน์ CSV header/encoding/size, duplicate code, eligibility/reason pair, canonicalization, digest และ sanitized error projection ด้วย test-first red/green evidence
-- pgTAP ต้องพิสูจน์ exact admin/manager positive paths, other-role/anonymous/cross-workspace negatives, atomic failure, immutable accepted rows, idempotency และ exact audit fields
+- pgTAP ต้องพิสูจน์ exact admin/manager positive paths สำหรับ create/accept/list, other-role/anonymous/cross-workspace negatives, atomic failure, validated→accepted เพียง transition เดียว, immutable accepted rows, idempotency, provenance fields และ exact audit before/after fields
 - Component/E2E ต้องพิสูจน์ Thai flow, both authorized roles, non-enumerating denied roles, double-submit protection, invalid-file no-write, 360 px no overflow, keyboard operation และ axe serious/critical clean
 - Full verification ใช้ local Supabase/Docker เท่านั้น พร้อม `npm run verify`, `npm run test:e2e`, `npx supabase test db`, secret scan, documentation link/marker scan และ migration lint
