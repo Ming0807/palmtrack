@@ -24,6 +24,7 @@
 | [UI decision comps](assets/ui-comps/README.md) | Review evidence | research_manager | ภาพเปรียบเทียบ A/B/C และ prompt provenance แบบ synthetic-only |
 | [Implemented prototype screenshots](assets/ui-prototype/README.md) | Verified prototype evidence | research_manager | ภาพ mobile/desktop ของ queue-first และ evidence route ที่ implement แล้ว |
 | [UX/UI prototype plan](superpowers/plans/2026-08-25-palmtrack-ui-prototype.md) | Approved for execution | admin | ขั้นตอน scaffold, test-first prototype, visual QA และ handoff ไป Safety Skeleton |
+| [Safety Skeleton plan](superpowers/plans/2026-08-25-palmtrack-safety-skeleton.md) | Approved for execution | admin | auth/profile/5 roles/workspace seam/RLS/audit/Thai shell แบบ local-first และ deny-by-default |
 
 ไฟล์ระดับ root: [product context](../PRODUCT.md), [implemented design system](../DESIGN.md), [project overview](../README.md), [contribution instructions](../AGENTS.md) และ [sanitized development error/incident ledger](../LOG.md) (ไม่ใช่ application runtime log)
 

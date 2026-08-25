@@ -42,8 +42,8 @@ Important mutable records มี `created_at`, `created_by`, `updated_at`, `upda
 
 | Entity | Key fields / meaning | Rules |
 |---|---|---|
-| `workspace` | `id`, `name`, `status` | V1 exactly one active workspace; no tenant UI |
-| `user_profile` | stable profile `id`, replaceable `auth_user_id`, `workspace_id`, `role`, `status`, `must_change_password` | role enum เท่ากับ 5 บทบาท; unique active membership ใน V1; recovery preserves profile UUID and relinks Auth UID |
+| `workspace` | `id`, `name`, `status` exactly `active\|inactive` | ก่อน bootstrap อนุญาต 0 active ชั่วคราว; หลัง bootstrap V1 ต้องมี exactly one active workspace และไม่มี tenant UI |
+| `user_profile` | stable profile `id`, replaceable `auth_user_id`, `workspace_id`, `role`, `status` exactly `active\|inactive`, `must_change_password` | role enum เท่ากับ 5 บทบาท; unique active membership ใน V1; recovery preserves profile UUID and relinks Auth UID ผ่าน recovery-only operation |
 | `population_import` | `source_label`, `input_digest`, counts, `status` | ไม่มี raw file public; validation result immutable เมื่อ accepted |
 | `population_member` | stable `farmer_code`, `stratum_code`, `eligible`, exclusion reason, protected contact fields | `farmer_code` unique ต่อ accepted snapshot; PII restricted; deterministic sort ใช้ UTF-8 bytewise |
 | `sampling_run` | `workspace_id`, `version`, population FK, N/e/target, `seed_text`, `seed_normalized`, `seed_digest_hex`, `seed_u32`, `algorithm_version`, `ordered_candidate_set_hash`, `status`, `locked_at` | status exactly `draft\|locked\|active\|superseded\|cancelled`; identifier `sha256-mulberry32-fy-v1`; `locked_at` เป็น UTC `timestamptz` ที่ตั้งหนึ่งครั้งเมื่อ `draft→locked` และแก้ไม่ได้; input/result immutable after lock; active exactly one/workspace เมื่อเริ่ม sampling |

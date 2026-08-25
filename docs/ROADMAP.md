@@ -23,6 +23,8 @@ Roadmap นี้จัดให้ทีม 2–3 คนทำงาน 4–6 �
 5. **Farm cash ledger** — farmer/farm/plot, activity/expense/harvest/sale, precision/formula, profit report
 6. **Acceptance and readiness** — anonymized evaluator views/funnel, accessibility/mobile QA, security negatives, backup/storage restore drill, acceptance with synthetic fixture, limited launch approval
 
+Safety Skeleton increment เริ่ม implementation planning หลัง prototype ผ่าน verification เมื่อ 2026-08-25 รายละเอียดและลำดับ test-first อยู่ใน [Safety Skeleton implementation plan](superpowers/plans/2026-08-25-palmtrack-safety-skeleton.md) โดยยังไม่อนุมัติ cloud provisioning หรือข้อมูลจริง
+
 แต่ละ increment ต้องมี requirement/test IDs, migration rollback, no-real-data review และ evidence ก่อนเริ่ม increment ต่อไป Slice ควรส่ง UI→server→RLS→audit→test ครบ ไม่สร้าง layer ทั้งก้อนล่วงหน้า
 
 ## V1.1 candidates
