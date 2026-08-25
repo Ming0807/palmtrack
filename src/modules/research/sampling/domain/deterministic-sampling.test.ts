@@ -29,7 +29,7 @@ describe("calculateSampleSize", () => {
     expect(calculateSampleSize(121, 0.05)).toEqual({
       populationSize: 121,
       marginOfError: 0.05,
-      unrounded: 92.89827255297505,
+      unrounded: 92.89827255278311,
       roundingRule: "ceil",
       targetN: 93,
     });
@@ -62,9 +62,9 @@ describe("allocateLargestRemainder", () => {
         5,
       ),
     ).toEqual([
-      { stratumCode: "A", eligibleCount: 10, quota: 5 / 3, floorAllocation: 1, remainder: 2 / 3, finalAllocation: 2 },
-      { stratumCode: "B", eligibleCount: 10, quota: 5 / 3, floorAllocation: 1, remainder: 2 / 3, finalAllocation: 2 },
-      { stratumCode: "C", eligibleCount: 10, quota: 5 / 3, floorAllocation: 1, remainder: 2 / 3, finalAllocation: 1 },
+      { stratumCode: "A", eligibleCount: 10, quota: 5 / 3, floorAllocation: 1, remainder: 5 / 3 - 1, finalAllocation: 2 },
+      { stratumCode: "B", eligibleCount: 10, quota: 5 / 3, floorAllocation: 1, remainder: 5 / 3 - 1, finalAllocation: 2 },
+      { stratumCode: "C", eligibleCount: 10, quota: 5 / 3, floorAllocation: 1, remainder: 5 / 3 - 1, finalAllocation: 1 },
     ]);
   });
 
@@ -103,15 +103,30 @@ describe("deterministic sampling evidence", () => {
       seedText: "e\u0301",
       seedNormalized: "é",
       seedNormalizedUtf8Hex: "c3a9",
-      seedDigestHex: "4a99557e4033c3539de2eb65472017cad5f9557f7a5a8a4f9d2f5d0c6f2a3f6a",
+      seedDigestHex: "4a99557e4033c3539de2eb65472017cad5f9557f7a0625a09f1c3f6e2ba69c4c",
       seedU32: 0x4a99557e,
+      orderedCandidateSetByteStreamHex:
+        "0000000753594e2d303031000000054e4f5254480000000753594e2d303032000000054e4f5254480000000753594e2d30303300000005534f5554480000000753594e2d30303400000005534f5554480000000753594e2d3030350000000445415354",
       initialCandidateMemberIds: ["m-01", "m-02", "m-03", "m-04", "m-05"],
-      orderedCandidateSetHash: "",
-      swapTrace: [],
-      shuffledMemberIds: [],
-      orderedSelectedMembers: [],
+      orderedCandidateSetHash: "b6b19714bd434aca66ea0ab05f99b2a83eb1b95eb31a804242febbd33f8adc5e",
+      swapTrace: [
+        { i: 4, j: 3 },
+        { i: 3, j: 0 },
+        { i: 2, j: 0 },
+        { i: 1, j: 0 },
+      ],
+      shuffledMemberIds: ["m-02", "m-03", "m-05", "m-01", "m-04"],
+      orderedSelectedMembers: [
+        { memberId: "m-02", stratumCode: "NORTH", selectionOrder: 1 },
+        { memberId: "m-03", stratumCode: "SOUTH", selectionOrder: 2 },
+        { memberId: "m-05", stratumCode: "EAST", selectionOrder: 3 },
+      ],
     });
-    expect(evidence.allocationRows).toEqual(expect.any(Array));
+    expect(evidence.allocationRows).toEqual([
+      { stratumCode: "EAST", eligibleCount: 1, quota: 0.6, floorAllocation: 0, remainder: 0.6, finalAllocation: 1 },
+      { stratumCode: "NORTH", eligibleCount: 2, quota: 1.2, floorAllocation: 1, remainder: 0.19999999999999996, finalAllocation: 1 },
+      { stratumCode: "SOUTH", eligibleCount: 2, quota: 1.2, floorAllocation: 1, remainder: 0.19999999999999996, finalAllocation: 1 },
+    ]);
     expect(await replaySamplingEvidence(evidenceInput, evidence)).toBe(true);
   });
 
