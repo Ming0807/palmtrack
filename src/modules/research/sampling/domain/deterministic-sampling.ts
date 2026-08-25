@@ -9,42 +9,24 @@ export const SAMPLING_ALGORITHM_VERSION = "sha256-mulberry32-fy-v1" as const;
 export const SAMPLE_SIZE_FORMULA_VERSION = "yamane-v1" as const;
 
 export type SamplingCandidate = {
-  memberId?: string;
-  farmerCode?: string;
-  stratumCode?: string;
+  memberId: string;
+  farmerCode: string;
+  stratumCode: string;
   eligible?: boolean;
-  // These aliases make the domain adapter tolerant of persisted snake_case
-  // projections while keeping the canonical evidence in camelCase.
-  id?: string;
-  populationMemberId?: string;
-  farmer_code?: string;
-  stratum_code?: string;
 };
 
 export type SamplingStratum = {
-  stratumCode?: string;
-  eligibleCount?: number;
-  code?: string;
-  count?: number;
-  populationCount?: number;
-  N_h?: number;
-  stratum_code?: string;
-  eligible_count?: number;
+  stratumCode: string;
+  eligibleCount: number;
 };
 
 export type SamplingEvidenceInput = {
-  populationSize?: number;
-  marginOfError?: number;
-  seedText?: string;
-  candidates?: readonly SamplingCandidate[];
+  populationSize: number;
+  marginOfError: number;
+  seedText: string;
+  candidates: readonly SamplingCandidate[];
   strata?: readonly SamplingStratum[];
   targetN?: number;
-  // Accepted aliases are useful at the server/database adapter boundary.
-  N?: number;
-  e?: number;
-  seed_text?: string;
-  population?: readonly SamplingCandidate[];
-  target_n?: number;
 };
 
 export type SampleSizeCalculation = {
@@ -129,51 +111,29 @@ function compareBytes(left: string, right: string): number {
 }
 
 function hasControlCharacter(value: string): boolean {
-  return /[\u0000-\u001f\u007f]/u.test(value);
+  return /[\u0000-\u001f\u007f-\u009f]/u.test(value);
 }
 
 function requireFiniteInteger(value: number, message: string): number {
-  if (!Number.isInteger(value) || !Number.isFinite(value)) invalid(message);
+  if (!Number.isSafeInteger(value)) invalid(message);
   return value;
-}
-
-function resolvePopulationSize(input: SamplingEvidenceInput): number {
-  const value = input.populationSize ?? input.N;
-  if (value === undefined) invalid("population size is required");
-  return value;
-}
-
-function resolveMarginOfError(input: SamplingEvidenceInput): number {
-  const value = input.marginOfError ?? input.e;
-  if (value === undefined) invalid("margin of error is required");
-  return value;
-}
-
-function resolveSeedText(input: SamplingEvidenceInput): string {
-  const value = input.seedText ?? input.seed_text;
-  if (value === undefined) invalid("seed text is required");
-  return value;
-}
-
-function resolveCandidates(input: SamplingEvidenceInput): readonly SamplingCandidate[] {
-  return input.candidates ?? input.population ?? [];
 }
 
 function candidateMemberId(candidate: SamplingCandidate): string {
-  const value = candidate.memberId ?? candidate.populationMemberId ?? candidate.id;
-  if (value === undefined || value.length === 0) invalid("candidate member id is required");
+  const value = candidate.memberId;
+  if (typeof value !== "string" || value.length === 0) invalid("candidate member id is required");
   return value;
 }
 
 function candidateFarmerCode(candidate: SamplingCandidate): string {
-  const value = candidate.farmerCode ?? candidate.farmer_code;
-  if (value === undefined || value.length === 0) invalid("candidate farmer code is required");
+  const value = candidate.farmerCode;
+  if (typeof value !== "string" || value.length === 0) invalid("candidate farmer code is required");
   return value;
 }
 
 function candidateStratumCode(candidate: SamplingCandidate): string {
-  const value = candidate.stratumCode ?? candidate.stratum_code;
-  if (value === undefined || value.length === 0) invalid("candidate stratum code is required");
+  const value = candidate.stratumCode;
+  if (typeof value !== "string" || value.length === 0) invalid("candidate stratum code is required");
   return value;
 }
 
@@ -205,23 +165,23 @@ function normalizeCandidates(
 }
 
 function stratumCode(stratum: SamplingStratum): string {
-  const value = stratum.stratumCode ?? stratum.stratum_code ?? stratum.code;
-  if (value === undefined || value.length === 0) invalid("stratum code is required");
+  const value = stratum.stratumCode;
+  if (typeof value !== "string" || value.length === 0) invalid("stratum code is required");
   if (hasControlCharacter(value)) invalid("stratum code contains a control character");
   return value;
 }
 
 function stratumCount(stratum: SamplingStratum): number {
-  const value =
-    stratum.eligibleCount ??
-    stratum.eligible_count ??
-    stratum.populationCount ??
-    stratum.count ??
-    stratum.N_h;
-  if (value === undefined) invalid("stratum eligible count is required");
+  const value = stratum.eligibleCount;
   requireFiniteInteger(value, "stratum eligible count must be a non-negative integer");
   if (value < 0) invalid("stratum eligible count must be a non-negative integer");
   return value;
+}
+
+function addSafe(left: number, right: number, message: string): number {
+  if (!Number.isSafeInteger(left) || !Number.isSafeInteger(right)) invalid(message);
+  if (left > Number.MAX_SAFE_INTEGER - right) invalid(message);
+  return left + right;
 }
 
 function normalizeStrata(
@@ -301,7 +261,10 @@ function allocationRowsFor(
     seenCodes.add(code);
     return { stratumCode: code, eligibleCount: stratumCount(stratum) };
   });
-  const totalCapacity = normalized.reduce((sum, stratum) => sum + stratum.eligibleCount, 0);
+  const totalCapacity = normalized.reduce(
+    (sum, stratum) => addSafe(sum, stratum.eligibleCount, "eligible capacity exceeds safe integer range"),
+    0,
+  );
   if (totalCapacity === 0) {
     if (targetN !== 0) invalid("target exceeds eligible capacity");
     return normalized
@@ -328,10 +291,14 @@ function allocationRowsFor(
     };
   });
   let remaining = targetN - rows.reduce((sum, row) => sum + row.floorAllocation, 0);
-  const byRemainder = [...rows].sort(
-    (left, right) =>
-      right.remainder - left.remainder || compareBytes(left.stratumCode, right.stratumCode),
-  );
+  const totalCapacityBigInt = BigInt(totalCapacity);
+  const targetBigInt = BigInt(targetN);
+  const byRemainder = [...rows].sort((left, right) => {
+    const leftNumerator = (targetBigInt * BigInt(left.eligibleCount)) % totalCapacityBigInt;
+    const rightNumerator = (targetBigInt * BigInt(right.eligibleCount)) % totalCapacityBigInt;
+    if (leftNumerator !== rightNumerator) return rightNumerator > leftNumerator ? 1 : -1;
+    return compareBytes(left.stratumCode, right.stratumCode);
+  });
   for (const row of byRemainder) {
     if (remaining === 0) break;
     row.finalAllocation += 1;
@@ -352,7 +319,7 @@ export function calculateSampleSize(
   marginOfError: number,
 ): SampleSizeCalculation {
   if (
-    !Number.isInteger(populationSize) ||
+    !Number.isSafeInteger(populationSize) ||
     populationSize <= 0 ||
     !Number.isFinite(marginOfError) ||
     marginOfError <= 0 ||
@@ -389,7 +356,7 @@ function nextMulberry32(state: { value: number }): number {
 }
 
 function inputTargetN(input: SamplingEvidenceInput, calculation: SampleSizeCalculation): number {
-  const explicitTarget = input.targetN ?? input.target_n;
+  const explicitTarget = input.targetN;
   if (explicitTarget === undefined) return calculation.targetN;
   requireFiniteInteger(explicitTarget, "target must be a non-negative integer");
   if (explicitTarget < 0 || explicitTarget > calculation.populationSize) {
@@ -427,19 +394,22 @@ function evidenceComparable(evidence: SamplingEvidence): unknown {
 export async function buildSamplingEvidence(
   input: SamplingEvidenceInput,
 ): Promise<SamplingEvidence> {
-  const populationSize = resolvePopulationSize(input);
-  const marginOfError = resolveMarginOfError(input);
+  const populationSize = input.populationSize;
+  const marginOfError = input.marginOfError;
   const calculation = calculateSampleSize(populationSize, marginOfError);
   const targetN = inputTargetN(input, calculation);
-  const seedText = resolveSeedText(input);
+  const seedText = input.seedText;
   if (seedText.length === 0) invalid("seed text must not be empty");
 
-  const candidates = normalizeCandidates(resolveCandidates(input));
+  const candidates = normalizeCandidates(input.candidates);
   if (candidates.length !== populationSize) {
     invalid("population size must equal eligible candidate count");
   }
   const strata = normalizeStrata(input.strata, candidates);
-  const stratumTotal = strata.reduce((sum, stratum) => sum + stratumCount(stratum), 0);
+  const stratumTotal = strata.reduce(
+    (sum, stratum) => addSafe(sum, stratumCount(stratum), "strata total exceeds safe integer range"),
+    0,
+  );
   if (stratumTotal !== populationSize) invalid("strata total must equal population size");
   const candidateCounts = new Map<string, number>();
   for (const candidate of candidates) {

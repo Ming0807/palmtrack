@@ -39,6 +39,7 @@ describe("calculateSampleSize", () => {
     [0, 0.05],
     [-1, 0.05],
     [1.5, 0.05],
+    [Number.MAX_SAFE_INTEGER + 1, 0.05],
     [121, 0],
     [121, 1],
     [121, Number.NaN],
@@ -79,6 +80,39 @@ describe("allocateLargestRemainder", () => {
       ),
     ).toThrow("target exceeds eligible capacity");
   });
+
+  it("orders fractional remainders by exact rational value", () => {
+    const target = 9_007_199_254_351_035;
+
+    const rows = allocateLargestRemainder(
+      [
+        { stratumCode: "A", eligibleCount: 4_503_599_626_826_210 },
+        { stratumCode: "B", eligibleCount: 4_503_599_626_653_690 },
+        { stratumCode: "C", eligibleCount: 1_260_100 },
+      ],
+      target,
+    );
+
+    expect(rows.map(({ stratumCode, finalAllocation }) => ({ stratumCode, finalAllocation }))).toEqual([
+      { stratumCode: "A", finalAllocation: 4_503_599_626_631_727 },
+      { stratumCode: "B", finalAllocation: 4_503_599_626_459_208 },
+      { stratumCode: "C", finalAllocation: 1_260_100 },
+    ]);
+    expect(rows.reduce((sum, row) => sum + row.finalAllocation, 0)).toBe(target);
+  });
+
+  it.each([
+    [[{ stratumCode: "A", eligibleCount: Number.MAX_SAFE_INTEGER + 1 }], 1],
+    [
+      [
+        { stratumCode: "A", eligibleCount: Number.MAX_SAFE_INTEGER },
+        { stratumCode: "B", eligibleCount: 1 },
+      ],
+      Number.MAX_SAFE_INTEGER,
+    ],
+  ])("rejects unsafe capacity or sum: %j", (strata, targetN) => {
+    expect(() => allocateLargestRemainder(strata, targetN)).toThrow();
+  });
 });
 
 describe("deterministic sampling evidence", () => {
@@ -95,11 +129,61 @@ describe("deterministic sampling evidence", () => {
     await expect(replaySamplingEvidence(evidenceInput, decomposed)).resolves.toBe(true);
   });
 
+  it("sorts candidate codes by UTF-8 bytes rather than UTF-16 code units", async () => {
+    const evidence = await buildSamplingEvidence({
+      populationSize: 2,
+      marginOfError: 0.5,
+      seedText: "synthetic-seed",
+      candidates: [
+        { memberId: "bmp", farmerCode: "\uE000", stratumCode: "A" },
+        { memberId: "astral", farmerCode: "\u{1F600}", stratumCode: "B" },
+      ],
+    });
+
+    expect(evidence.initialCandidateMemberIds).toEqual(["bmp", "astral"]);
+  });
+
+  it("rejects C1 control characters in canonical candidate codes", async () => {
+    await expect(
+      buildSamplingEvidence({
+        ...evidenceInput,
+        candidates: [
+          ...candidates.slice(0, 4),
+          { memberId: "m-05", farmerCode: "SYN-\u0080", stratumCode: "EAST" },
+        ],
+      }),
+    ).rejects.toThrow("control character");
+  });
+
+  it("rejects ambiguous adapter aliases at the domain boundary", async () => {
+    const legacyInput = {
+      N: evidenceInput.populationSize,
+      e: evidenceInput.marginOfError,
+      seed_text: evidenceInput.seedText,
+      population: evidenceInput.candidates,
+    } as unknown as SamplingEvidenceInput;
+
+    await expect(buildSamplingEvidence(legacyInput)).rejects.toThrow();
+  });
+
   it("matches the reviewed complete synthetic algorithm vector", async () => {
     const evidence = await buildSamplingEvidence(evidenceInput);
 
-    expect(evidence).toMatchObject({
+    expect(evidence).toEqual({
       algorithmVersion: "sha256-mulberry32-fy-v1",
+      formulaVersion: "yamane-v1",
+      formula: {
+        populationSize: 5,
+        marginOfError: 0.5,
+        unrounded: 2.2222222222222223,
+        roundingRule: "ceil",
+        targetN: 3,
+      },
+      populationSize: 5,
+      marginOfError: 0.5,
+      unrounded: 2.2222222222222223,
+      roundingRule: "ceil",
+      targetN: 3,
       seedText: "e\u0301",
       seedNormalized: "é",
       seedNormalizedUtf8Hex: "c3a9",
@@ -121,12 +205,13 @@ describe("deterministic sampling evidence", () => {
         { memberId: "m-03", stratumCode: "SOUTH", selectionOrder: 2 },
         { memberId: "m-05", stratumCode: "EAST", selectionOrder: 3 },
       ],
+      orderedSelectedMemberIds: ["m-02", "m-03", "m-05"],
+      allocationRows: [
+        { stratumCode: "EAST", eligibleCount: 1, quota: 0.6, floorAllocation: 0, remainder: 0.6, finalAllocation: 1 },
+        { stratumCode: "NORTH", eligibleCount: 2, quota: 1.2, floorAllocation: 1, remainder: 0.19999999999999996, finalAllocation: 1 },
+        { stratumCode: "SOUTH", eligibleCount: 2, quota: 1.2, floorAllocation: 1, remainder: 0.19999999999999996, finalAllocation: 1 },
+      ],
     });
-    expect(evidence.allocationRows).toEqual([
-      { stratumCode: "EAST", eligibleCount: 1, quota: 0.6, floorAllocation: 0, remainder: 0.6, finalAllocation: 1 },
-      { stratumCode: "NORTH", eligibleCount: 2, quota: 1.2, floorAllocation: 1, remainder: 0.19999999999999996, finalAllocation: 1 },
-      { stratumCode: "SOUTH", eligibleCount: 2, quota: 1.2, floorAllocation: 1, remainder: 0.19999999999999996, finalAllocation: 1 },
-    ]);
     expect(await replaySamplingEvidence(evidenceInput, evidence)).toBe(true);
   });
 
