@@ -279,20 +279,32 @@ function allocationRowsFor(
   }
   if (targetN > totalCapacity) invalid("target exceeds eligible capacity");
 
+  const totalCapacityBigInt = BigInt(totalCapacity);
+  const targetBigInt = BigInt(targetN);
   const rows = normalized.map<AllocationRow>((stratum) => {
-    const quota = (targetN * stratum.eligibleCount) / totalCapacity;
-    const floorAllocation = Math.floor(quota);
+    const numerator = targetBigInt * BigInt(stratum.eligibleCount);
+    const floorAllocationBigInt = numerator / totalCapacityBigInt;
+    if (floorAllocationBigInt > BigInt(Number.MAX_SAFE_INTEGER)) {
+      invalid("allocation exceeds safe integer range");
+    }
+    const floorAllocation = Number(floorAllocationBigInt);
+    const remainderNumerator = numerator % totalCapacityBigInt;
+    if (remainderNumerator < BigInt(0) || remainderNumerator >= totalCapacityBigInt) {
+      invalid("allocation remainder is outside denominator");
+    }
+    // Quota and remainder are display values only. The exact BigInt quotient
+    // and remainder above, not these Number conversions, control allocation.
+    const quota = Number(numerator) / totalCapacity;
+    const remainder = quota - floorAllocation;
     return {
       ...stratum,
       quota,
       floorAllocation,
-      remainder: quota - floorAllocation,
+      remainder,
       finalAllocation: floorAllocation,
     };
   });
   let remaining = targetN - rows.reduce((sum, row) => sum + row.floorAllocation, 0);
-  const totalCapacityBigInt = BigInt(totalCapacity);
-  const targetBigInt = BigInt(targetN);
   const byRemainder = [...rows].sort((left, right) => {
     const leftNumerator = (targetBigInt * BigInt(left.eligibleCount)) % totalCapacityBigInt;
     const rightNumerator = (targetBigInt * BigInt(right.eligibleCount)) % totalCapacityBigInt;

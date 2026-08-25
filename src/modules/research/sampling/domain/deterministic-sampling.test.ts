@@ -101,6 +101,52 @@ describe("allocateLargestRemainder", () => {
     expect(rows.reduce((sum, row) => sum + row.finalAllocation, 0)).toBe(target);
   });
 
+  it("keeps allocation floors exact when the quota product exceeds Number precision", () => {
+    const rows = allocateLargestRemainder(
+      [
+        { stratumCode: "A", eligibleCount: 7_854_361_139_770_447 },
+        { stratumCode: "B", eligibleCount: 1_152_838_114_969_553 },
+      ],
+      9_007_199_254_019_958,
+    );
+
+    expect(rows).toEqual([
+      {
+        stratumCode: "A",
+        eligibleCount: 7_854_361_139_770_447,
+        quota: expect.any(Number),
+        floorAllocation: 7_854_361_139_142_563,
+        remainder: expect.any(Number),
+        finalAllocation: 7_854_361_139_142_564,
+      },
+      {
+        stratumCode: "B",
+        eligibleCount: 1_152_838_114_969_553,
+        quota: expect.any(Number),
+        floorAllocation: 1_152_838_114_877_394,
+        remainder: expect.any(Number),
+        finalAllocation: 1_152_838_114_877_394,
+      },
+    ]);
+  });
+
+  it("uses UTF-8 byte order for tied stratum remainders", () => {
+    const rows = allocateLargestRemainder(
+      [
+        { stratumCode: "\u{1F600}", eligibleCount: 10 },
+        { stratumCode: "\uE000", eligibleCount: 10 },
+        { stratumCode: "A", eligibleCount: 10 },
+      ],
+      5,
+    );
+
+    expect(rows.map(({ stratumCode, finalAllocation }) => ({ stratumCode, finalAllocation }))).toEqual([
+      { stratumCode: "A", finalAllocation: 2 },
+      { stratumCode: "\uE000", finalAllocation: 2 },
+      { stratumCode: "\u{1F600}", finalAllocation: 1 },
+    ]);
+  });
+
   it.each([
     [[{ stratumCode: "A", eligibleCount: Number.MAX_SAFE_INTEGER + 1 }], 1],
     [
