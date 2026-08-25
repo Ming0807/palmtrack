@@ -1,0 +1,21 @@
+# PalmTrack student research design synthesis
+
+- Date: 2026-08-25
+- Status: Design draft — awaiting user review
+- Scope: single-workspace, zero-cost, non-commercial student research V1
+
+## Design
+
+PalmTrack เป็น Thai mobile-first Next.js modular monolith ที่วางแผนใช้ Supabase Auth/PostgreSQL RLS/private Storage และ Vercel Hobby Workspace คือ research scope เดียวของ V1 Research flow คือ locked population → Yamane/largest-remainder sampling run `draft|locked|active|superseded|cancelled` ด้วย `sha256-mulberry32-fy-v1` → assignment → privacy notice → collector-only granted/declined consent → baseline/response เฉพาะ granted → collector content edit ใน draft เท่านั้น → manager status-only return/verify Returned อนุญาตเพียง status-only resume เป็น draftก่อน operation แก้ไข Verified correction คือ manager verified→returned พร้อม reason, collector resume/edit/resubmit, manager re-verify โดยรักษา snapshot/audit Withdrawal จาก draft/submitted/returned/verified เป็น terminal Current analysis ใช้ active run exactly one/workspace; historical analysis ต้องเลือก superseded run Farm flow คือ farmer → farm → plot → activity/expense/harvest/sale → cash profit/loss Sale ต้องมี farm และอาจมี plot/harvest Offline รองรับเพียง IndexedDB device draft และ online submission
+
+Security ใช้ exact role allowlist และ deny-by-default RLS/object authorization: admin จัดการ workspace/reference config/audit/import/PII export แต่ไม่แก้ consent/response/farm ledger; manager จัดการ sampling/assignment/review status/export แต่ไม่ capture consent/แก้ answer/ledger; collector ทำ notice/consent, status-only returned resume และ assigned response/baseline content เฉพาะ granted+valid assignment+`draft`; farmer ทำ own profile/ledger; evaluator อ่าน aggregate anonymized เท่านั้น Files private, anonymized export เป็นค่าเริ่มต้น และ full PII เฉพาะ admin/manager ที่ audit
+
+## Detailed sources
+
+[Requirements](../../PRODUCT_REQUIREMENTS.md) · [Research protocol](../../RESEARCH_PROTOCOL.md) · [Architecture](../../ARCHITECTURE.md) · [Data model](../../DATA_MODEL.md) · [UX](../../UX_SPEC.md) · [Security/PDPA](../../SECURITY_PDPA.md) · [Traceability](../../TRACEABILITY_MATRIX.md) · [Test plan](../../TEST_PLAN.md) · [Deployment](../../DEPLOYMENT_RUNBOOK.md) · [Roadmap](../../ROADMAP.md) · [ADRs](../../adr/README.md)
+
+## Gate before implementation planning
+
+Reviewer (`research_manager` for protocol/scope and `admin` for architecture/security) must record approval that: every V1 ID is traced/testable; sampling/consent/withdrawal/formula/role rules are consistent; questionnaire remains a separately approved artifact; privacy/retention/real-data authority is identified; free-tier backup/restore plan is feasible; and no unresolved design decision blocks the first vertical slice
+
+Only after the user approves this written design and both role reviews pass may the team write an implementation plan. Questionnaire-dependent response implementation/collection additionally requires its artifact approval gate. A failed gate returns changes to the authoritative document and updates traceability in the same review; it does not permit implicit decisions in code.
