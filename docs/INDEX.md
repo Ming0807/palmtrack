@@ -20,6 +20,9 @@
 | [ADR-0003](adr/0003-indexeddb-offline-draft.md) | Accepted | admin | IndexedDB local draft, submit online |
 | [ADR-0004](adr/0004-zero-cost-hosting-risk.md) | Accepted | admin | zero-cost hosting risk/backup |
 | [Design synthesis](superpowers/specs/2026-08-25-palmtrack-student-research-design.md) | Accepted for UX prototype and implementation planning | research_manager | สรุป design และ implementation review gate |
+| [Field UI direction](superpowers/specs/2026-08-25-palmtrack-field-ui-direction.md) | Accepted for prototype | research_manager | ทิศทาง queue-first + evidence route และเกณฑ์เปรียบเทียบ A/B/C |
+| [UI decision comps](assets/ui-comps/README.md) | Review evidence | research_manager | ภาพเปรียบเทียบ A/B/C และ prompt provenance แบบ synthetic-only |
+| [UX/UI prototype plan](superpowers/plans/2026-08-25-palmtrack-ui-prototype.md) | Approved for execution | admin | ขั้นตอน scaffold, test-first prototype, visual QA และ handoff ไป Safety Skeleton |
 
 ไฟล์ระดับ root: [product context](../PRODUCT.md), [project overview](../README.md), [contribution instructions](../AGENTS.md) และ [sanitized development error/incident ledger](../LOG.md) (ไม่ใช่ application runtime log)
 

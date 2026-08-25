@@ -1,0 +1,12 @@
+Use case: ui-mockup
+Asset type: high-fidelity portrait mobile app screen, 390 x 844 proportions
+Primary request: PalmTrack Thai field-research PWA, direction A "carbon-copy field notebook". Design the signed-in field collector home called "งานของฉัน" as a queue-first operational screen, not an analytics dashboard.
+Scene/backdrop: the app screen only on a flat neutral background; no device mockup, no hands, no photography, no poster.
+Subject: top app bar with PalmTrack and offline readiness; compact assignment summary; prioritized vertical queue of 4 synthetic assignments with status, village/stratum, due signal and one clear next action; a restrained bottom navigation. Include a visible small badge "ข้อมูลตัวอย่าง".
+Style/medium: realistic shippable product UI, minimal premium, contemporary Thai government-research credibility interpreted through a refined carbon-copy field worksheet; practical semantic controls, clean hierarchy, generous touch targets.
+Composition/framing: full uncropped single phone screen, edge-to-edge UI, strong vertical scan. Subtle left margin numbering and delicate ruled structure, but no card grid and no sidebar.
+Color palette: warm ivory #F7F2E8, charcoal #202421, deep indigo #233B68, restrained rust #B85C38; mostly neutral with accents only for state.
+Typography: highly readable Thai sans-serif, compact but not cramped, tabular numerals where useful.
+Text (verbatim where legible): "PalmTrack", "งานของฉัน", "ข้อมูลตัวอย่าง", "พร้อมทำงานออฟไลน์", "เริ่มเก็บข้อมูล", "ทำต่อ", "ส่งคืนแก้ไข", "รอตรวจ"
+Constraints: show only fictional names/codes such as "งาน SSK-024"; no real PII; no charts; no KPI tiles; no gradients; no oversized headline; no glassmorphism; no pill-shaped containers except true status labels; no green farm cliché; no decorative leaf; no logo/trademark; no watermark; UI must look buildable in HTML/CSS and accessible at 360px.
+Avoid: generic SaaS dashboard, floating-card soup, rustic scrapbook, concept art, marketing poster, tiny text.

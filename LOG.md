@@ -65,3 +65,17 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Running the original task verifier after explicit user approval reached its intentional contradictory-approval assertion |
 | Resolution / status | `mitigated` — retain the original verifier as evidence for the initial commit and use a post-approval verification set for subsequent product/design commits |
 | Related commit | product/design context commit |
+
+### DEV-20260825-005 — Markdown link verifier lost file context
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:22:25Z` |
+| Environment | UX/UI prototype documentation verification |
+| Severity | low |
+| Component | local Markdown link verifier |
+| Error code / sanitized message | `POWERSHELL_NESTED_PIPELINE_CONTEXT_COLLISION` — nested use of the pipeline item variable produced a null base path |
+| Impact | The first ad-hoc link-check command stopped before reporting results; no file or application data was modified by the failed command |
+| Reproduction / evidence | A nested match loop replaced the outer file object before its directory was resolved |
+| Resolution / status | `resolved` — capture the file directory in a named variable before iterating link matches, then rerun all documentation checks |
+| Related commit | UX/UI direction and prototype-plan commit |

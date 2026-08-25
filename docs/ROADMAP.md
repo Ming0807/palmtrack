@@ -2,9 +2,13 @@
 
 Roadmap นี้จัดให้ทีม 2–3 คนทำงาน 4–6 เดือนแบบ vertical increment วันที่จริงกำหนดหลัง design review และไม่รับประกันตาม free tier
 
-## Phase 0 — documentation foundation (current)
+## Phase 0 — documentation foundation (complete)
 
 จัดทำ requirement/protocol/architecture/data/UX/security/test/deployment/ADR และตรวจ traceability เสร็จแล้ว Written-design review ผ่านและผู้ใช้อนุมัติให้เข้าสู่ UX/UI prototype กับ implementation planning เมื่อ 2026-08-25 โดย gates สำหรับ questionnaire, privacy/retention, restore และข้อมูลจริงยังมีผลเหมือนเดิม
+
+## Phase 0.5 — UX/UI prototype (current)
+
+สร้าง local prototype ด้วยข้อมูลสังเคราะห์เพื่อเปรียบเทียบ queue-first, receipt และ evidence-route composition ก่อนล็อก production shell แนวทางที่อนุมัติคือ queue-first สำหรับหน้า `งานของฉัน` และ evidence route ภายในงานหนึ่งรายการ Prototype ไม่เชื่อม cloud, ไม่เก็บข้อมูลจริง และไม่ข้าม questionnaire/privacy/restore gates รายละเอียดอยู่ใน [field UI direction](superpowers/specs/2026-08-25-palmtrack-field-ui-direction.md) และ [prototype implementation plan](superpowers/plans/2026-08-25-palmtrack-ui-prototype.md)
 
 ## Questionnaire approval gate (separate artifact)
 

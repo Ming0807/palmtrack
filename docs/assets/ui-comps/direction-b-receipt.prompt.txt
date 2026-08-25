@@ -1,0 +1,12 @@
+Use case: ui-mockup
+Asset type: high-fidelity portrait mobile app screen, 390 x 844 proportions
+Primary request: PalmTrack Thai field-research PWA, direction B "weighbridge receipt". Design the signed-in field collector home called "งานของฉัน" as a precise operational queue, not an analytics dashboard.
+Scene/backdrop: app screen only on a flat neutral background; no phone hardware, no hands, no photography, no poster.
+Subject: compact header with PalmTrack, local sync state and "ข้อมูลตัวอย่าง"; one slim today summary; a continuous receipt-like prioritized list of exactly four synthetic assignment rows using aligned codes, strata, counts, deadlines, state and one next-action button each; bottom navigation. Treat each assignment like an auditable evidence ticket. Do not show any person name, village, subdistrict, district, province, map pin, address, or geographic name. Use only these area labels verbatim: "พื้นที่ตัวอย่าง ก-01", "พื้นที่ตัวอย่าง ก-02", "พื้นที่ตัวอย่าง ข-01", "พื้นที่ตัวอย่าง ข-02".
+Style/medium: realistic shippable product UI, minimal premium, contemporary Thai research administration, informed by a clean weighbridge ticket and ledger typography without looking retro or industrial.
+Composition/framing: full uncropped single phone screen, edge-to-edge, dense but accessible vertical rhythm, strong numeric alignment and hairline separators; no card grid or sidebar.
+Color palette: mineral white #F5F4EF, graphite #1E2425, midnight blue #173B5F, restrained amber #C47A2C, oxidized red only for overdue.
+Typography: highly readable Thai sans-serif paired with restrained monospaced assignment codes and tabular numerals.
+Text (verbatim where legible): "PalmTrack", "งานของฉัน", "ข้อมูลตัวอย่าง", "ซิงก์แล้ว 08:45", "SSK-024", "SSK-031", "SSK-017", "SSK-008", "เริ่มเก็บข้อมูล", "ทำต่อ", "ส่งคืนแก้ไข", "รอตรวจ"
+Constraints: synthetic assignment codes and the four exact fictional area labels only; no person or real place text; no PII; no charts; no KPI tile grid; no gradients; no oversized headline; no glassmorphism; pills only for true status; no green farm cliché; no decorative leaf; no logos/trademarks; no watermark; buildable semantic UI; minimum 44px actions.
+Avoid: real Thai place names, generic fintech dashboard, point-of-sale terminal, barcode overload, marketing poster, concept art, tiny illegible metadata.
