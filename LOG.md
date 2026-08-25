@@ -205,3 +205,185 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | The sole hit was the test expression `not.toMatch(...)` rather than an assignment value or rendered label |
 | Resolution / status | `resolved` — scan the production fixture module separately and keep the negative assertion as independent automated protection |
 | Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-015 — Local Docker engine unavailable
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T05:14:33Z` |
+| Environment | Safety Skeleton prerequisite verification |
+| Severity | medium |
+| Component | Supabase local database test runtime |
+| Error code / sanitized message | `DOCKER_ENGINE_UNAVAILABLE` — the installed Docker client could not connect to the local Linux engine pipe |
+| Impact | Supabase migration reset and PostgreSQL/RLS tests cannot be claimed until a compatible local container engine is running; TypeScript, build, and non-database tests remain available |
+| Reproduction / evidence | A read-only Docker version check returned client version `29.1.2` and no server version because the expected local engine pipe was absent |
+| Resolution / status | `open` — continue the independently verifiable application slices and rerun database verification after the user starts or installs a compatible Docker engine; keep all RLS evidence explicitly unverified meanwhile |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-016 — Installed ESLint release is no longer supported
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T05:17:13Z` |
+| Environment | Safety Skeleton dependency installation |
+| Severity | low |
+| Component | frontend lint toolchain |
+| Error code / sanitized message | `ESLINT_RELEASE_UNSUPPORTED` — npm marks the repository's pinned ESLint `9.39.2` release as no longer supported |
+| Impact | Installation and current lint execution remain available, but the lint runtime no longer receives upstream maintenance fixes |
+| Reproduction / evidence | The package registry deprecation field and install warning both report that this exact release is unsupported |
+| Resolution / status | `mitigated` — retain the version compatible with the verified Next.js prototype for this slice, keep audit results clean, and schedule a separately tested ESLint/Next lint-stack upgrade before production readiness |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-017 — Jest-only flag passed to Vitest
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T05:35:13Z` (entry time; exact earlier event time was not captured) |
+| Environment | Safety Skeleton protected-shell unit verification |
+| Severity | low |
+| Component | unit test command |
+| Error code / sanitized message | `VITEST_UNSUPPORTED_RUN_IN_BAND` — the first test command included a Jest-only option that Vitest does not accept |
+| Impact | The first command stopped before test execution; no application assertion failed |
+| Reproduction / evidence | The test runner rejected `--runInBand` as an unknown option |
+| Resolution / status | `resolved` — rerun with the repository-native `npm test` command; the complete suite passed after the UI files were present |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-018 — UI inspection used a stale filename
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T05:35:13Z` |
+| Environment | Safety Skeleton read-only source inspection |
+| Severity | low |
+| Component | protected-shell review command |
+| Error code / sanitized message | `INSPECTION_PATH_NOT_FOUND` — the inspection requested singular `identity-state.tsx` while the implemented file is plural `identity-states.tsx` |
+| Impact | One read command did not return the intended component; no file or runtime state changed |
+| Reproduction / evidence | PowerShell reported the exact requested local path did not exist and the subsequent directory listing showed the plural filename |
+| Resolution / status | `resolved` — inspect the discovered plural path and continue source review |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-019 — Parallel verification observed an incomplete shared slice
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T05:35:13Z` (entry time; exact earlier event time was not captured) |
+| Environment | Safety Skeleton parallel subagent verification |
+| Severity | low |
+| Component | cross-slice TypeScript and test discovery |
+| Error code / sanitized message | `PARALLEL_PARTIAL_TREE` — adapter verification ran while protected-shell test files existed before their implementation files were visible |
+| Impact | One intermediate typecheck and three UI suites failed for missing modules; adapter-targeted tests and build passed |
+| Reproduction / evidence | The shared worktree temporarily contained Task 5 tests without their matching production files during concurrent RED→GREEN execution |
+| Resolution / status | `resolved` — wait for both disjoint agents to finish, then verify the integrated tree rather than treating an intermediate shared state as a product failure |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-020 — Empty-string redaction assertion was unsatisfiable
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T05:45:17Z` |
+| Environment | Safety Skeleton sign-in contract TDD |
+| Severity | low |
+| Component | credential redaction unit test |
+| Error code / sanitized message | `EMPTY_STRING_NEGATIVE_MATCH` — two invalid-input cases asserted that serialized output did not contain an empty submitted value, but every string contains the empty string |
+| Impact | Two tests failed after the parser implementation even though the returned error object contained no submitted credential value |
+| Reproduction / evidence | The failing cases were the intentionally blank identifier and blank password rows; the non-empty invalid value assertion behaved correctly |
+| Resolution / status | `resolved` — retain the exact failure result assertion and run the redaction check only for non-empty submitted values; all five credential-boundary tests then passed |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-021 — Source search used an invalid regular expression and directory
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T06:00:15Z` (entry time; exact earlier event time was not captured) |
+| Environment | Safety Skeleton E2E discovery |
+| Severity | low |
+| Component | repository source search |
+| Error code / sanitized message | `RG_QUERY_AND_PATH_INVALID` — the first search pattern had an unclosed group and its corrected invocation named a non-existent `tests` directory instead of the repository's `e2e` directory |
+| Impact | Two read-only searches stopped without changing files or application state |
+| Reproduction / evidence | ripgrep first reported a regular-expression parse error and then a missing-directory error; `rg --files` located the actual E2E directory |
+| Resolution / status | `resolved` — simplify the expression, discover test paths from tracked files, and search the correct `e2e` tree |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-022 — Next development indicator matched an application-control assertion
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T06:00:15Z` (entry time; exact earlier event time was not captured) |
+| Environment | Chromium mobile and desktop Safety Skeleton E2E |
+| Severity | low |
+| Component | unconfigured sign-in browser test |
+| Error code / sanitized message | `DEV_INDICATOR_CONTROL_FALSE_POSITIVE` — a page-wide control locator counted Next.js's development indicator button outside the application main region |
+| Impact | The first full browser run reported two failures although the unconfigured application state rendered no form, input, or enabled application button; 25 other cases passed and one was intentionally skipped |
+| Reproduction / evidence | Failure screenshots showed only the expected unconfigured state plus the framework development indicator in the viewport corner |
+| Resolution / status | `resolved` — scope the no-control assertion to the semantic `main` region and rerun the Safety Skeleton suite; all eight mobile/desktop cases passed |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-023 — Secret-scan pattern was parsed as an option
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T06:06:57Z` |
+| Environment | Safety Skeleton final secret verification |
+| Severity | low |
+| Component | repository secret-pattern scan |
+| Error code / sanitized message | `RG_LEADING_HYPHEN_PATTERN` — the private-key pattern began with hyphens and was interpreted as a command option |
+| Impact | Dependency audit passed, but the first secret scan stopped before inspecting repository content |
+| Reproduction / evidence | ripgrep reported the leading pattern as an unrecognized flag |
+| Resolution / status | `resolved` — add the explicit option terminator before the pattern and rerun; the repository scan passed with no match |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-024 — Production error card triggered the side-accent detector
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T06:06:57Z` |
+| Environment | Impeccable production-shell verification |
+| Severity | low |
+| Component | sign-in error styling |
+| Error code / sanitized message | `IMPECCABLE_SIDE_TAB` — a one-sided colored error border matched the detector's generic side-tab pattern |
+| Impact | Functional and accessibility checks were unaffected, but the production sign-in surface did not meet the chosen visual craft floor |
+| Reproduction / evidence | The detector returned one warning in the sign-in CSS and no finding in the identity components |
+| Resolution / status | `resolved` — replace the side accent with a restrained full border and radius, simplify the app notice border, and rerun both app/UI detector scopes; both returned an empty result |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-025 — Static SQL review found a nonexistent JSON helper
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T06:06:57Z` (entry time; exact earlier review time was not captured) |
+| Environment | Luna xhigh static Safety Skeleton migration review |
+| Severity | high |
+| Component | audit detail allowlist function |
+| Error code / sanitized message | `POSTGRES_JSONB_OBJECT_LENGTH_UNAVAILABLE` — the migration draft called a JSON object-length helper that PostgreSQL does not provide |
+| Impact | Every approved audit append would have failed during bootstrap or privileged transactions if the draft had been applied |
+| Reproduction / evidence | Independent static review compared the function call with PostgreSQL's built-in JSON functions; the local database could not be run because the Docker prerequisite remains unavailable |
+| Resolution / status | `resolved` — validate object type separately, count keys through `pg_catalog.jsonb_object_keys`, and obtain a final static Luna review with no P0/P1/P2; runtime SQL status remains unverified |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-026 — Public environment defaults used an indirect browser access path
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T06:15:23Z` |
+| Environment | final server/client boundary review |
+| Severity | medium |
+| Component | browser Supabase environment adapter |
+| Error code / sanitized message | `NEXT_PUBLIC_INDIRECT_ENV_ACCESS` — the public parser defaulted to the whole process environment and then read variables indirectly, which does not provide Next.js's explicit browser inlining contract |
+| Impact | A configured browser build could still resolve as unconfigured even when approved public values were supplied |
+| Reproduction / evidence | Root integration review traced the browser adapter to `parsePublicEnv()` and compared the access shape with the framework's direct `NEXT_PUBLIC_*` compile-time boundary |
+| Resolution / status | `resolved` — construct the default input from direct `process.env.NEXT_PUBLIC_SUPABASE_URL` and `process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY` expressions; targeted env/session tests, typecheck, lint, and final Luna review passed |
+| Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-027 — Session adapter expected the wrong profile ID field
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T06:15:23Z` |
+| Environment | final RPC/application contract review |
+| Severity | high |
+| Component | verified identity session resolver |
+| Error code / sanitized message | `PROFILE_RPC_FIELD_MISMATCH` — the SQL RPC returns `profile_id` while the resolver initially required `id` |
+| Impact | Every otherwise valid authenticated profile returned by the implemented RPC would have collapsed to the forbidden state |
+| Reproduction / evidence | Root compared the migration's fixed-return signature with the TypeScript projection before database runtime was available |
+| Resolution / status | `resolved` — accept the exact `profile_id` contract (while retaining injected fixture compatibility), add an explicit resolver regression test, and pass 103 tests plus final Luna review with no P0/P1/P2 |
+| Related commit | pending Safety Skeleton implementation commit |

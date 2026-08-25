@@ -4,6 +4,13 @@
 
 ใช้ test pyramid ที่เน้น unit/invariant และ RLS ก่อน integration/E2E ทุก test ใช้ stable ID ต่อไปนี้ในชื่อหรือ metadata Evidence run เก็บ commit/migration version, synthetic fixture version, UTC start/end, environment, pass/fail, sanitized logs และ checksum ของ report ห้าม snapshot PII, token หรือ signed URL
 
+### Current Safety Skeleton execution boundary — 2026-08-25
+
+- TypeScript unit/component tests cover environment states, exact roles/permissions, session resolution, fixed-profile RPC adapter, credential parsing, role navigation, identity UI states และ safe application-event projection
+- ESLint, TypeScript และ Next.js production build run without `.env`; the built client must not contain the server-only credential name or a credential value
+- Playwright verifies `/`→`/sign-in`, truthful unconfigured `/sign-in` and `/app`, no production navigation to `/prototype`, axe serious/critical และ horizontal overflow on 360px/desktop
+- `supabase/tests/database/001_safety_skeleton.test.sql` currently defines 54 assertions for role hardening, bootstrap, grants/RLS catalog state, projection, cross-workspace deny, recovery boundary, audit allowlists และ database-hard mutation guards แต่สถานะคือ **implemented/unverified** เพราะ local Docker engine ไม่ทำงาน ห้ามนับเป็น RLS pass หรือ E2E-01 five-role pass
+
 ## Acceptance fixtures
 
 `FX-BASE` เป็นข้อมูลสังเคราะห์: workspace `ws-synthetic`; user อย่างละหนึ่งต่อห้าบทบาทและ second collector/farmer สำหรับ cross-owner; population 121 member ที่ใช้ `farmer_code` `SYN-001` ถึง `SYN-121` กระจายในอย่างน้อย 3 strata; `e=0.05`; recorded seed `palmtrack-acceptance-seed-v1`; approved synthetic questionnaire metadata ที่ใช้ question code/type/options แต่ไม่มีคำถามวิจัยจริง; assignment ที่ present notice แล้วมี granted consent จับคู่ response `draft`, `submitted`, `returned`, `verified` อย่างละกรณี และ declined consent ที่ไม่มี baseline/response; withdrawn case เริ่มจาก consent granted แล้ว transition ทั้ง current consent และ response เป็น `withdrawn` จึง **ไม่ถือว่า current consent granted**; verified-correction chain ที่เก็บ prior snapshot; farmer สองราย/farm/plot; active/deleted expense และ sale; private attachments คนละ owner

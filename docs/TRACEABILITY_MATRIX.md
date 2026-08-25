@@ -33,3 +33,13 @@
 ## Coverage rule
 
 Automated documentation verification ต้องเปรียบเทียบชุด ID ใน product requirements กับ column แรก: ไม่มี missing และไม่มี unknown ID เมื่อ requirement เพิ่ม/เปลี่ยน ต้องปรับ objective, flow, entity, test และ evidence ใน commit เดียวกัน; test ที่ retire ต้องมี replacement หรือ change decision ที่อนุมัติ
+
+## Safety Skeleton evidence status — 2026-08-25
+
+| Requirement | Implemented evidence in this increment | Status boundary |
+|---|---|---|
+| FR-01 | exact five-role TypeScript allowlist/deny matrix, verified-session resolver, fixed `get_current_profile` RPC adapter, Thai role navigation, `/`→`/sign-in`, protected `/app/*`, non-enumerating states | unit/component/build and anonymous/unconfigured browser paths verified; five seeded-role browser sessions remain unverified until Supabase local runs |
+| NFR-01 | deny-by-default authorization kernel, no broad admin override, base-profile query removed from application adapter, public anon-key clients only, `server-only` boundary for server configuration/client | TypeScript and bundle/build boundary verified; PostgreSQL enforcement is implemented but not claimed as passed |
+| NFR-03 | strict safe-event projection tests plus ordered SQL migration for non-null actor/workspace audit, allowlisted action/detail values, internal writer role chain and insert/update/delete/truncate guards | application sanitizer verified; migration received static Luna xhigh review, while 54 pgTAP assertions remain unexecuted because the Docker engine is unavailable |
+
+Evidence นี้เป็น progress ของ increment ไม่ใช่ V1 acceptance sign-off และไม่แทน RLS/restore tests ที่ยังไม่รัน

@@ -6,8 +6,8 @@ import "@fontsource/bai-jamjuree/600.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PalmTrack — UX/UI Prototype",
-  description: "ต้นแบบระบบบริหารงานวิจัยและสวนปาล์มด้วยข้อมูลสังเคราะห์",
+  title: "PalmTrack — ระบบบริหารงานวิจัยและสวนปาล์ม",
+  description: "ระบบบริหารงานวิจัยและสวนปาล์มสำหรับโครงการศรีสาคร",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

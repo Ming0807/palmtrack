@@ -51,6 +51,8 @@ Supabase Free **ไม่มี automatic backups ที่ทีมอ้าง
 8. Sign in recovered synthetic fixture อย่างน้อยหนึ่ง account ต่อ roleหลัง reset ตรวจว่า Auth UID ใหม่ resolve ไป stable profile UUID เดิม, role/workspace เดิม, allowed RLS path สำเร็จ และ cross-role/cross-owner path ถูก deny จากนั้นรัน count/FK/sampling-run status+digest/profit tests
 9. บันทึกผล pass/fail, duration, checksum, Auth relink counts และ securely remove temporary plaintext/temporary credential หลังยืนยัน ไม่มีการกล่าวว่าการมีไฟล์เท่ากับกู้คืนได้จน clean-target sign-in/RLS drill ผ่าน
 
+Bootstrap และ Auth relink ใช้ **out-of-band database recovery procedure เท่านั้น** ผู้ดำเนินการฐานข้อมูลที่ควบคุมต้องตรวจตัวตน/อำนาจของ active admin, ตั้ง verified JWT context และ explicit `SET ROLE palmtrack_recovery_executor` ภายใน transaction ที่บันทึกหลักฐาน Role นี้เป็น `NOLOGIN`, ไม่มี membership และไม่ grant ให้ `anon`, `authenticated`, `service_role` หรือ application route หากไม่มีสิทธิ์ database operator ที่อนุมัติให้หยุด recovery และส่งต่อผู้รับผิดชอบ ห้ามเพิ่ม HTTP endpoint หรือใช้ service-role key เป็นทางลัด
+
 เมื่อไม่มีพื้นที่/เครื่อง/กุญแจที่อนุมัติ ให้หยุด collection ไม่ลด control เพื่อคงค่าใช้จ่ายศูนย์
 
 ## Zero-cost private storage backup and restore

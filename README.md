@@ -4,18 +4,18 @@ PalmTrack คือเว็บแอปงานวิจัยนักศึ�
 
 ## สถานะปัจจุบัน
 
-Repository มี **UX/UI prototype ที่รันได้** บน Next.js App Router พร้อมโครง A/B/C, เส้นทางแนะนำ A→C, IndexedDB checkpoint แบบสังเคราะห์ และ automated verification แล้ว ยังไม่มี authentication, Supabase/live API, CI, deployment หรือ cloud resource และยังห้ามเก็บข้อมูลจริงจน questionnaire/privacy/retention/restore gates ผ่านตาม [design synthesis](docs/superpowers/specs/2026-08-25-palmtrack-student-research-design.md) ภาษาภาพที่ implement แล้วอยู่ใน [design system](DESIGN.md)
+Repository มีทั้ง **UX/UI prototype ที่รันได้** และ Safety Skeleton ชุดแรก: environment contract, Supabase anon client adapters, verified-session resolver, exact five-role authorization, Thai sign-in/protected shell, ordered migration/RLS/audit foundation และ automated verification ฝั่ง TypeScript/browser แล้ว PostgreSQL/pgTAP ยังไม่ถือว่าผ่านเพราะ local Docker engine ไม่ทำงาน และยังไม่มี CI, deployment หรือ cloud resource ห้ามเก็บข้อมูลจริงจน questionnaire/privacy/retention/restore gates ผ่านตาม [design synthesis](docs/superpowers/specs/2026-08-25-palmtrack-student-research-design.md) ภาษาภาพที่ implement แล้วอยู่ใน [design system](DESIGN.md)
 
-## รัน prototype ในเครื่อง
+## รันในเครื่อง
 
 ต้องใช้ Node.js `26.1.0` และ npm `11.5.2` ตาม `.node-version` และ lockfile
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-เปิด `/prototype/field?variant=A` แล้วใช้ switcher เพื่อเปรียบเทียบ A/B/C หรือเปิด `/prototype/field/SSK-024?variant=C` สำหรับเส้นทางหลักฐาน คำสั่งตรวจหลักคือ `npm run verify` และ `npm run test:e2e`
+เปิด `/` สำหรับ production entry ซึ่งจะไป `/sign-in`; หากยังไม่มี `.env.local` ระบบต้องแสดงสถานะ `ยังไม่ได้เชื่อมต่อระบบยืนยันตัวตน` โดยไม่สร้างผู้ใช้จำลอง คัดลอกชื่อค่าจาก `.env.example` เมื่อต้องเชื่อม Supabase local ที่ได้รับอนุญาต เปิด `/prototype/field?variant=A` โดยตรงเมื่อต้อง review prototype เท่านั้น คำสั่งตรวจหลักคือ `npm run verify` และ `npm run test:e2e`; database/RLS test ต้องมี Docker engine และ `npx supabase start` ก่อนจึงนับ evidence ได้
 
 ## ลำดับการอ่าน
 
@@ -34,6 +34,6 @@ npm run dev
 
 ## เทคโนโลยี
 
-Prototype ใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright โดยยังไม่มี live backend สถาปัตยกรรมเป้าหมายเพิ่ม Supabase Auth/PostgreSQL/RLS/private Storage, Vercel Hobby และ GitHub ตามแผน ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
+ระบบใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright พร้อม Supabase SSR/JavaScript clients, Zod และ Supabase CLI ที่ pin version แล้ว Migration เป้าหมาย Supabase Auth/PostgreSQL/RLS/private Storage ยังเป็น local-first และไม่ถูก provision บน cloud; Vercel Hobby และ GitHub remote เป็นขั้นถัดไปตามแผน ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
 
 แนวทางการเปลี่ยนเอกสารและข้อห้ามด้านข้อมูลอยู่ใน [AGENTS.md](AGENTS.md)

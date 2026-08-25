@@ -1,0 +1,84 @@
+.state {
+  display: grid;
+  width: min(100%, 620px);
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 44px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.caution {
+  border-color: #d8c59c;
+  background: var(--amber-soft);
+}
+
+.icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--indigo-soft);
+  color: var(--indigo);
+}
+
+.caution .icon {
+  background: #fff8e9;
+  color: var(--amber);
+}
+
+.copy {
+  min-width: 0;
+}
+
+.copy h1 {
+  margin: 0 0 10px;
+  font-family: "Bai Jamjuree", "Noto Sans Thai Variable", sans-serif;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  line-height: 1.2;
+}
+
+.copy p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.copy p + p {
+  margin-top: 12px;
+}
+
+.note {
+  font-size: 0.88rem;
+}
+
+.primaryAction {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 22px;
+  padding: 10px 16px;
+  border: 1px solid var(--indigo);
+  border-radius: 12px;
+  background: var(--indigo);
+  color: white;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primaryAction:hover {
+  background: var(--indigo-deep);
+}
+
+@media (max-width: 480px) {
+  .state {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 22px 18px;
+  }
+}
