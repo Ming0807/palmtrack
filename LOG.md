@@ -597,3 +597,87 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | A minimal child-process probe returned a null exit status and `EINVAL`; Docker services remained healthy |
 | Resolution / status | `resolved` — invoke npm's `npx-cli.js` through the current Node executable, retaining argument-array isolation without a command shell |
 | Related commit | local population-import E2E commit |
+
+### DEV-20260825-043 — Project label matched a non-database Docker container
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T16:02:00Z` |
+| Environment | Supabase local E2E setup |
+| Severity | low |
+| Component | local database target guard |
+| Error code / sanitized message | `AMBIGUOUS_LOCAL_CONTAINER` — two running containers carried the same Supabase project label |
+| Impact | Fail-closed setup stopped before profile seeding |
+| Reproduction / evidence | Label-only discovery returned the expected database plus one unrelated generated container |
+| Resolution / status | `resolved` — resolve the exact `supabase_db_palmtrack` name, then independently verify its project label before piping SQL |
+| Related commit | local population-import E2E commit |
+
+### DEV-20260825-044 — PostgreSQL UNION inferred role literals as text
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T16:04:00Z` |
+| Environment | synthetic local profile seed |
+| Severity | low |
+| Component | local E2E role fixture |
+| Error code / sanitized message | `42804` — `app_role` column received a text expression from a UNION query |
+| Impact | Auth users were created after reset but profile setup rolled back atomically |
+| Reproduction / evidence | PostgreSQL resolved the UNION literal column as text before assignment to the enum column |
+| Resolution / status | `resolved` — cast every role and status literal to the exact public enum types; teardown/reset removes partial Auth fixtures |
+| Related commit | local population-import E2E commit |
+
+### DEV-20260825-045 — Browser alert query also matched Next route announcer
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T16:07:00Z` |
+| Environment | authenticated Playwright local suite |
+| Severity | low |
+| Component | sanitized validation-summary assertion |
+| Error code / sanitized message | `STRICT_MODE_VIOLATION` — `role=alert` matched both the form summary and Next's empty route announcer |
+| Impact | One browser assertion failed although the sanitized validation summary rendered correctly and no database row was written |
+| Reproduction / evidence | Browser output identified two semantic alerts; all role negatives and positive flows continued to pass |
+| Resolution / status | `resolved` — scope the assertion by the stable Thai summary copy; targeted mobile/desktop rerun passed |
+| Related commit | population import evidence documentation commit |
+
+### DEV-20260825-046 — Protected application routes were prerendered without runtime environment
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T16:18:00Z` |
+| Environment | Next.js 16 production build without local environment values |
+| Severity | high |
+| Component | protected `/app` request-time boundary |
+| Error code / sanitized message | `STATIC_AUTH_BOUNDARY` — build output marked `/app`, `/app/research` and `/app/research/population` as static |
+| Impact | A deployment built without runtime Supabase values could cache the unconfigured state instead of resolving cookies and environment per request |
+| Reproduction / evidence | `next build` showed static route symbols because environment parsing returned before the conditional `cookies()` call was reached during prerendering |
+| Resolution / status | `resolved` — the protected parent layout now awaits Next.js `connection()` before session resolution; repeat build must mark every `/app` route dynamic |
+| Related commit | population import evidence documentation commit |
+
+### DEV-20260825-047 — Generic browser config discovered local-auth-only tests
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T16:21:00Z` |
+| Environment | generic unconfigured Playwright suite |
+| Severity | medium |
+| Component | browser environment isolation |
+| Error code / sanitized message | `LOCAL_SPEC_IN_GENERIC_PROJECT` — the default test directory discovered the new authenticated population spec while public environment values were intentionally blank |
+| Impact | Existing isolated browser tests passed, but local-auth journeys failed before sign-in because their setup was not active |
+| Reproduction / evidence | Default config collected 44 tests including the local-only file; its web server correctly exposed only the truthful unconfigured state |
+| Resolution / status | `resolved` — default config explicitly ignores the local-only spec; `playwright.local.config.ts` remains its sole runner and fail-closed environment owner |
+| Related commit | population import evidence documentation commit |
+
+### DEV-20260825-048 — Live locator rebound to another pending receipt
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T16:27:00Z` |
+| Environment | two-project authenticated Playwright suite |
+| Severity | low |
+| Component | accepted-snapshot wait condition |
+| Error code / sanitized message | `LOCATOR_REBOUND_TIMEOUT` — a live `.first()` locator rebound to an older validated receipt after the clicked button detached |
+| Impact | Mobile project passed; two desktop positive tests timed out even though the requested snapshots were accepted |
+| Reproduction / evidence | Earlier idempotency coverage intentionally left another validated receipt in the shared per-run database |
+| Resolution / status | `resolved` — retain the clicked element handle and wait for that exact element to become hidden instead of re-evaluating a collection locator |
+| Related commit | population import evidence documentation commit |

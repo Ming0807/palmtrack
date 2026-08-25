@@ -27,6 +27,7 @@
 | [Safety Skeleton plan](superpowers/plans/2026-08-25-palmtrack-safety-skeleton.md) | Approved for execution | admin | auth/profile/5 roles/workspace seam/RLS/audit/Thai shell แบบ local-first และ deny-by-default |
 | [Population import design](superpowers/specs/2026-08-25-palmtrack-population-import-design.md) | Approved for implementation | research_manager | FR-02 synthetic CSV validation, atomic import, immutable accepted snapshot, RLS/audit และ production UI |
 | [Population import plan](superpowers/plans/2026-08-25-palmtrack-population-import.md) | Approved for execution | admin | แผน TDD สำหรับ domain parser, local SQL/RLS/audit, server action, production UI และ local authenticated evidence |
+| [Population import visual evidence](assets/population-import/README.md) | Verified local evidence | research_manager | ภาพ accepted synthetic snapshot ที่ 360px/desktop พร้อม fixture digest และขอบเขต local-only |
 
 ไฟล์ระดับ root: [product context](../PRODUCT.md), [implemented design system](../DESIGN.md), [project overview](../README.md), [contribution instructions](../AGENTS.md) และ [sanitized development error/incident ledger](../LOG.md) (ไม่ใช่ application runtime log)
 

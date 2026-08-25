@@ -20,6 +20,7 @@ const e2eEnvironment = Object.fromEntries(
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: "**/population-import.spec.ts",
   fullyParallel: true,
   forbidOnly: true,
   retries: 0,

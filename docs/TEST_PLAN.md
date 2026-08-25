@@ -11,6 +11,13 @@
 - Playwright verifies `/`→`/sign-in`, truthful unconfigured `/sign-in` and `/app`, no production navigation to `/prototype`, axe serious/critical และ horizontal overflow on 360px/desktop
 - `supabase/tests/database/001_safety_skeleton.test.sql` defines 55 assertions for role hardening, exact operator memberships, bootstrap, grants/RLS catalog state, Auth helper isolation, projection, cross-workspace deny, recovery boundary, audit allowlists และ database-hard mutation guards สถานะคือ **passed local + hosted** บน PostgreSQL 17 เมื่อ 2026-08-25; ผลนี้นับเป็น database/RLS evidence แต่ยังไม่แทน E2E-01 five-role authenticated browser sessions
 
+### Current population-import execution boundary — 2026-08-25
+
+- Domain/server/component suites cover strict UTF-8 CSV parsing, canonical SHA-256, exact roles, safe provider-error projection, RPC mapping, sanitized error download, immutable receipt และ Thai timestamp
+- `supabase/tests/database/002_population_import.test.sql` ร่วมกับ Safety Skeleton ผ่าน **98/98 local pgTAP assertions**; schema lint ผ่าน และ compensating rollback ถูก rehearse บน disposable local database ก่อน reset/reapply สำเร็จ
+- Authenticated local Playwright ผ่าน admin/research_manager positive flows, collector/farmer/evaluator negative route checks, invalid no-write, idempotent double-submit, offline blocking, keyboard focus, axe serious/critical และ 360px overflow พร้อม [mobile/desktop evidence](assets/population-import/README.md)
+- Evidence นี้ใช้ synthetic fixture 3 แถวสำหรับ tracer bullet เท่านั้น ไม่แทน FX-BASE 121-member sampling acceptance และ migration `202608250002` ยังไม่ผ่าน hosted run
+
 ## Acceptance fixtures
 
 `FX-BASE` เป็นข้อมูลสังเคราะห์: workspace `ws-synthetic`; user อย่างละหนึ่งต่อห้าบทบาทและ second collector/farmer สำหรับ cross-owner; population 121 member ที่ใช้ `farmer_code` `SYN-001` ถึง `SYN-121` กระจายในอย่างน้อย 3 strata; `e=0.05`; recorded seed `palmtrack-acceptance-seed-v1`; approved synthetic questionnaire metadata ที่ใช้ question code/type/options แต่ไม่มีคำถามวิจัยจริง; assignment ที่ present notice แล้วมี granted consent จับคู่ response `draft`, `submitted`, `returned`, `verified` อย่างละกรณี และ declined consent ที่ไม่มี baseline/response; withdrawn case เริ่มจาก consent granted แล้ว transition ทั้ง current consent และ response เป็น `withdrawn` จึง **ไม่ถือว่า current consent granted**; verified-correction chain ที่เก็บ prior snapshot; farmer สองราย/farm/plot; active/deleted expense และ sale; private attachments คนละ owner

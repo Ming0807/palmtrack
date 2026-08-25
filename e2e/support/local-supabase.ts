@@ -172,8 +172,9 @@ export async function completeValidPopulationImport(page: Page, fixturePath: str
   await page.getByRole("button", { name: "ตรวจและนำเข้า" }).click();
   await page.getByText("ตรวจผ่านทั้งชุด").waitFor();
   const acceptButton = page.getByRole("button", { name: "รับ snapshot" }).first();
+  const acceptedElement = await acceptButton.elementHandle();
   await acceptButton.click();
-  await acceptButton.waitFor({ state: "detached" });
+  await acceptedElement?.waitForElementState("hidden");
 }
 
 export async function databaseImportCount(): Promise<number> {

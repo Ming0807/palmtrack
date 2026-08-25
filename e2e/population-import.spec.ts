@@ -15,11 +15,13 @@ test("[E2E-02] research manager validates and accepts a synthetic population", a
   await signInAs(page, "research_manager");
   await completeValidPopulationImport(page, validFixturePath);
   await expect(page.getByText("snapshot ถูกล็อกแล้ว").first()).toBeVisible();
-  await page.getByRole("heading", { name: "นำเข้าประชากร" }).click();
-  await page.screenshot({
-    path: `docs/assets/population-import/${testInfo.project.name === "mobile" ? "mobile" : "desktop"}.png`,
-    fullPage: true,
-  });
+  if (process.env.PALMTRACK_E2E_CAPTURE_EVIDENCE === "1") {
+    await page.getByRole("heading", { name: "นำเข้าประชากร" }).click();
+    await page.screenshot({
+      path: `docs/assets/population-import/${testInfo.project.name === "mobile" ? "mobile" : "desktop"}.png`,
+      fullPage: true,
+    });
+  }
 });
 
 test("[E2E-15] admin uses the same audited import path", async ({ page }) => {

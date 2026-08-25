@@ -43,3 +43,17 @@ Automated documentation verification ต้องเปรียบเทีย�
 | NFR-03 | strict safe-event projection tests plus ordered SQL migration for non-null actor/workspace audit, allowlisted action/detail values, internal writer role chain and insert/update/delete/truncate guards | application sanitizer verified; PostgreSQL 17 migration/schema lint passed locally, migration applied to hosted Supabase, and all 55 pgTAP assertions passed against both targets |
 
 Evidence นี้เป็น progress ของ increment ไม่ใช่ V1 acceptance sign-off และไม่แทน RLS/restore tests ที่ยังไม่รัน
+
+## Population Import evidence status — 2026-08-25
+
+| Requirement | Implemented evidence in this increment | Status boundary |
+|---|---|---|
+| FR-02 | strict synthetic CSV parser/canonical digest; atomic create/list/accept RPCs; immutable accepted snapshot; source authorization, eligibility rule, counts and actor timestamps; Thai `/app/research/population` flow | unit, server, 98 local pgTAP assertions and authenticated local E2E pass; 121-member sampling/Yamane/allocation remain pending and migration `202608250002` is not hosted |
+| NFR-01 | application role gate plus database RPC role gate; no direct API table privileges; RLS forced; collector/farmer/evaluator and anonymous denial | exact local negative matrix passes; hosted evidence remains at Safety Skeleton migration 001 |
+| NFR-03 | create and accept audit events contain allowlisted provenance/count/status fields with stable profile actors; accepted record cannot be edited or deleted | local pgTAP checks exact before/after evidence and mutation guards; hosted 002 audit evidence pending |
+| NFR-05 | Thai minimal-premium evidence sheet at 360px and desktop with synthetic-only boundary and no horizontal overflow | [bounded screenshots](assets/population-import/README.md) and authenticated browser run pass |
+| NFR-06 | semantic labels/status/alert, keyboard focus, disabled pending action and axe serious/critical scan | local mobile and desktop browser evidence passes; field usability sign-off remains pending |
+| NFR-08 | full-file validation before RPC, transactional member insert, canonical digest recheck and idempotency key | invalid fixture writes zero rows and double submission adds exactly one import in local E2E |
+| NFR-09 | ordered migration, 98 assertions, schema lint, reviewed compensating rollback and sanitized incident ledger | local implementation evidence complete; deploy/restore/hosted migration evidence remains pending |
+
+Evidence นี้เป็น tracer-bullet progress ไม่ใช่ FR-02/V1 acceptance sign-off และไม่อนุญาตข้อมูลจริง

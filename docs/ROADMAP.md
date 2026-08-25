@@ -25,6 +25,8 @@ Roadmap นี้จัดให้ทีม 2–3 คนทำงาน 4–6 �
 
 Safety Skeleton increment เริ่ม implementation planning หลัง prototype ผ่าน verification เมื่อ 2026-08-25 รายละเอียดและลำดับ test-first อยู่ใน [Safety Skeleton implementation plan](superpowers/plans/2026-08-25-palmtrack-safety-skeleton.md) โดยยังไม่อนุมัติ cloud provisioning หรือข้อมูลจริง
 
+สถานะ increment 2 เมื่อ 2026-08-25: tracer bullet **population import** เสร็จใน local environment ตั้งแต่ parser → RPC/RLS/audit → server action → Thai responsive UI → authenticated E2E และมี [visual evidence](assets/population-import/README.md) แล้ว ส่วน Yamane, proportional allocation, seeded shuffle, sampling run lifecycle และ hosted migration `202608250002` ยัง pending จึงยังไม่ถือว่า increment 2 หรือ FR-02 ทั้งวงจรเสร็จบน hosted environment
+
 แต่ละ increment ต้องมี requirement/test IDs, migration rollback, no-real-data review และ evidence ก่อนเริ่ม increment ต่อไป Slice ควรส่ง UI→server→RLS→audit→test ครบ ไม่สร้าง layer ทั้งก้อนล่วงหน้า
 
 ## V1.1 candidates

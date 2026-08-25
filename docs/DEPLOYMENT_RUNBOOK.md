@@ -26,6 +26,8 @@ Environment-variable **names only** ที่วางแผน: `NEXT_PUBLIC_SU
 
 ## Migration and deploy
 
+ก่อน apply ให้รัน `supabase migration list` และยืนยันว่า local/remote history ตรงกับสภาพจริง Apply เฉพาะ version ที่ pending ผ่าน `supabase db push` หรือ migration tooling ที่ได้รับอนุมัติ **หนึ่งครั้ง** ห้ามคัดลอก ordered migration ที่ remote บันทึกแล้วไปรันซ้ำใน SQL Editor เพราะจะเกิด duplicate-object error เช่น `42P07`; ห้ามแก้ด้วยการ drop relation เดิม ปัจจุบัน `202608250001` อยู่บน hosted แล้ว ส่วน `202608250002` เป็น local-only และต้องผ่าน backup/approval ก่อน apply ภายหลัง
+
 1. Lock approved commit, backup current DB/storage ตาม procedure ด้านล่าง และ verify checksum/restore ล่าสุด
 2. Dry-run migration กับ clone/clean synthetic target; review destructive/locking query และ backward compatibility
 3. Apply additive/backward-compatible DB migration ด้วย least-privileged migration identity ตรวจ version/constraints/RLS tests
