@@ -26,7 +26,7 @@ describe("createSupabaseBrowserClient", () => {
       createSupabaseBrowserClient({
         environment: {
           NEXT_PUBLIC_SUPABASE_URL: "not-a-url",
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "synthetic-anon-key",
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_synthetic",
         },
       }),
     ).toMatchObject({
@@ -35,18 +35,18 @@ describe("createSupabaseBrowserClient", () => {
     });
   });
 
-  it("constructs only with the public URL and anon key", () => {
+  it("constructs only with the public URL and publishable key", () => {
     const result = createSupabaseBrowserClient({
       environment: {
         NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: "synthetic-anon-key",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_synthetic",
       },
     });
 
     expect(result.status).toBe("configured");
     expect(createBrowserClientMock).toHaveBeenCalledWith(
       "https://example.supabase.co",
-      "synthetic-anon-key",
+      "sb_publishable_synthetic",
     );
   });
 });

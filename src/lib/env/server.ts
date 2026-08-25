@@ -2,10 +2,12 @@ import "server-only";
 
 import { z } from "zod";
 
-const publicEnvironmentSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.string().trim().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().trim().min(1),
-});
+const supabaseUrlSchema = z.string().trim().url();
+const supabaseKeySchema = z.string().trim().min(1);
+
+type ServerEnvironmentField =
+  | "NEXT_PUBLIC_SUPABASE_URL"
+  | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
 
 export type ServerEnvironment =
   | {
@@ -14,12 +16,12 @@ export type ServerEnvironment =
   | {
       status: "configured";
       supabaseUrl: string;
-      supabaseAnonKey: string;
+      supabaseKey: string;
       serviceRoleKey?: string;
     }
   | {
       status: "invalid";
-      fields: readonly ("NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY")[];
+      fields: readonly ServerEnvironmentField[];
       message: string;
     };
 
@@ -27,37 +29,37 @@ export function parseServerEnv(
   input: Record<string, string | undefined> = process.env,
 ): ServerEnvironment {
   const url = input.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = input.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const publishableKey =
+    input.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+  const legacyAnonKey = input.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const key = publishableKey || legacyAnonKey;
   const serviceRoleKey = input.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
-  if (!url && !anonKey && !serviceRoleKey) {
+  if (!url && !key && !serviceRoleKey) {
     return { status: "unconfigured" };
   }
 
-  const parsedPublic = publicEnvironmentSchema.safeParse({
-    NEXT_PUBLIC_SUPABASE_URL: url,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: anonKey,
-  });
+  const parsedUrl = supabaseUrlSchema.safeParse(url);
+  const parsedKey = supabaseKeySchema.safeParse(key);
 
-  if (!parsedPublic.success) {
-    const fields = parsedPublic.error.issues
-      .map((issue) => issue.path[0])
-      .filter(
-        (field): field is "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY" =>
-          field === "NEXT_PUBLIC_SUPABASE_URL" || field === "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      );
+  if (!parsedUrl.success || !parsedKey.success) {
+    const fields: ServerEnvironmentField[] = [];
+    if (!parsedUrl.success) fields.push("NEXT_PUBLIC_SUPABASE_URL");
+    if (!parsedKey.success) {
+      fields.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+    }
 
     return {
       status: "invalid",
-      fields: [...new Set(fields)],
+      fields,
       message: "Supabase environment configuration is incomplete or invalid.",
     };
   }
 
   return {
     status: "configured",
-    supabaseUrl: parsedPublic.data.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: parsedPublic.data.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl: parsedUrl.data,
+    supabaseKey: parsedKey.data,
     ...(serviceRoleKey ? { serviceRoleKey } : {}),
   };
 }

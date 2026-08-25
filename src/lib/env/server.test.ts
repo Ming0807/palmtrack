@@ -20,10 +20,23 @@ describe("parseServerEnv", () => {
 
     expect(result).toMatchObject({
       status: "invalid",
-      fields: ["NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+      fields: ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"],
     });
     expect(JSON.stringify(result)).not.toContain(secret);
     expect(JSON.stringify(result)).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+  });
+
+  it("[NFR-01] accepts the preferred publishable key without a server secret", () => {
+    expect(
+      parseServerEnv({
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_synthetic",
+      }),
+    ).toEqual({
+      status: "configured",
+      supabaseUrl: "https://example.supabase.co",
+      supabaseKey: "sb_publishable_synthetic",
+    });
   });
 
   it("[NFR-01] rejects an invalid Supabase URL", () => {
@@ -48,7 +61,7 @@ describe("parseServerEnv", () => {
     expect(result).toEqual({
       status: "configured",
       supabaseUrl: "https://example.supabase.co",
-      supabaseAnonKey: "anon-key",
+      supabaseKey: "anon-key",
       serviceRoleKey: "synthetic-service-role-value",
     });
   });
@@ -59,7 +72,10 @@ describe("parseServerEnv", () => {
 
     expect(result).toMatchObject({
       status: "invalid",
-      fields: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+      fields: [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+      ],
     });
     expect(JSON.stringify(result)).not.toContain(secret);
     expect(JSON.stringify(result)).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
@@ -74,7 +90,7 @@ describe("parseServerEnv", () => {
     expect(result).toEqual({
       status: "configured",
       supabaseUrl: "https://example.supabase.co",
-      supabaseAnonKey: "anon-key",
+      supabaseKey: "anon-key",
     });
     expect("serviceRoleKey" in result).toBe(false);
   });

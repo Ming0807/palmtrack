@@ -217,8 +217,8 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Error code / sanitized message | `DOCKER_ENGINE_UNAVAILABLE` — the installed Docker client could not connect to the local Linux engine pipe |
 | Impact | Supabase migration reset and PostgreSQL/RLS tests cannot be claimed until a compatible local container engine is running; TypeScript, build, and non-database tests remain available |
 | Reproduction / evidence | A read-only Docker version check returned client version `29.1.2` and no server version because the expected local engine pipe was absent |
-| Resolution / status | `open` — continue the independently verifiable application slices and rerun database verification after the user starts or installs a compatible Docker engine; keep all RLS evidence explicitly unverified meanwhile |
-| Related commit | pending Safety Skeleton implementation commit |
+| Resolution / status | `resolved` — Docker engine became available; Supabase local reset, schema lint, and all 55 final pgTAP assertions passed, followed by the same 55 assertions against Supabase hosted |
+| Related commit | pending hosted migration compatibility commit |
 
 ### DEV-20260825-016 — Installed ESLint release is no longer supported
 
@@ -357,7 +357,7 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Error code / sanitized message | `POSTGRES_JSONB_OBJECT_LENGTH_UNAVAILABLE` — the migration draft called a JSON object-length helper that PostgreSQL does not provide |
 | Impact | Every approved audit append would have failed during bootstrap or privileged transactions if the draft had been applied |
 | Reproduction / evidence | Independent static review compared the function call with PostgreSQL's built-in JSON functions; the local database could not be run because the Docker prerequisite remains unavailable |
-| Resolution / status | `resolved` — validate object type separately, count keys through `pg_catalog.jsonb_object_keys`, and obtain a final static Luna review with no P0/P1/P2; runtime SQL status remains unverified |
+| Resolution / status | `resolved` — validate object type separately and count keys through `pg_catalog.jsonb_object_keys`; subsequent Docker-backed local and hosted PostgreSQL runs parsed the function and all 55 final pgTAP assertions passed |
 | Related commit | pending Safety Skeleton implementation commit |
 
 ### DEV-20260825-026 — Public environment defaults used an indirect browser access path
@@ -387,3 +387,157 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Root compared the migration's fixed-return signature with the TypeScript projection before database runtime was available |
 | Resolution / status | `resolved` — accept the exact `profile_id` contract (while retaining injected fixture compatibility), add an explicit resolver regression test, and pass 103 tests plus final Luna review with no P0/P1/P2 |
 | Related commit | pending Safety Skeleton implementation commit |
+
+### DEV-20260825-028 — Hosted migration requested superuser-only role attributes
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time; user reported the event earlier) |
+| Environment | Supabase hosted PostgreSQL 17.6 migration |
+| Severity | high |
+| Component | internal database-role hardening |
+| Error code / sanitized message | `42501` — a non-superuser migration session attempted `ALTER ROLE ... NOSUPERUSER` together with other provider-managed attributes |
+| Impact | The initial Safety Skeleton migration rolled back before creating application tables |
+| Reproduction / evidence | Supabase reported that only a role with `SUPERUSER` may alter the `SUPERUSER` attribute; PostgreSQL documentation confirms this restriction even when requesting the negative form |
+| Resolution / status | `resolved` — create each role with safe defaults, inspect `pg_roles`, and fail closed on unsafe pre-existing attributes without requesting superuser-only changes; local and hosted migrations passed |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-029 — Diagnostic lookup used the wrong Vitest config suffix
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | local repository diagnosis |
+| Severity | low |
+| Component | test-runner configuration discovery |
+| Error code / sanitized message | `PATH_NOT_FOUND` — attempted to read `vitest.config.ts` while the repository uses `vitest.config.mts` |
+| Impact | One read-only inspection stopped; no files changed |
+| Reproduction / evidence | PowerShell reported the requested path did not exist; `rg --files` returned the actual `.mts` path |
+| Resolution / status | `resolved` — discover config filenames before reading and use the tracked `.mts` file |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-030 — Combined patch targeted the same file twice
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | environment-contract implementation |
+| Severity | low |
+| Component | repository patch application |
+| Error code / sanitized message | `APPLY_PATCH_DUPLICATE_TARGET` — one patch attempted delete and add operations against the same two files |
+| Impact | The patch was rejected atomically and made no change |
+| Reproduction / evidence | Patch validation rejected multiple operations targeting the same path |
+| Resolution / status | `resolved` — split deletion and addition into separate atomic patches, then rerun targeted tests |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-031 — PostgreSQL rejected a repeated self-admin grant
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | Supabase local PostgreSQL 17 role migration |
+| Severity | high |
+| Component | internal role membership needed for function ownership |
+| Error code / sanitized message | `0LP01` — `ADMIN` option cannot be granted back to the grantor itself |
+| Impact | The first Docker-backed migration attempt rolled back in the role bootstrap block |
+| Reproduction / evidence | PostgreSQL 17 automatically creates a provider-admin grant for roles created by a non-superuser; requesting another self-grant with `ADMIN TRUE` is invalid |
+| Resolution / status | `resolved` — retain the provider administration grant and add a separate `ADMIN FALSE, INHERIT FALSE, SET TRUE` membership required for owner transfer; reject all other memberships |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-032 — Audit allowlist CASE expression did not parse
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | Supabase local migration parser |
+| Severity | high |
+| Component | append-only audit function |
+| Error code / sanitized message | `42601` — syntax error in an unparenthesized `IF CASE` expression |
+| Impact | Migration parsing stopped before privileged functions were installed |
+| Reproduction / evidence | PostgreSQL identified the `private.append_audit_event` function body and stopped at the CASE branch |
+| Resolution / status | `resolved` — parenthesize the SQL CASE expression inside the PL/pgSQL IF condition; both local and hosted parsers accepted the migration |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-033 — Function owners lacked CREATE on their schemas
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | Supabase local migration ownership transfer |
+| Severity | high |
+| Component | hardened SECURITY DEFINER ownership |
+| Error code / sanitized message | `42501` — permission denied for schema `private` during function-owner transfer |
+| Impact | Migration stopped before applying the dedicated function owners |
+| Reproduction / evidence | PostgreSQL requires a new function owner to hold `CREATE` on the containing schema; the draft granted only `USAGE` |
+| Resolution / status | `resolved` — grant schema `CREATE` only to the two NOLOGIN owner roles on the exact `public`/`private` schemas they own functions in |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-034 — Function comments were applied after owner transfer
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | Supabase local migration ownership sequence |
+| Severity | medium |
+| Component | bootstrap and recovery function metadata |
+| Error code / sanitized message | `42501` — migration session was no longer the function owner when applying `COMMENT ON FUNCTION` |
+| Impact | Migration reached its final statements but rolled back before commit |
+| Reproduction / evidence | Database error identified the recovery function comment immediately after its owner was changed |
+| Resolution / status | `resolved` — apply comments while the migration session still owns each function, before transferring ownership |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-035 — pgTAP helper was unavailable after switching to recovery role
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | Supabase local pgTAP suite |
+| Severity | medium |
+| Component | recovery-role positive-path tests |
+| Error code / sanitized message | `42883` — `lives_ok(unknown, unknown)` was not visible after `SET LOCAL ROLE palmtrack_recovery_executor` |
+| Impact | The database test file stopped after 19 of 54 assertions |
+| Reproduction / evidence | The hardened recovery role intentionally lacks access to the schema containing pgTAP helpers |
+| Resolution / status | `resolved` — execute the recovery operation directly under the role, reset role, then record one pgTAP `pass`; production privileges remain unchanged |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-036 — Supabase protected auth schema from the custom owner role
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | Supabase local bootstrap runtime |
+| Severity | high |
+| Component | Auth UID verification boundary |
+| Error code / sanitized message | `42501` — permission denied for schema `auth` inside the transaction-owner function |
+| Impact | Workspace bootstrap could not verify its synthetic Auth user |
+| Reproduction / evidence | Catalog inspection showed table `SELECT` but no effective schema `USAGE`; Supabase retained its protected auth-schema ACL |
+| Resolution / status | `resolved` — keep auth access in a fixed-argument, boolean SECURITY DEFINER helper owned by the database operator; grant only its execution to the transaction owner and remove direct auth-table access |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-037 — Function ACL changes occurred after owner transfer
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | Supabase local pgTAP and ACL catalog inspection |
+| Severity | critical |
+| Component | privileged function execution grants |
+| Error code / sanitized message | `ACL_ORDERING_PUBLIC_EXECUTE` — recovery role could execute the audit writer because `PUBLIC EXECUTE` remained after ineffective post-transfer revokes |
+| Impact | Privileged functions were broader than the intended caller allowlist even though their dedicated owners were correct |
+| Reproduction / evidence | pgTAP failed assertion 46; `pg_proc.proacl` showed `=X` and no intended explicit caller ACL after ownership transfer |
+| Resolution / status | `resolved` — order every privileged function as create, revoke default access, grant exact callers, then transfer owner; local and hosted pgTAP passed all 55 final assertions and remote ACL inspection contains no `PUBLIC` entry |
+| Related commit | pending hosted migration compatibility commit |
+
+### DEV-20260825-038 — Supabase generated code entered the lint scope
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T14:28:13Z` (entry time) |
+| Environment | full repository verification after local Supabase start |
+| Severity | low |
+| Component | ESLint generated-file boundaries |
+| Error code / sanitized message | `GENERATED_SUPABASE_LINT_SCOPE` — vendor edge-runtime code under `supabase/.temp` produced 205 lint findings |
+| Impact | The first full `npm run verify` stopped at lint despite application source remaining clean |
+| Reproduction / evidence | Every finding pointed to one Supabase-generated temporary bundle already excluded from Git |
+| Resolution / status | `resolved` — add `supabase/.temp/**` and `supabase/.branches/**` to ESLint global ignores; full lint, typecheck, 108 tests, and production build passed |
+| Related commit | pending hosted migration compatibility commit |

@@ -1,6 +1,6 @@
 begin;
 
-select plan(54);
+select plan(55);
 
 select has_type('public', 'app_role', 'app_role enum exists');
 select enum_has_labels(
@@ -53,6 +53,7 @@ select ok(
   not role_state.rolcanlogin
     and not role_state.rolinherit
     and not role_state.rolsuper
+    and not role_state.rolcreatedb
     and not role_state.rolcreaterole
     and not role_state.rolreplication
     and not role_state.rolbypassrls
@@ -65,6 +66,7 @@ select ok(
   not role_state.rolcanlogin
     and not role_state.rolinherit
     and not role_state.rolsuper
+    and not role_state.rolcreatedb
     and not role_state.rolcreaterole
     and not role_state.rolreplication
     and not role_state.rolbypassrls
@@ -77,6 +79,7 @@ select ok(
   not role_state.rolcanlogin
     and not role_state.rolinherit
     and not role_state.rolsuper
+    and not role_state.rolcreatedb
     and not role_state.rolcreaterole
     and not role_state.rolreplication
     and not role_state.rolbypassrls
@@ -85,17 +88,63 @@ select ok(
 )
 from pg_catalog.pg_roles as role_state
 where role_state.rolname = 'palmtrack_recovery_executor';
-select is(
+select ok(
   (
-    select count(*)
+    select count(*) = 3
+    from (
+      select granted.rolname
+      from pg_catalog.pg_auth_members as membership
+      join pg_catalog.pg_roles as granted on granted.oid = membership.roleid
+      join pg_catalog.pg_roles as member on member.oid = membership.member
+      where granted.rolname like 'palmtrack_%'
+        and member.rolname = session_user
+      group by granted.rolname
+      having count(*) = 2
+        and count(*) filter (
+          where membership.admin_option
+            and not membership.inherit_option
+            and not membership.set_option
+        ) = 1
+        and count(*) filter (
+          where not membership.admin_option
+            and not membership.inherit_option
+            and membership.set_option
+        ) = 1
+    ) as exact_operator_memberships
+  )
+  and not exists (
+    select 1
     from pg_catalog.pg_auth_members as membership
     join pg_catalog.pg_roles as granted on granted.oid = membership.roleid
     join pg_catalog.pg_roles as member on member.oid = membership.member
-    where granted.rolname like 'palmtrack_%'
+    where (
+      granted.rolname like 'palmtrack_%'
+      and member.rolname <> session_user
+    )
        or member.rolname like 'palmtrack_%'
   ),
-  0::bigint,
-  'internal roles retain no inherited memberships after reset hardening'
+  'internal roles grant controlled SET-only administration to the database operator'
+);
+select ok(
+  has_function_privilege(
+    'palmtrack_transaction_owner',
+    'private.auth_user_exists(uuid)',
+    'EXECUTE'
+  )
+    and not has_function_privilege('anon', 'private.auth_user_exists(uuid)', 'EXECUTE')
+    and not has_function_privilege('authenticated', 'private.auth_user_exists(uuid)', 'EXECUTE')
+    and not has_function_privilege('service_role', 'private.auth_user_exists(uuid)', 'EXECUTE')
+    and not has_function_privilege(
+      'palmtrack_recovery_executor',
+      'private.auth_user_exists(uuid)',
+      'EXECUTE'
+    )
+    and not has_function_privilege(
+      'palmtrack_audit_writer',
+      'private.auth_user_exists(uuid)',
+      'EXECUTE'
+    ),
+  'only the transaction owner can execute the fixed Auth existence helper'
 );
 select is(
   (
@@ -131,14 +180,12 @@ insert into auth.users (
   ('00000000-0000-0000-0000-000000000104', 'authenticated', 'authenticated', 'cross-workspace@synthetic.invalid', '', statement_timestamp(), statement_timestamp(), statement_timestamp());
 
 set local role palmtrack_recovery_executor;
-select lives_ok(
-  $$ select private.bootstrap_workspace(
-       'Synthetic PalmTrack workspace',
-       '00000000-0000-0000-0000-000000000101'::uuid
-     ) $$,
-  'recovery-only bootstrap moves zero active workspace to one'
+select private.bootstrap_workspace(
+  'Synthetic PalmTrack workspace',
+  '00000000-0000-0000-0000-000000000101'::uuid
 );
 reset role;
+select pass('recovery-only bootstrap moves zero active workspace to one');
 
 select is(
   (select count(*) from public.workspace where status = 'active'),
@@ -432,16 +479,14 @@ reset role;
 set local role palmtrack_recovery_executor;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000101';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000101","role":"authenticated"}';
-select lives_ok(
-  $$ select private.recovery_relink_auth_user(
-       '00000000-0000-0000-0000-000000000301'::uuid,
-       '00000000-0000-0000-0000-000000000102'::uuid,
-       'synthetic operator-verified recovery',
-       'synthetic institutional reference'
-     ) $$,
-  'verified recovery executor can relink a stable profile'
+select private.recovery_relink_auth_user(
+  '00000000-0000-0000-0000-000000000301'::uuid,
+  '00000000-0000-0000-0000-000000000102'::uuid,
+  'synthetic operator-verified recovery',
+  'synthetic institutional reference'
 );
 reset role;
+select pass('verified recovery executor can relink a stable profile');
 
 select is(
   (

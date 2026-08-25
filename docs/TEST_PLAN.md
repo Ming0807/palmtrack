@@ -9,7 +9,7 @@
 - TypeScript unit/component tests cover environment states, exact roles/permissions, session resolution, fixed-profile RPC adapter, credential parsing, role navigation, identity UI states และ safe application-event projection
 - ESLint, TypeScript และ Next.js production build run without `.env`; the built client must not contain the server-only credential name or a credential value
 - Playwright verifies `/`→`/sign-in`, truthful unconfigured `/sign-in` and `/app`, no production navigation to `/prototype`, axe serious/critical และ horizontal overflow on 360px/desktop
-- `supabase/tests/database/001_safety_skeleton.test.sql` currently defines 54 assertions for role hardening, bootstrap, grants/RLS catalog state, projection, cross-workspace deny, recovery boundary, audit allowlists และ database-hard mutation guards แต่สถานะคือ **implemented/unverified** เพราะ local Docker engine ไม่ทำงาน ห้ามนับเป็น RLS pass หรือ E2E-01 five-role pass
+- `supabase/tests/database/001_safety_skeleton.test.sql` defines 55 assertions for role hardening, exact operator memberships, bootstrap, grants/RLS catalog state, Auth helper isolation, projection, cross-workspace deny, recovery boundary, audit allowlists และ database-hard mutation guards สถานะคือ **passed local + hosted** บน PostgreSQL 17 เมื่อ 2026-08-25; ผลนี้นับเป็น database/RLS evidence แต่ยังไม่แทน E2E-01 five-role authenticated browser sessions
 
 ## Acceptance fixtures
 

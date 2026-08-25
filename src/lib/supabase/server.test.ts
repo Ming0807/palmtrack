@@ -19,7 +19,7 @@ import { createSupabaseServerClient } from "./server";
 
 const environment = {
   NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: "synthetic-anon-key",
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_synthetic",
 };
 
 describe("createSupabaseServerClient", () => {
@@ -38,7 +38,7 @@ describe("createSupabaseServerClient", () => {
       createSupabaseServerClient({
         environment: {
           NEXT_PUBLIC_SUPABASE_URL: "not-a-url",
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "synthetic-anon-key",
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_synthetic",
         },
       }),
     ).resolves.toMatchObject({
@@ -65,7 +65,7 @@ describe("createSupabaseServerClient", () => {
     expect(result.client).toBeDefined();
     expect(createServerClientMock).toHaveBeenCalledWith(
       environment.NEXT_PUBLIC_SUPABASE_URL,
-      environment.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
       expect.objectContaining({ cookies: expect.any(Object) }),
     );
 

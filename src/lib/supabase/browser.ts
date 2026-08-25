@@ -23,7 +23,7 @@ export type SupabaseBrowserClientOptions = {
   environment?: Record<string, string | undefined>;
 };
 
-/** Creates the browser client with public URL and anon credentials only. */
+/** Creates the browser client with public URL and publishable credentials only. */
 export function createSupabaseBrowserClient(
   options: SupabaseBrowserClientOptions = {},
 ): SupabaseBrowserClientResult {
@@ -44,7 +44,7 @@ export function createSupabaseBrowserClient(
     status: "configured",
     client: createBrowserClient(
       environment.supabaseUrl,
-      environment.supabaseAnonKey,
+      environment.supabaseKey,
     ),
   };
 }

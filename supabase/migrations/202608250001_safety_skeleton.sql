@@ -76,7 +76,7 @@ revoke all on schema private from public, anon, authenticated, service_role;
 do $$
 declare
   v_role_name text;
-  v_membership record;
+  v_operator_name name := session_user;
 begin
   foreach v_role_name in array array[
     'palmtrack_audit_writer',
@@ -86,37 +86,65 @@ begin
     if not exists (
       select 1 from pg_catalog.pg_roles where rolname = v_role_name
     ) then
-      execute format('create role %I', v_role_name);
+      execute format(
+        'create role %I with nologin noinherit nocreatedb nocreaterole connection limit 0',
+        v_role_name
+      );
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.pg_roles as role_state
+      where role_state.rolname = v_role_name
+        and (
+          role_state.rolcanlogin
+          or role_state.rolinherit
+          or role_state.rolsuper
+          or role_state.rolcreatedb
+          or role_state.rolcreaterole
+          or role_state.rolreplication
+          or role_state.rolbypassrls
+          or role_state.rolconnlimit <> 0
+        )
+    ) then
+      raise exception using
+        errcode = '42501',
+        message = 'PalmTrack internal role has unsafe provider-managed attributes',
+        detail = format('role=%I', v_role_name),
+        hint = 'Review the role with an authorized database operator before rerunning the migration.';
     end if;
 
     execute format(
-      'alter role %I with nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls connection limit 0 password null',
-      v_role_name
+      'grant %I to %I with admin false, inherit false, set true',
+      v_role_name,
+      v_operator_name
     );
   end loop;
 
-  for v_membership in
-    select granted.rolname as granted_role, member.rolname as member_role
+  if exists (
+    select 1
     from pg_catalog.pg_auth_members as membership
     join pg_catalog.pg_roles as granted on granted.oid = membership.roleid
     join pg_catalog.pg_roles as member on member.oid = membership.member
-    where granted.rolname = any(array[
+    where (
+      granted.rolname = any(array[
+        'palmtrack_audit_writer',
+        'palmtrack_transaction_owner',
+        'palmtrack_recovery_executor'
+      ])
+      and member.rolname <> v_operator_name
+    )
+    or member.rolname = any(array[
       'palmtrack_audit_writer',
       'palmtrack_transaction_owner',
       'palmtrack_recovery_executor'
     ])
-       or member.rolname = any(array[
-      'palmtrack_audit_writer',
-      'palmtrack_transaction_owner',
-      'palmtrack_recovery_executor'
-    ])
-  loop
-    execute format(
-      'revoke %I from %I',
-      v_membership.granted_role,
-      v_membership.member_role
-    );
-  end loop;
+  ) then
+    raise exception using
+      errcode = '42501',
+      message = 'PalmTrack internal role has an unsafe membership',
+      hint = 'Remove the unexpected membership with an authorized database operator before rerunning the migration.';
+  end if;
 end
 $$;
 
@@ -185,10 +213,10 @@ revoke all on table public.workspace, public.user_profile, public.audit_event
 
 grant insert on table public.audit_event to palmtrack_audit_writer;
 grant usage on schema public to palmtrack_audit_writer;
-grant usage on schema public, auth, private to palmtrack_transaction_owner;
+grant usage, create on schema private to palmtrack_audit_writer;
+grant usage, create on schema public, private to palmtrack_transaction_owner;
 grant usage on schema extensions to palmtrack_transaction_owner;
 grant usage on schema private to palmtrack_recovery_executor;
-grant select on table auth.users to palmtrack_transaction_owner;
 grant select, insert, update on table public.workspace, public.user_profile
   to palmtrack_transaction_owner;
 
@@ -256,6 +284,26 @@ create trigger audit_event_truncate_guard
 before truncate on public.audit_event
 for each statement execute function private.reject_audit_mutation();
 
+create or replace function private.auth_user_exists(p_auth_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, auth
+as $$
+  select exists (
+    select 1
+    from auth.users
+    where id = p_auth_user_id
+  )
+$$;
+
+revoke all on function private.auth_user_exists(uuid)
+  from public, anon, authenticated, service_role,
+    palmtrack_audit_writer, palmtrack_recovery_executor;
+grant execute on function private.auth_user_exists(uuid)
+  to palmtrack_transaction_owner;
+
 create or replace function private.append_audit_event(
   p_workspace_id uuid,
   p_actor_profile_id uuid,
@@ -307,7 +355,7 @@ begin
       message = 'audit action or detail keys are not allowlisted';
   end if;
 
-  if case p_action_code
+  if (case p_action_code
     when 'workspace.bootstrap' then
       p_details <> '{"status":"active"}'::jsonb
     when 'identity.profile_access_updated' then
@@ -328,7 +376,7 @@ begin
       coalesce(p_details ->> 'reason_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'recovery_reference_digest', '') !~ '^[0-9a-f]{64}$'
     else true
-  end then
+  end) then
     raise exception using
       errcode = '22023',
       message = 'audit detail values are invalid';
@@ -359,12 +407,12 @@ begin
 end;
 $$;
 
-alter function private.append_audit_event(uuid, uuid, text, text, uuid, text, jsonb)
-  owner to palmtrack_audit_writer;
 revoke all on function private.append_audit_event(uuid, uuid, text, text, uuid, text, jsonb)
   from public, anon, authenticated, service_role;
 grant execute on function private.append_audit_event(uuid, uuid, text, text, uuid, text, jsonb)
   to palmtrack_transaction_owner;
+alter function private.append_audit_event(uuid, uuid, text, text, uuid, text, jsonb)
+  owner to palmtrack_audit_writer;
 
 create or replace function public.current_profile_id()
 returns uuid
@@ -472,7 +520,7 @@ begin
     raise exception using errcode = '23505', message = 'active workspace already exists';
   end if;
 
-  if not exists (select 1 from auth.users where id = p_admin_auth_user_id) then
+  if not private.auth_user_exists(p_admin_auth_user_id) then
     raise exception using errcode = '23503', message = 'verified auth user is required';
   end if;
 
@@ -509,12 +557,15 @@ begin
 end;
 $$;
 
-alter function private.bootstrap_workspace(text, uuid)
-  owner to palmtrack_transaction_owner;
+comment on function private.bootstrap_workspace(text, uuid) is
+  'Out-of-band database bootstrap only. The verified Auth user becomes the first admin, and that newly provisioned stable profile is the actor for the atomic bootstrap audit event.';
+
 revoke all on function private.bootstrap_workspace(text, uuid)
   from public, anon, authenticated, service_role;
 grant execute on function private.bootstrap_workspace(text, uuid)
   to palmtrack_recovery_executor;
+alter function private.bootstrap_workspace(text, uuid)
+  owner to palmtrack_transaction_owner;
 
 create or replace function public.admin_set_profile_access(
   p_profile_id uuid,
@@ -568,12 +619,12 @@ begin
 end;
 $$;
 
-alter function public.admin_set_profile_access(uuid, public.app_role, public.record_status)
-  owner to palmtrack_transaction_owner;
 revoke all on function public.admin_set_profile_access(uuid, public.app_role, public.record_status)
   from public, anon, authenticated, service_role;
 grant execute on function public.admin_set_profile_access(uuid, public.app_role, public.record_status)
   to authenticated;
+alter function public.admin_set_profile_access(uuid, public.app_role, public.record_status)
+  owner to palmtrack_transaction_owner;
 
 create or replace function public.admin_update_workspace_name(p_name text)
 returns void
@@ -622,12 +673,12 @@ begin
 end;
 $$;
 
-alter function public.admin_update_workspace_name(text)
-  owner to palmtrack_transaction_owner;
 revoke all on function public.admin_update_workspace_name(text)
   from public, anon, authenticated, service_role;
 grant execute on function public.admin_update_workspace_name(text)
   to authenticated;
+alter function public.admin_update_workspace_name(text)
+  owner to palmtrack_transaction_owner;
 
 create or replace function private.recovery_relink_auth_user(
   p_profile_id uuid,
@@ -653,7 +704,7 @@ begin
     raise exception using errcode = '22023', message = 'recovery evidence is required';
   end if;
 
-  if not exists (select 1 from auth.users where id = p_new_auth_user_id) then
+  if not private.auth_user_exists(p_new_auth_user_id) then
     raise exception using errcode = '23503', message = 'verified auth user is required';
   end if;
 
@@ -698,17 +749,14 @@ begin
 end;
 $$;
 
-alter function private.recovery_relink_auth_user(uuid, uuid, text, text)
-  owner to palmtrack_transaction_owner;
+comment on function private.recovery_relink_auth_user(uuid, uuid, text, text) is
+  'Out-of-band database recovery only: a controlled database operator explicitly SET ROLEs to the NOLOGIN recovery executor after establishing verified active-admin JWT context. It is never exposed to service_role or API roles.';
+
 revoke all on function private.recovery_relink_auth_user(uuid, uuid, text, text)
   from public, anon, authenticated, service_role;
 grant execute on function private.recovery_relink_auth_user(uuid, uuid, text, text)
   to palmtrack_recovery_executor;
-
-comment on function private.recovery_relink_auth_user(uuid, uuid, text, text) is
-  'Out-of-band database recovery only: a controlled database operator explicitly SET ROLEs to the NOLOGIN recovery executor after establishing verified active-admin JWT context. It is never exposed to service_role or API roles.';
-
-comment on function private.bootstrap_workspace(text, uuid) is
-  'Out-of-band database bootstrap only. The verified Auth user becomes the first admin, and that newly provisioned stable profile is the actor for the atomic bootstrap audit event.';
+alter function private.recovery_relink_auth_user(uuid, uuid, text, text)
+  owner to palmtrack_transaction_owner;
 
 commit;

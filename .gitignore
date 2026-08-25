@@ -15,6 +15,7 @@ build/
 
 # Supabase local state
 .supabase/
+supabase/.branches/
 supabase/.temp/
 
 # Tests and analysis

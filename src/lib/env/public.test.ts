@@ -7,7 +7,7 @@ describe("parsePublicEnv", () => {
     expect(parsePublicEnv({})).toEqual({ status: "unconfigured" });
   });
 
-  it("returns only the public URL and anon key when configured", () => {
+  it("keeps the legacy anon key as a backward-compatible fallback", () => {
     expect(
       parsePublicEnv({
         NEXT_PUBLIC_SUPABASE_URL: " https://example.supabase.co ",
@@ -16,7 +16,20 @@ describe("parsePublicEnv", () => {
     ).toEqual({
       status: "configured",
       supabaseUrl: "https://example.supabase.co",
-      supabaseAnonKey: "anon-key",
+      supabaseKey: "anon-key",
+    });
+  });
+
+  it("accepts the Supabase-recommended publishable key contract", () => {
+    expect(
+      parsePublicEnv({
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_synthetic",
+      }),
+    ).toEqual({
+      status: "configured",
+      supabaseUrl: "https://example.supabase.co",
+      supabaseKey: "sb_publishable_synthetic",
     });
   });
 
@@ -24,7 +37,7 @@ describe("parsePublicEnv", () => {
     const secret = "synthetic-anon-secret";
     const result = parsePublicEnv({
       NEXT_PUBLIC_SUPABASE_URL: "not-a-url",
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: secret,
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: secret,
     });
 
     expect(result).toMatchObject({

@@ -1,6 +1,6 @@
 # Deployment runbook
 
-เอกสารนี้เป็นแผนปฏิบัติหลัง review gate เท่านั้น ปัจจุบันไม่มี environment หรือ cloud resource
+เอกสารนี้เป็น runbook สำหรับ Safety Skeleton ที่ผ่าน review gate แล้ว ปัจจุบัน Supabase hosted มี schema/RLS/audit foundation และ public app environment ถูกตั้งเฉพาะใน ignored local configuration; ยังไม่มีข้อมูลจริง, private Storage, Vercel deployment หรือ CI
 
 ## Planned environments
 
@@ -22,7 +22,7 @@
 6. สร้าง synthetic admin/role fixtures ใน non-research environment; research account ใช้ approved roster
 7. รัน RLS/security/E2E/backup baseline แล้วบันทึก evidence ก่อนอนุญาต real data
 
-Environment-variable **names only** ที่วางแผน: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `APP_WORKSPACE_ID`, `APP_TIME_ZONE`, `EXPORT_SIGNING_SECRET` ชื่อสุดท้ายต้อง review ตาม implementation และให้เฉพาะ server variable ไม่มี `NEXT_PUBLIC_` สำหรับ secret Local ใช้ ignored `.env.local`; provider UI เก็บค่าจริง
+Environment-variable **names only** ที่วางแผน: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `DIRECT_URL`, `APP_WORKSPACE_ID`, `APP_TIME_ZONE`, `EXPORT_SIGNING_SECRET` โดยรองรับ legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` เฉพาะช่วงเปลี่ยนผ่าน `DATABASE_URL` เป็น transaction pooler สำหรับ runtime ที่รองรับ และ `DIRECT_URL` เป็น session pooler สำหรับ migration/backup; ให้เฉพาะ public values มี `NEXT_PUBLIC_` Local ใช้ ignored `.env.local`; provider UI เก็บค่าจริง
 
 ## Migration and deploy
 
@@ -41,7 +41,7 @@ Application regression: disable affected route/feature, redeploy last known good
 
 Supabase Free **ไม่มี automatic backups ที่ทีมอ้างพึ่งได้** จึงทำ application-owned manual logical backup โดยไม่สัญญา provider guarantee:
 
-1. ก่อนเริ่มข้อมูลจริงและอย่างน้อยหลังวันเก็บข้อมูล/ก่อน migration/export สำคัญ ผู้ดูแลที่ได้รับอนุมัติใช้ official PostgreSQL tooling compatible version เชื่อมผ่าน `SUPABASE_DB_URL` จาก secure environment
+1. ก่อนเริ่มข้อมูลจริงและอย่างน้อยหลังวันเก็บข้อมูล/ก่อน migration/export สำคัญ ผู้ดูแลที่ได้รับอนุมัติใช้ official PostgreSQL tooling compatible version เชื่อมผ่าน session-mode `DIRECT_URL` จาก secure environment ห้ามใช้ transaction pooler สำหรับ DDL/restore
 2. Export schema + app data ใน custom/logical format ที่ restore ได้ รวม migration table แต่ไม่พยายาม export provider-managed Auth password hash, session, token หรือ secret ซึ่ง **กู้คืนไม่ได้**
 3. ใช้ authorized server/admin process สร้าง **encrypted identity manifest** ที่มีเฉพาะ stable app `user_profile.id`, normalized login identifier และ `identifier_type` (`email|phone`) ของ active accounts ห้ามมี password, password hash, OTP, session, refresh/access token หรือ provider key Normalization คือ trim; email ใช้ Unicode NFC แล้ว lowercase; phone ใช้ canonical E.164 ที่ผ่าน validation
 4. สร้าง backup manifest: UTC time, project inventory ID, schema/migration version, tool version, table row counts, logical dump/identity/storage file names, SHA-256 และ operator ห้ามใส่ credential หรือ raw identifier ลง unencrypted outer manifest
@@ -51,7 +51,7 @@ Supabase Free **ไม่มี automatic backups ที่ทีมอ้าง
 8. Sign in recovered synthetic fixture อย่างน้อยหนึ่ง account ต่อ roleหลัง reset ตรวจว่า Auth UID ใหม่ resolve ไป stable profile UUID เดิม, role/workspace เดิม, allowed RLS path สำเร็จ และ cross-role/cross-owner path ถูก deny จากนั้นรัน count/FK/sampling-run status+digest/profit tests
 9. บันทึกผล pass/fail, duration, checksum, Auth relink counts และ securely remove temporary plaintext/temporary credential หลังยืนยัน ไม่มีการกล่าวว่าการมีไฟล์เท่ากับกู้คืนได้จน clean-target sign-in/RLS drill ผ่าน
 
-Bootstrap และ Auth relink ใช้ **out-of-band database recovery procedure เท่านั้น** ผู้ดำเนินการฐานข้อมูลที่ควบคุมต้องตรวจตัวตน/อำนาจของ active admin, ตั้ง verified JWT context และ explicit `SET ROLE palmtrack_recovery_executor` ภายใน transaction ที่บันทึกหลักฐาน Role นี้เป็น `NOLOGIN`, ไม่มี membership และไม่ grant ให้ `anon`, `authenticated`, `service_role` หรือ application route หากไม่มีสิทธิ์ database operator ที่อนุมัติให้หยุด recovery และส่งต่อผู้รับผิดชอบ ห้ามเพิ่ม HTTP endpoint หรือใช้ service-role key เป็นทางลัด
+Bootstrap และ Auth relink ใช้ **out-of-band database recovery procedure เท่านั้น** ผู้ดำเนินการฐานข้อมูลที่ควบคุมต้องตรวจตัวตน/อำนาจของ active admin, ตั้ง verified JWT context และ explicit `SET ROLE palmtrack_recovery_executor` ภายใน transaction ที่บันทึกหลักฐาน Role นี้เป็น `NOLOGIN` และ grant เฉพาะ database migration operator ด้วย `INHERIT FALSE, SET TRUE` เพื่อรองรับ ownership/recovery บน Supabase hosted; ห้าม grant ให้ `anon`, `authenticated`, `service_role` หรือ application route หากไม่มีสิทธิ์ database operator ที่อนุมัติให้หยุด recovery และส่งต่อผู้รับผิดชอบ ห้ามเพิ่ม HTTP endpoint หรือใช้ service-role key เป็นทางลัด
 
 เมื่อไม่มีพื้นที่/เครื่อง/กุญแจที่อนุมัติ ให้หยุด collection ไม่ลด control เพื่อคงค่าใช้จ่ายศูนย์
 

@@ -1,67 +1,64 @@
 import { z } from "zod";
 
-const publicEnvironmentSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.string().trim().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().trim().min(1),
-});
+const supabaseUrlSchema = z.string().trim().url();
+const supabaseKeySchema = z.string().trim().min(1);
+
+type PublicEnvironmentField =
+  | "NEXT_PUBLIC_SUPABASE_URL"
+  | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
 
 export type PublicEnvironment =
   | { status: "unconfigured" }
   | {
       status: "configured";
       supabaseUrl: string;
-      supabaseAnonKey: string;
+      supabaseKey: string;
     }
   | {
       status: "invalid";
-      fields: readonly (
-        | "NEXT_PUBLIC_SUPABASE_URL"
-        | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
-      )[];
+      fields: readonly PublicEnvironmentField[];
       message: string;
     };
 
 export function parsePublicEnv(
   input: Record<string, string | undefined> = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY:
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
 ): PublicEnvironment {
   const url = input.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = input.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const publishableKey =
+    input.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+  const legacyAnonKey = input.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const key = publishableKey || legacyAnonKey;
 
-  if (!url && !anonKey) {
+  if (!url && !key) {
     return { status: "unconfigured" };
   }
 
-  const parsed = publicEnvironmentSchema.safeParse({
-    NEXT_PUBLIC_SUPABASE_URL: url,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: anonKey,
-  });
+  const parsedUrl = supabaseUrlSchema.safeParse(url);
+  const parsedKey = supabaseKeySchema.safeParse(key);
 
-  if (!parsed.success) {
-    const fields = parsed.error.issues
-      .map((issue) => issue.path[0])
-      .filter(
-        (
-          field,
-        ): field is
-          | "NEXT_PUBLIC_SUPABASE_URL"
-          | "NEXT_PUBLIC_SUPABASE_ANON_KEY" =>
-          field === "NEXT_PUBLIC_SUPABASE_URL" ||
-          field === "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      );
+  if (!parsedUrl.success || !parsedKey.success) {
+    const fields: PublicEnvironmentField[] = [];
+    if (!parsedUrl.success) fields.push("NEXT_PUBLIC_SUPABASE_URL");
+    if (!parsedKey.success) {
+      fields.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+    }
 
     return {
       status: "invalid",
-      fields: [...new Set(fields)],
+      fields,
       message: "Supabase public environment configuration is invalid.",
     };
   }
 
   return {
     status: "configured",
-    supabaseUrl: parsed.data.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: parsed.data.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl: parsedUrl.data,
+    supabaseKey: parsedKey.data,
   };
 }

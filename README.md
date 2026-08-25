@@ -4,7 +4,7 @@ PalmTrack คือเว็บแอปงานวิจัยนักศึ�
 
 ## สถานะปัจจุบัน
 
-Repository มีทั้ง **UX/UI prototype ที่รันได้** และ Safety Skeleton ชุดแรก: environment contract, Supabase anon client adapters, verified-session resolver, exact five-role authorization, Thai sign-in/protected shell, ordered migration/RLS/audit foundation และ automated verification ฝั่ง TypeScript/browser แล้ว PostgreSQL/pgTAP ยังไม่ถือว่าผ่านเพราะ local Docker engine ไม่ทำงาน และยังไม่มี CI, deployment หรือ cloud resource ห้ามเก็บข้อมูลจริงจน questionnaire/privacy/retention/restore gates ผ่านตาม [design synthesis](docs/superpowers/specs/2026-08-25-palmtrack-student-research-design.md) ภาษาภาพที่ implement แล้วอยู่ใน [design system](DESIGN.md)
+Repository มีทั้ง **UX/UI prototype ที่รันได้** และ Safety Skeleton ชุดแรก: publishable-key environment contract, Supabase SSR client adapters, verified-session resolver, exact five-role authorization, Thai sign-in/protected shell และ ordered migration/RLS/audit foundation Migration ถูก apply ไป Supabase hosted PostgreSQL 17.6 แล้ว และ pgTAP ผ่าน 55/55 ทั้ง local/hosted พร้อม automated verification ฝั่ง TypeScript/browser; ยังไม่มี CI หรือ production deployment และห้ามเก็บข้อมูลจริงจน questionnaire/privacy/retention/restore gates ผ่านตาม [design synthesis](docs/superpowers/specs/2026-08-25-palmtrack-student-research-design.md) ภาษาภาพที่ implement แล้วอยู่ใน [design system](DESIGN.md)
 
 ## รันในเครื่อง
 
@@ -15,7 +15,7 @@ npm ci
 npm run dev
 ```
 
-เปิด `/` สำหรับ production entry ซึ่งจะไป `/sign-in`; หากยังไม่มี `.env.local` ระบบต้องแสดงสถานะ `ยังไม่ได้เชื่อมต่อระบบยืนยันตัวตน` โดยไม่สร้างผู้ใช้จำลอง คัดลอกชื่อค่าจาก `.env.example` เมื่อต้องเชื่อม Supabase local ที่ได้รับอนุญาต เปิด `/prototype/field?variant=A` โดยตรงเมื่อต้อง review prototype เท่านั้น คำสั่งตรวจหลักคือ `npm run verify` และ `npm run test:e2e`; database/RLS test ต้องมี Docker engine และ `npx supabase start` ก่อนจึงนับ evidence ได้
+เปิด `/` สำหรับ production entry ซึ่งจะไป `/sign-in`; หากยังไม่มี `.env.local` ระบบต้องแสดงสถานะ `ยังไม่ได้เชื่อมต่อระบบยืนยันตัวตน` โดยไม่สร้างผู้ใช้จำลอง คัดลอกชื่อค่าจาก `.env.example` เมื่อต้องเชื่อม Supabase ที่ได้รับอนุญาต เปิด `/prototype/field?variant=A` โดยตรงเมื่อต้อง review prototype เท่านั้น คำสั่งตรวจหลักคือ `npm run verify` และ `npm run test:e2e`; database/RLS test แบบ local ต้องมี Docker engine, `npx supabase start` และ `npx supabase test db`
 
 ## ลำดับการอ่าน
 
@@ -34,6 +34,6 @@ npm run dev
 
 ## เทคโนโลยี
 
-ระบบใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright พร้อม Supabase SSR/JavaScript clients, Zod และ Supabase CLI ที่ pin version แล้ว Migration เป้าหมาย Supabase Auth/PostgreSQL/RLS/private Storage ยังเป็น local-first และไม่ถูก provision บน cloud; Vercel Hobby และ GitHub remote เป็นขั้นถัดไปตามแผน ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
+ระบบใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright พร้อม Supabase SSR/JavaScript clients, Zod และ Supabase CLI ที่ pin version แล้ว Supabase hosted มีเฉพาะ Safety Skeleton schema/RLS/audit foundation และยังไม่มีข้อมูลจริง; private Storage, Vercel deployment และ CI เป็นขั้นถัดไปตามแผน ส่วน GitHub remote ถูกตั้งค่าไว้แต่ยังไม่ push การเปลี่ยนแปลงรอบนี้ ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
 
 แนวทางการเปลี่ยนเอกสารและข้อห้ามด้านข้อมูลอยู่ใน [AGENTS.md](AGENTS.md)

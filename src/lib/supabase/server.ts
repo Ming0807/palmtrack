@@ -37,7 +37,7 @@ type SupabaseSetCookie = {
 };
 
 /**
- * Creates a request-scoped Supabase client using only the public anon key.
+ * Creates a request-scoped Supabase client using only the public Supabase key.
  *
  * `setAll` intentionally tolerates Next Server Component cookie immutability.
  * Middleware or a Route Handler remains responsible for persisting refreshes
@@ -80,7 +80,7 @@ export async function createSupabaseServerClient(
 
   const client = createServerClient(
     environment.supabaseUrl,
-    environment.supabaseAnonKey,
+    environment.supabaseKey,
     { cookies: cookieMethods },
   );
 
