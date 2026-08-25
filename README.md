@@ -1,10 +1,21 @@
 # PalmTrack
 
-PalmTrack คือแหล่งข้อมูลออกแบบสำหรับเว็บแอปงานวิจัยนักศึกษาแบบไม่มีค่าใช้จ่าย ใช้จัดการการเก็บข้อมูลและบันทึกเศรษฐกิจสวนปาล์มน้ำมันในอำเภอศรีสาคร จังหวัดนราธิวาส เป้าหมายคือให้ทีม 2–3 คนพัฒนาและทำวิจัยให้เสร็จใน 4–6 เดือน โดยคุ้มครองข้อมูลส่วนบุคคลและทำให้การสุ่มตัวอย่างตรวจสอบย้อนกลับได้
+PalmTrack คือเว็บแอปงานวิจัยนักศึกษาแบบไม่มีค่าใช้จ่ายสำหรับจัดการการเก็บข้อมูลและบันทึกเศรษฐกิจสวนปาล์มน้ำมันในอำเภอศรีสาคร จังหวัดนราธิวาส เป้าหมายคือให้ทีม 2–3 คนพัฒนาและทำวิจัยให้เสร็จใน 4–6 เดือน โดยคุ้มครองข้อมูลส่วนบุคคลและทำให้การสุ่มตัวอย่างตรวจสอบย้อนกลับได้
 
 ## สถานะปัจจุบัน
 
-Repository ผ่าน written-design review และผู้ใช้อนุมัติให้เข้าสู่ **UX/UI prototype และ implementation planning** เมื่อ 2026-08-25 เอกสารกำหนดผลิตภัณฑ์ สถาปัตยกรรม ข้อมูล ความปลอดภัย การทดสอบ และการนำขึ้นระบบ แต่ยังไม่มี production application code, runtime configuration, dependency, CI หรือ cloud resource ขั้น prototype ต้องใช้ข้อมูลสังเคราะห์และยังห้ามเก็บข้อมูลจริงจน questionnaire/privacy/retention/restore gates ผ่านตาม [design synthesis](docs/superpowers/specs/2026-08-25-palmtrack-student-research-design.md)
+Repository มี **UX/UI prototype ที่รันได้** บน Next.js App Router พร้อมโครง A/B/C, เส้นทางแนะนำ A→C, IndexedDB checkpoint แบบสังเคราะห์ และ automated verification แล้ว ยังไม่มี authentication, Supabase/live API, CI, deployment หรือ cloud resource และยังห้ามเก็บข้อมูลจริงจน questionnaire/privacy/retention/restore gates ผ่านตาม [design synthesis](docs/superpowers/specs/2026-08-25-palmtrack-student-research-design.md) ภาษาภาพที่ implement แล้วอยู่ใน [design system](DESIGN.md)
+
+## รัน prototype ในเครื่อง
+
+ต้องใช้ Node.js `26.1.0` และ npm `11.5.2` ตาม `.node-version` และ lockfile
+
+```bash
+npm install
+npm run dev
+```
+
+เปิด `/prototype/field?variant=A` แล้วใช้ switcher เพื่อเปรียบเทียบ A/B/C หรือเปิด `/prototype/field/SSK-024?variant=C` สำหรับเส้นทางหลักฐาน คำสั่งตรวจหลักคือ `npm run verify` และ `npm run test:e2e`
 
 ## ลำดับการอ่าน
 
@@ -17,12 +28,12 @@ Repository ผ่าน written-design review และผู้ใช้อน�
 
 ข้อผิดพลาดและเหตุการณ์ของการพัฒนา/tooling ที่ sanitize แล้วบันทึกใน [development error and incident ledger](LOG.md) ซึ่งไม่ใช่ application runtime logging
 
-## วงจรพัฒนาที่วางแผนไว้
+## วงจรพัฒนา
 
 ออกแบบและอนุมัติเอกสาร → อนุมัติ questionnaire artifact แยกต่างหาก → วางแผน increment → พัฒนาแบบ vertical slice → ทดสอบตาม traceability → ทดลองกับข้อมูลสังเคราะห์ → review ความปลอดภัย/งานวิจัย → เปิดใช้แบบจำกัด → เก็บหลักฐานและสำรองข้อมูล → ปิดโครงการ/ส่งมอบ เอกสาร [roadmap](docs/ROADMAP.md) เป็น authoritative source ของลำดับและ gate
 
-## เทคโนโลยีที่วางแผน
+## เทคโนโลยี
 
-Next.js App Router แบบ modular monolith, Supabase Auth/PostgreSQL/RLS/private Storage, Vercel Hobby และ GitHub ทั้งหมดเป็นเพียงแผน ณ สถานะนี้ ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
+Prototype ใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright โดยยังไม่มี live backend สถาปัตยกรรมเป้าหมายเพิ่ม Supabase Auth/PostgreSQL/RLS/private Storage, Vercel Hobby และ GitHub ตามแผน ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
 
 แนวทางการเปลี่ยนเอกสารและข้อห้ามด้านข้อมูลอยู่ใน [AGENTS.md](AGENTS.md)

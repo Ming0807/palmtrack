@@ -79,3 +79,129 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | A nested match loop replaced the outer file object before its directory was resolved |
 | Resolution / status | `resolved` — capture the file directory in a named variable before iterating link matches, then rerun all documentation checks |
 | Related commit | UX/UI direction and prototype-plan commit |
+
+### DEV-20260825-006 — Scaffold cleanup blocked by safety policy
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:34:16Z` |
+| Environment | isolated UX/UI prototype worktree |
+| Severity | low |
+| Component | local Next.js scaffold cleanup |
+| Error code / sanitized message | `RECURSIVE_DELETE_POLICY_REJECTED` — the command runner rejected cleanup of the verified scaffold staging directory |
+| Impact | Required scaffold files were copied successfully; an ignored local staging copy remains under the agent-work directory and no tracked source was deleted |
+| Reproduction / evidence | Both a combined copy-and-clean command and a later exact recursive cleanup command were rejected before execution |
+| Resolution / status | `mitigated` — leave the ignored staging copy untouched; it is excluded from Git and application builds, and cleanup is not required for prototype correctness |
+| Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-007 — Testing Library peer dependency absent
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:37:18Z` |
+| Environment | UX/UI prototype unit-test harness |
+| Severity | low |
+| Component | Vitest / Testing Library setup |
+| Error code / sanitized message | `MISSING_TESTING_LIBRARY_DOM_PEER` — DOM matchers could not load because their explicit peer package was absent |
+| Impact | The first RED test run stopped in setup before reaching the intentionally missing production modules |
+| Reproduction / evidence | All three suites failed while importing the matcher setup and reported the same missing package |
+| Resolution / status | `resolved` — pin and install `@testing-library/dom` `10.4.1`, then rerun RED to confirm failures reach the intended missing implementation boundary |
+| Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-008 — TypeScript lacked Vitest globals
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:46:47Z` |
+| Environment | UX/UI prototype static verification |
+| Severity | low |
+| Component | TypeScript test configuration |
+| Error code / sanitized message | `VITEST_GLOBAL_TYPES_UNDECLARED` — test execution recognized the Vitest globals but `tsc` did not |
+| Impact | Unit tests passed, while the first standalone typecheck failed on test-only names before evaluating the remaining project |
+| Reproduction / evidence | `tsc --noEmit` reported undeclared `describe`, `it`, and `expect` in all three test files |
+| Resolution / status | `resolved` — add `vitest/globals` to TypeScript compiler types and rerun unit, typecheck, and lint verification |
+| Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-009 — Internal route used a raw anchor
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:47:16Z` |
+| Environment | UX/UI prototype lint verification |
+| Severity | low |
+| Component | local state recovery navigation |
+| Error code / sanitized message | `NEXT_INTERNAL_ANCHOR_RULE` — an internal recovery link used an HTML anchor instead of the framework navigation component |
+| Impact | Lint failed on one navigation element; runtime data and route behavior were unaffected |
+| Reproduction / evidence | ESLint reported `@next/next/no-html-link-for-pages` in the state boundary component |
+| Resolution / status | `resolved` — replace the anchor with `next/link` and rerun lint plus build verification |
+| Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-010 — State-lab E2E locator was over-specific
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:51:24Z` |
+| Environment | Chromium mobile and desktop E2E verification |
+| Severity | low |
+| Component | accessibility/state-lab browser test |
+| Error code / sanitized message | `SUMMARY_EXACT_TEXT_LOCATOR_TIMEOUT` — the test required an exact text node while the accessible summary also contained its current-state label |
+| Impact | Two axe/state-lab test instances timed out; the other 17 browser journeys passed and one desktop duplicate was intentionally skipped |
+| Reproduction / evidence | Both viewports waited for the same exact-text locator until the 30-second test timeout |
+| Resolution / status | `resolved` — target the semantic `summary` element by contained label, retain the 12-state assertion, and rerun the full E2E suite before accepting accessibility results |
+| Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-011 — Development page requested a missing favicon
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:54:27Z` |
+| Environment | Playwright CLI visual/console inspection |
+| Severity | low |
+| Component | Next.js document metadata asset |
+| Error code / sanitized message | `FAVICON_RESOURCE_404` — the browser requested the default favicon path and received a local not-found response |
+| Impact | One console error appeared during an otherwise successful semantic snapshot; application content and data flow were unaffected |
+| Reproduction / evidence | CLI console inspection showed one failed local `favicon.ico` request and no other browser error |
+| Resolution / status | `resolved` — add an authored project-local SVG app icon and re-open the route to verify a clean console |
+| Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-012 — Vitest collected Playwright specifications
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:57:50Z` |
+| Environment | fresh Luna finish review verification |
+| Severity | medium |
+| Component | test-suite discovery boundary |
+| Error code / sanitized message | `CROSS_RUNNER_TEST_COLLECTION` — Vitest discovered browser E2E specifications after they were added and rejected Playwright's test registration |
+| Impact | Unit cases remained valid but the repository-level `npm test` command was no longer green, which would also break the combined verification script |
+| Reproduction / evidence | Fresh review reran `npm test` after E2E files existed and reproduced the cross-runner import failure |
+| Resolution / status | `resolved` — scope Vitest explicitly to `src/**/*.test.{ts,tsx}` and rerun unit, lint, typecheck, build, and Playwright commands from the completed tree |
+| Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-013 — Stale local Next.js server blocked E2E startup
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T04:58:57Z` |
+| Environment | post-review Playwright verification |
+| Severity | low |
+| Component | local development web server lifecycle |
+| Error code / sanitized message | `NEXT_DEV_SERVER_ALREADY_RUNNING` — Playwright could not start its isolated server because a prior review server for the same worktree was still active |
+| Impact | The verification command exited before launching any browser test; no application assertion failed |
+| Reproduction / evidence | Next.js reported the existing local process and worktree; a read-only process check confirmed its executable and server path belonged to this prototype |
+| Resolution / status | `resolved` — stop only the verified stale process, preserve all files, and rerun the full E2E suite on the configured isolated port |
+| Related commit | pending UX/UI prototype scaffold commit |
+
+### DEV-20260825-014 — Synthetic-fixture grep matched a negative test assertion
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T05:02:52Z` |
+| Environment | final repository content verification |
+| Severity | low |
+| Component | synthetic-only text scanner |
+| Error code / sanitized message | `NEGATIVE_ASSERTION_FALSE_POSITIVE` — a broad geography-term scan matched the prohibited terms inside a unit assertion that verifies they are absent |
+| Impact | The first synthetic-fixture check stopped without evaluating its remaining steps; production fixture content was not implicated |
+| Reproduction / evidence | The sole hit was the test expression `not.toMatch(...)` rather than an assignment value or rendered label |
+| Resolution / status | `resolved` — scan the production fixture module separately and keep the negative assertion as independent automated protection |
+| Related commit | pending UX/UI prototype scaffold commit |
