@@ -583,3 +583,17 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | `supabase test db` recursively discovered every SQL file below its tests directory |
 | Resolution / status | `resolved` — move operational rollback SQL to `supabase/rollback/`; a clean reset, both database files, and database lint now pass |
 | Related commit | population import persistence commit |
+
+### DEV-20260825-042 — Node could not spawn the Windows npx shim directly
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T15:55:00Z` |
+| Environment | Windows local E2E launcher |
+| Severity | low |
+| Component | fail-closed Playwright harness |
+| Error code / sanitized message | `EINVAL` — Node 26 rejected `spawnSync("npx.cmd", ...)` although the same shim worked interactively in PowerShell |
+| Impact | The first local browser run stopped before reading local Supabase status or creating test identities |
+| Reproduction / evidence | A minimal child-process probe returned a null exit status and `EINVAL`; Docker services remained healthy |
+| Resolution / status | `resolved` — invoke npm's `npx-cli.js` through the current Node executable, retaining argument-array isolation without a command shell |
+| Related commit | local population-import E2E commit |

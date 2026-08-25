@@ -1,0 +1,3 @@
+farmer_code,stratum_code,eligible,exclusion_reason_code
+SYN-001,NORTH,true,
+SYN-001,SOUTH,true,

@@ -147,6 +147,7 @@ function Receipt({ receipt, acceptAction }: { receipt: PopulationReceipt; accept
 
 export function PopulationImportFlow({ initialImports, createAction, acceptAction }: PopulationImportFlowProps) {
   const [state, submit, pending] = useActionState(createAction, initialState);
+  const [offline, setOffline] = useState(false);
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const imports = useMemo(() => {
     if (state.status !== "validated") return initialImports;
@@ -171,7 +172,18 @@ export function PopulationImportFlow({ initialImports, createAction, acceptActio
         <li><LockKeyhole size={18} aria-hidden="true" /><span>รับ snapshot</span></li>
       </ol>
 
-      <form className={styles.importForm} action={submit}>
+      <form
+        className={styles.importForm}
+        action={submit}
+        onSubmit={(event) => {
+          if (!navigator.onLine) {
+            event.preventDefault();
+            setOffline(true);
+          } else {
+            setOffline(false);
+          }
+        }}
+      >
         <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
         <div className={styles.fileField}>
           <label htmlFor="population-file">ไฟล์ประชากร CSV</label>
@@ -189,6 +201,7 @@ export function PopulationImportFlow({ initialImports, createAction, acceptActio
         </div>
       </form>
 
+      {offline && <p className={styles.systemStatus} role="status">ออฟไลน์อยู่ จึงยังไม่ส่งไฟล์และไม่มีข้อมูลถูกบันทึก</p>}
       <ActionFeedback state={state} />
 
       <section className={styles.history} aria-labelledby="snapshot-heading">
