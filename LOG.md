@@ -681,3 +681,17 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Earlier idempotency coverage intentionally left another validated receipt in the shared per-run database |
 | Resolution / status | `resolved` — retain the clicked element handle and wait for that exact element to become hidden instead of re-evaluating a collection locator |
 | Related commit | population import evidence documentation commit |
+
+### DEV-20260826-049 — Sampling migration parser and lifecycle qualification failures
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-25T23:32:31Z` (entry time; exact earlier failure times were not captured) |
+| Environment | Supabase local sampling migration TDD |
+| Severity | medium |
+| Component | deterministic sampling migration and pgTAP suite |
+| Error code / sanitized message | `MIGRATION_RED_PHASE` — the required RED run reported missing sampling objects; subsequent local migration attempts exposed PostgreSQL NFC syntax and ambiguous output-column references before the focused suite could execute |
+| Impact | Sampling migration application and lifecycle assertions were temporarily blocked; no persistent production or real-person data was involved |
+| Reproduction / evidence | `npm run test:db` first failed on absent sampling objects; `npx supabase db reset --local --debug` identified the parser/qualification failures; rollback rehearsal removed the sampling objects cleanly |
+| Resolution / status | `resolved` — use PostgreSQL `normalize(..., NFC)`, qualify lifecycle table references, rerun the clean reset, and verify 161 pgTAP assertions plus database lint pass |
+| Related commit | pending `feat: persist deterministic sampling lifecycle` |
