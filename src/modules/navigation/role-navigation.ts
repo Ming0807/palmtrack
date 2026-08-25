@@ -3,6 +3,7 @@ import {
   BarChart3,
   ClipboardCheck,
   FileChartColumn,
+  DatabaseZap,
   LayoutDashboard,
   Settings2,
   Sprout,
@@ -23,11 +24,13 @@ export type RoleNavigationItem = {
  */
 export const ROLE_NAVIGATION = {
   admin: [
+    { label: "นำเข้าประชากร", href: "/app/research/population", icon: DatabaseZap },
     { label: "ตั้งค่าระบบ", href: "/app/settings", icon: Settings2 },
     { label: "ตรวจสอบเหตุการณ์", href: "/app/audit", icon: ClipboardCheck },
   ],
   research_manager: [
     { label: "งานวิจัย", href: "/app/research", icon: LayoutDashboard },
+    { label: "ประชากร", href: "/app/research/population", icon: DatabaseZap },
     { label: "รายงาน", href: "/app/reports", icon: FileChartColumn },
   ],
   field_collector: [

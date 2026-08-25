@@ -1,0 +1,62 @@
+.sheet { width: min(100%, 880px); }
+.heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--line-strong); }
+.path { margin: 0 0 10px; color: var(--rust); font-size: .82rem; font-weight: 720; }
+.intro { max-width: 64ch; margin: 10px 0 0; color: var(--muted); }
+.syntheticBoundary { flex: none; margin-bottom: 3px; padding: 7px 11px; border: 1px solid #d3b18e; border-radius: 999px; background: var(--amber-soft); color: #68400f; font-size: .76rem; font-weight: 750; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 18px 0; border-bottom: 1px solid var(--line); list-style: none; }
+.steps li { display: flex; min-width: 0; align-items: center; gap: 8px; padding: 8px 14px; color: var(--muted); font-size: .82rem; }
+.steps li + li { border-left: 1px solid var(--line); }
+.steps svg { flex: none; color: var(--indigo); }
+.importForm { margin-top: 38px; padding: 28px; border-radius: var(--radius); background: var(--surface); box-shadow: 0 14px 34px rgba(31, 35, 32, .09); }
+.fileField { display: grid; gap: 8px; padding: 18px; border: 1px dashed var(--line-strong); border-radius: 12px; background: var(--paper); }
+.fileField label, .fields label { color: var(--ink); font-weight: 700; }
+.fileField input { width: 100%; }
+.fileField small { color: var(--muted); }
+.fields { display: grid; grid-template-columns: 1.4fr 1fr .75fr; gap: 16px; margin-top: 22px; }
+.fields label { display: grid; gap: 7px; font-size: .84rem; }
+.fields input { width: 100%; min-height: 46px; padding: 9px 11px; border: 1px solid var(--line-strong); border-radius: 10px; background: white; color: var(--ink); }
+.fields input::placeholder { color: #6e716b; }
+.fields input:focus-visible, .fileField input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.formFooter { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.formFooter p { margin: 0; color: var(--muted); font-size: .78rem; }
+.formFooter button, .acceptButton { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; padding: 10px 17px; border: 1px solid var(--indigo); border-radius: 11px; background: var(--indigo); color: white; font-weight: 720; cursor: pointer; }
+.formFooter button:hover:not(:disabled), .acceptButton:hover:not(:disabled) { background: var(--indigo-deep); }
+.formFooter button:disabled, .acceptButton:disabled { border-color: var(--line-strong); background: var(--paper-deep); color: var(--muted); cursor: wait; }
+.errorSummary, .systemStatus, .successStatus { margin: 20px 0 0; padding: 16px 18px; border-radius: 11px; }
+.errorSummary { border: 1px solid #d9b1a2; background: var(--rust-soft); color: #622d1d; }
+.errorSummary p { margin: 5px 0 9px; }
+.errorSummary ul { margin: 0 0 12px; padding-left: 22px; font-variant-numeric: tabular-nums; }
+.errorSummary a { color: #622d1d; font-weight: 750; }
+.systemStatus { border: 1px solid #d3b18e; background: var(--amber-soft); color: #65400f; }
+.successStatus { display: flex; align-items: center; gap: 8px; border: 1px solid #9ebbac; background: var(--success-soft); color: #214d3c; font-weight: 720; }
+.history { margin-top: 48px; }
+.historyHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--ink); }
+.historyHeading h2 { margin: 0; }
+.historyHeading span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.empty { display: flex; min-height: 180px; align-items: center; justify-content: center; gap: 10px; color: var(--muted); }
+.empty p { margin: 0; }
+.receiptList { margin: 0; padding: 0; list-style: none; }
+.receipt { padding: 24px 4px; border-bottom: 1px solid var(--line-strong); }
+.receiptHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.receiptHeading h3 { margin: 0; font-family: "Bai Jamjuree", "Noto Sans Thai Variable", sans-serif; font-size: 1.16rem; }
+.receiptHeading p { margin: 3px 0 0; color: var(--rust); font-size: .83rem; font-weight: 680; }
+.validated, .accepted { flex: none; padding: 5px 9px; border: 1px solid currentColor; border-radius: 999px; font-size: .73rem; font-weight: 750; }
+.validated { color: var(--indigo); }
+.accepted { color: var(--success); }
+.counts { display: grid; grid-template-columns: repeat(3, 1fr); margin: 20px 0 0; border-block: 1px solid var(--line); }
+.counts div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 12px 14px; }
+.counts div + div { border-left: 1px solid var(--line); }
+.counts dt { color: var(--muted); font-size: .78rem; }
+.counts dd { margin: 0; color: var(--indigo); font-family: "Bai Jamjuree", sans-serif; font-size: 1.2rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.evidence { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; margin-top: 16px; }
+.evidence p { display: grid; min-width: 0; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; margin: 0; font-size: .8rem; }
+.evidence span { color: var(--muted); }
+.digest { align-items: center; }
+.evidence .digest { grid-template-columns: 96px minmax(0, 1fr) 38px; }
+.digest code { overflow: hidden; text-overflow: ellipsis; font-size: .78rem; white-space: nowrap; }
+.digest button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--line-strong); border-radius: 9px; background: transparent; color: var(--indigo); cursor: pointer; }
+.receiptFooter { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 18px; }
+.receiptFooter p { margin: 0; color: var(--muted); font-size: .78rem; }
+@media (max-width: 800px) { .heading { align-items: flex-start; flex-direction: column; gap: 14px; } .steps { grid-template-columns: 1fr 1fr; } .steps li:nth-child(3) { border-left: 0; } .steps li:nth-child(n+3) { border-top: 1px solid var(--line); } .fields { grid-template-columns: 1fr; } .evidence { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .importForm { margin-inline: -4px; padding: 20px 16px; } .steps { grid-template-columns: 1fr; } .steps li + li { border-top: 1px solid var(--line); border-left: 0; } .formFooter, .receiptFooter, .receiptHeading { align-items: stretch; flex-direction: column; } .formFooter button, .acceptButton { width: 100%; } .counts { grid-template-columns: 1fr; } .counts div + div { border-top: 1px solid var(--line); border-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .formFooter button, .acceptButton { transition: none; } }
