@@ -1,0 +1,7 @@
+export const FX_POPULATION_CSV = [
+  "farmer_code,stratum_code,eligible,exclusion_reason_code",
+  "SYN-001,NORTH,true,",
+  "SYN-002,SOUTH,true,",
+  "SYN-003,SOUTH,false,OUT_OF_SCOPE",
+  "",
+].join("\n");
