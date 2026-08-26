@@ -1,0 +1,200 @@
+import { describe, expect, it, vi } from "vitest";
+
+import type { Role } from "@/modules/identity/domain/roles";
+import type { IdentitySession } from "@/modules/identity/server/session";
+import {
+  buildSamplingEvidence,
+  type SamplingEvidence,
+} from "@/modules/research/sampling/domain/deterministic-sampling";
+import {
+  SamplingGatewayError,
+  type SamplingGateway,
+  type SamplingRun,
+} from "@/modules/research/sampling/server/sampling-gateway";
+import {
+  createSamplingDraft,
+  listSamplingRuns,
+  lockSamplingRun,
+  previewSampling,
+} from "@/modules/research/sampling/server/sampling-service";
+
+const importId = "11111111-1111-4111-8111-111111111111";
+const runId = "22222222-2222-4222-8222-222222222222";
+const idempotencyKey = "33333333-3333-4333-8333-333333333333";
+const candidates = [
+  "44444444-4444-4444-8444-444444444444",
+  "55555555-5555-4555-8555-555555555555",
+  "66666666-6666-4666-8666-666666666666",
+  "77777777-7777-4777-8777-777777777777",
+  "88888888-8888-4888-8888-888888888888",
+].map((memberId, index) => ({
+  memberId,
+  farmerCode: `SYN-${String(index + 1).padStart(3, "0")}`,
+  stratumCode: index < 2 ? "NORTH" : index < 4 ? "SOUTH" : "EAST",
+}));
+
+const input = {
+  populationImportId: importId,
+  seedText: "sampling-seed-v1",
+  marginOfError: 0.5,
+  stratumDefinitionVersion: "synthetic-strata-v1",
+  idempotencyKey,
+};
+
+function session(role: Role): IdentitySession {
+  return {
+    status: "authorized",
+    userId: "99999999-9999-4999-8999-999999999999",
+    profile: {
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      workspaceId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      role,
+    },
+  };
+}
+
+function run(evidence: SamplingEvidence): SamplingRun {
+  return {
+    id: runId,
+    version: 1,
+    populationImportId: importId,
+    populationSize: evidence.populationSize,
+    marginOfError: evidence.marginOfError,
+    unroundedResult: evidence.unrounded,
+    roundingRule: evidence.roundingRule,
+    targetN: evidence.targetN,
+    formulaVersion: evidence.formulaVersion,
+    stratumDefinitionVersion: input.stratumDefinitionVersion,
+    seedText: evidence.seedText,
+    seedNormalized: evidence.seedNormalized,
+    seedNormalizedUtf8Hex: evidence.seedNormalizedUtf8Hex,
+    seedDigestHex: evidence.seedDigestHex,
+    seedU32: evidence.seedU32,
+    algorithmVersion: evidence.algorithmVersion,
+    orderedCandidateSetHash: evidence.orderedCandidateSetHash,
+    status: "draft",
+    createdAt: "2026-08-26T01:00:00.000Z",
+    lockedAt: null,
+    activatedAt: null,
+    supersededAt: null,
+    cancelledAt: null,
+    cancellationReasonDigest: null,
+    allocationEvidence: evidence.allocationRows,
+    resultEvidence: evidence,
+  };
+}
+
+async function setup(role: Role = "research_manager") {
+  const evidence = await buildSamplingEvidence({
+    populationSize: candidates.length,
+    marginOfError: input.marginOfError,
+    seedText: input.seedText,
+    candidates,
+  });
+  const receipt = run(evidence);
+  const gateway: SamplingGateway = {
+    getCandidates: vi.fn().mockResolvedValue(candidates),
+    getEvidence: vi.fn().mockResolvedValue(receipt),
+    createDraft: vi.fn().mockResolvedValue(receipt),
+    listRuns: vi.fn().mockResolvedValue([receipt]),
+    lock: vi.fn().mockResolvedValue({ ...receipt, status: "locked" }),
+    activate: vi.fn().mockResolvedValue({ ...receipt, status: "active" }),
+    cancel: vi.fn().mockResolvedValue({ ...receipt, status: "cancelled" }),
+  };
+  return { session: session(role), gateway, evidence, receipt };
+}
+
+describe("sampling service", () => {
+  it("recomputes trusted candidate evidence before preview and create", async () => {
+    const deps = await setup();
+    await expect(previewSampling(input, deps)).resolves.toMatchObject({
+      status: "ready",
+      evidence: { orderedCandidateSetHash: deps.evidence.orderedCandidateSetHash },
+    });
+    await expect(createSamplingDraft(input, deps)).resolves.toMatchObject({
+      status: "ready",
+      run: { id: runId },
+    });
+    expect(deps.gateway.getCandidates).toHaveBeenCalledWith(importId);
+    expect(deps.gateway.createDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        populationImportId: importId,
+        evidence: expect.objectContaining({ targetN: deps.evidence.targetN }),
+      }),
+    );
+  });
+
+  it.each(["admin", "field_collector", "farmer", "evaluator_readonly"] as const)(
+    "forbids %s from mutation before gateway access",
+    async (role) => {
+      const deps = await setup(role);
+      await expect(createSamplingDraft(input, deps)).resolves.toEqual({
+        status: "forbidden",
+      });
+      expect(deps.gateway.getCandidates).not.toHaveBeenCalled();
+      expect(deps.gateway.createDraft).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects invalid UUID, bounds, empty/overlong seed and malformed snapshot before access", async () => {
+    const deps = await setup();
+    await expect(
+      createSamplingDraft({ ...input, populationImportId: "not-a-uuid" }, deps),
+    ).resolves.toEqual({ status: "invalid" });
+    await expect(
+      createSamplingDraft({ ...input, marginOfError: 1 }, deps),
+    ).resolves.toEqual({ status: "invalid" });
+    await expect(
+      createSamplingDraft({ ...input, seedText: "" }, deps),
+    ).resolves.toEqual({ status: "invalid" });
+    await expect(
+      createSamplingDraft({ ...input, seedText: "a".repeat(201) }, deps),
+    ).resolves.toEqual({ status: "invalid" });
+    expect(deps.gateway.getCandidates).not.toHaveBeenCalled();
+  });
+
+  it("replays persisted evidence and fetches candidates before lock", async () => {
+    const deps = await setup();
+    await expect(lockSamplingRun(runId, deps)).resolves.toMatchObject({
+      status: "ready",
+      run: { status: "locked" },
+    });
+    expect(deps.gateway.getEvidence!).toHaveBeenCalledWith(runId);
+    expect(deps.gateway.getCandidates).toHaveBeenCalledWith(runId);
+    expect(deps.gateway.lock).toHaveBeenCalledWith(runId);
+    expect(
+      vi.mocked(deps.gateway.getEvidence!).mock.invocationCallOrder[0],
+    ).toBeLessThan(vi.mocked(deps.gateway.lock).mock.invocationCallOrder[0]);
+  });
+
+  it("fails closed on replay mismatch and never calls lock", async () => {
+    const deps = await setup();
+    const tampered = { ...deps.receipt, resultEvidence: { ...deps.evidence, seedText: "tampered" } };
+    vi.mocked(deps.gateway.getEvidence!).mockResolvedValue(tampered);
+    await expect(lockSamplingRun(runId, deps)).resolves.toEqual({
+      status: "replay_mismatch",
+    });
+    expect(deps.gateway.lock).not.toHaveBeenCalled();
+  });
+
+  it("maps gateway failures to safe states and permits aggregate reads to readonly roles", async () => {
+    const conflict = await setup();
+    vi.mocked(conflict.gateway.createDraft).mockRejectedValue(
+      new SamplingGatewayError("CONFLICT"),
+    );
+    await expect(createSamplingDraft(input, conflict)).resolves.toEqual({
+      status: "conflict",
+    });
+
+    const unavailable = await setup();
+    vi.mocked(unavailable.gateway.listRuns).mockRejectedValue(
+      new Error("postgres secret token"),
+    );
+    await expect(listSamplingRuns({ ...unavailable, session: session("evaluator_readonly") })).resolves.toEqual({
+      status: "service_unavailable",
+    });
+    expect(JSON.stringify(await listSamplingRuns({ ...unavailable, session: session("evaluator_readonly") }))).not.toMatch(
+      /postgres|secret|token/u,
+    );
+  });
+});
