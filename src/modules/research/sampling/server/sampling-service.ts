@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { IdentitySession } from "@/modules/identity/server/session";
 import {
   buildSamplingEvidence,
+  canonicalizeMarginOfErrorText,
   replaySamplingEvidence,
   type SamplingEvidence,
 } from "@/modules/research/sampling/domain/deterministic-sampling";
@@ -29,7 +30,9 @@ export type SamplingReceiptListState = SamplingActionState<{ runs: SamplingRun[]
 export type SamplingDraftInput = {
   populationImportId: string;
   seedText: string;
-  marginOfError: number;
+  /** String is the trust-boundary contract; number remains only for legacy tests/adapters. */
+  marginOfErrorText?: string;
+  marginOfError?: number;
   stratumDefinitionVersion: string;
   idempotencyKey: string;
 };
@@ -40,7 +43,13 @@ const uuid = z.uuid();
 const previewInputSchema = z.object({
   populationImportId: uuid,
   seedText: z.string().min(1).max(200),
-  marginOfError: z.number().finite().gt(0).lt(1),
+  marginOfErrorText: z.string().superRefine((value, context) => {
+    try {
+      canonicalizeMarginOfErrorText(value);
+    } catch {
+      context.addIssue({ code: "custom", message: "invalid margin of error text" });
+    }
+  }),
   stratumDefinitionVersion: z.string().regex(/^[a-z0-9][a-z0-9._-]{2,63}$/u),
 });
 const draftInputSchema = previewInputSchema.extend({ idempotencyKey: uuid });
@@ -49,6 +58,12 @@ const cancellationSchema = z.object({
   runId: uuid,
   reason: z.string().trim().min(3).max(500),
 });
+
+function normalizeInputMargin<T extends { marginOfErrorText?: string; marginOfError?: number }>(input: T): T & { marginOfErrorText: string } {
+  const text = input.marginOfErrorText ?? (input.marginOfError === undefined ? null : String(input.marginOfError));
+  if (text === null) throw new Error("margin of error text is required");
+  return { ...input, marginOfErrorText: text };
+}
 
 function canRead(session: IdentitySession): boolean {
   return (
@@ -78,7 +93,7 @@ async function trustedEvidence(
     const candidates = await gateway.getPopulationCandidates(input.populationImportId);
     return await buildSamplingEvidence({
       populationSize: candidates.length,
-      marginOfError: input.marginOfError,
+      marginOfErrorText: input.marginOfErrorText,
       seedText: input.seedText,
       candidates,
     });
@@ -95,7 +110,13 @@ export async function previewSampling(
   deps: Dependencies,
 ): Promise<SamplingPreviewState> {
   if (!canMutate(deps.session)) return { status: "forbidden" };
-  const parsed = previewInputSchema.safeParse(input);
+  let normalizedInput: (SamplingDraftInput | Omit<SamplingDraftInput, "idempotencyKey">) & { marginOfErrorText: string };
+  try {
+    normalizedInput = normalizeInputMargin(input);
+  } catch {
+    return { status: "invalid" };
+  }
+  const parsed = previewInputSchema.safeParse(normalizedInput);
   if (!parsed.success) return { status: "invalid" };
   const evidence = await trustedEvidence(parsed.data, deps.gateway);
   if (!isEvidence(evidence)) return evidence as SamplingPreviewState;
@@ -107,7 +128,13 @@ export async function createSamplingDraft(
   deps: Dependencies,
 ): Promise<SamplingRunState> {
   if (!canMutate(deps.session)) return { status: "forbidden" };
-  const parsed = draftInputSchema.safeParse(input);
+  let normalizedInput: SamplingDraftInput & { marginOfErrorText: string };
+  try {
+    normalizedInput = normalizeInputMargin(input);
+  } catch {
+    return { status: "invalid" };
+  }
+  const parsed = draftInputSchema.safeParse(normalizedInput);
   if (!parsed.success) return { status: "invalid" };
   const evidence = await trustedEvidence(parsed.data, deps.gateway);
   if (!isEvidence(evidence)) return evidence as SamplingRunState;
@@ -178,7 +205,7 @@ export async function lockSamplingRun(
     }
     const replayInput = {
       populationSize: persisted.populationSize,
-      marginOfError: persisted.marginOfError,
+      marginOfErrorText: persisted.marginOfErrorText ?? String(persisted.marginOfError),
       seedText: persisted.seedText,
       candidates,
       strata: persisted.allocationEvidence.map((row) => ({
@@ -238,6 +265,7 @@ function matchesTopLevelEvidence(
   return (
     run.populationSize === evidence.populationSize &&
     run.marginOfError === evidence.marginOfError &&
+    (run.marginOfErrorText ?? String(run.marginOfError)) === (evidence.marginOfErrorText ?? String(evidence.marginOfError)) &&
     run.unroundedResult === evidence.unrounded &&
     run.roundingRule === evidence.roundingRule &&
     run.targetN === evidence.targetN &&

@@ -4,7 +4,7 @@ PalmTrack คือเว็บแอปงานวิจัยนักศึ�
 
 ## สถานะปัจจุบัน
 
-Repository มี Safety Skeleton และ vertical slice **นำเข้าประชากรสังเคราะห์** ที่ใช้งานกับ Supabase local ได้แล้ว: strict CSV validation, atomic RPC, immutable accepted snapshot, exact admin/research-manager authorization, audit, Thai responsive UI และ fail-closed local E2E Migration `202608250001` ถูก apply ไป hosted Supabase และผ่าน pgTAP 55/55 ทั้ง local/hosted ส่วน `202608250002` ผ่าน local pgTAP รวม 98 assertions แต่ **ยังไม่ apply ไป hosted**; ยังไม่มี CI หรือ production deployment และห้ามเก็บข้อมูลจริงจน questionnaire/privacy/retention/restore gates ผ่านตาม [design synthesis](docs/superpowers/specs/2026-08-25-palmtrack-student-research-design.md) ภาษาภาพที่ implement แล้วอยู่ใน [design system](DESIGN.md)
+Repository มี Safety Skeleton และ increment **ประชากรกับการสุ่มตัวอย่างสังเคราะห์** ที่ใช้งานกับ Supabase local ได้แล้ว: strict CSV validation, immutable accepted snapshot, Yamane/largest remainder, deterministic seeded selection, independent database replay ก่อน lock, exact role authorization, audit, Thai responsive UI และ fail-closed local E2E Migration `202608250001` ถูก apply ไป hosted Supabase และผ่าน pgTAP 55/55 ทั้ง local/hosted ส่วน `202608250002`–`202608260004` ผ่าน local verification แต่ **ยังไม่ apply ไป hosted**; ยังไม่มี CI หรือ production deployment และห้ามเก็บข้อมูลจริงจน questionnaire/privacy/retention/restore gates ผ่านตาม [design synthesis](docs/superpowers/specs/2026-08-25-palmtrack-student-research-design.md) ภาษาภาพที่ implement แล้วอยู่ใน [design system](DESIGN.md)
 
 ## รันในเครื่อง
 
@@ -15,7 +15,7 @@ npm ci
 npm run dev
 ```
 
-เปิด `/` สำหรับ production entry ซึ่งจะไป `/sign-in`; หากยังไม่มี `.env.local` ระบบต้องแสดงสถานะ `ยังไม่ได้เชื่อมต่อระบบยืนยันตัวตน` โดยไม่สร้างผู้ใช้จำลอง คัดลอกชื่อค่าจาก `.env.example` เมื่อต้องเชื่อม Supabase ที่ได้รับอนุญาต เปิด `/prototype/field?variant=A` โดยตรงเมื่อต้อง review prototype เท่านั้น คำสั่งตรวจหลักคือ `npm run verify` และ `npm run test:e2e`; database/RLS test แบบ local ต้องมี Docker engine แล้วใช้ `npx supabase start`, `npm run test:db` และ `npm run lint:db` ส่วน authenticated local journey ใช้ `npm run test:e2e:local -- e2e/population-import.spec.ts` ซึ่งรับเฉพาะ loopback Supabase และ reset synthetic state ก่อน/หลังรัน
+เปิด `/` สำหรับ production entry ซึ่งจะไป `/sign-in`; หากยังไม่มี `.env.local` ระบบต้องแสดงสถานะ `ยังไม่ได้เชื่อมต่อระบบยืนยันตัวตน` โดยไม่สร้างผู้ใช้จำลอง คัดลอกชื่อค่าจาก `.env.example` เมื่อต้องเชื่อม Supabase ที่ได้รับอนุญาต เปิด `/prototype/field?variant=A` โดยตรงเมื่อต้อง review prototype เท่านั้น คำสั่งตรวจหลักคือ `npm run verify` และ `npm run test:e2e`; database/RLS test แบบ local ต้องมี Docker engine แล้วใช้ `npx supabase start`, `npm run test:db` และ `npm run lint:db` ส่วน authenticated local journeys ใช้ `npm run test:e2e:local` ซึ่งรับเฉพาะ loopback Supabase, ครอบคลุม population/sampling และ reset synthetic state ก่อน/หลังรัน
 
 ## ลำดับการอ่าน
 
@@ -34,6 +34,6 @@ npm run dev
 
 ## เทคโนโลยี
 
-ระบบใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright พร้อม Supabase SSR/JavaScript clients, Zod และ Supabase CLI ที่ pin version แล้ว Supabase hosted มีเฉพาะ Safety Skeleton schema/RLS/audit foundation จาก migration `202608250001` และยังไม่มีข้อมูลจริง; migration ประชากร `202608250002`, private Storage, Vercel deployment และ CI เป็นขั้นถัดไปตามแผน ส่วน GitHub remote ถูกตั้งค่าไว้แต่ยังไม่ push การเปลี่ยนแปลงรอบนี้ ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
+ระบบใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright พร้อม Supabase SSR/JavaScript clients, Zod และ Supabase CLI ที่ pin version แล้ว Supabase hosted มีเฉพาะ Safety Skeleton schema/RLS/audit foundation จาก migration `202608250001` และยังไม่มีข้อมูลจริง; migrations ประชากร/การสุ่ม `202608250002`–`202608260004`, private Storage, Vercel deployment และ CI เป็นขั้นถัดไปตามแผน ส่วน GitHub remote ถูกตั้งค่าไว้แต่ยังไม่ push การเปลี่ยนแปลงรอบนี้ ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
 
 แนวทางการเปลี่ยนเอกสารและข้อห้ามด้านข้อมูลอยู่ใน [AGENTS.md](AGENTS.md)

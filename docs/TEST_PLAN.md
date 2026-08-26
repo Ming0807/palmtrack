@@ -59,7 +59,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | ID | Assertion |
 |---|---|
 | INT-01 | successful population import/accept works independently for both admin and research_manager; duplicate/invalid strata fails atomically and accepted snapshot digest/count is immutable |
-| INT-02 | sampling `draft→locked→active`, activation superseding prior active, and draft/locked cancellation follow exact lifecycle; lock freezes evidence, exactly one active/workspace holds after sampling starts, cancelled is unselectable, replay matches ordered-result hash contract and every semantic transition audits |
+| INT-02 | sampling `draft→locked→active`, activation superseding prior active, and draft/locked cancellation follow exact lifecycle; lock freezes evidence, exactly one active/workspace holds after sampling starts, cancelled is unselectable, database replay independently matches ordered membership/order/hash, and every semantic transition audits |
 | INT-03 | assignment/reassignment updates current assignment and appends AUD-05 actor/time/action/entity/before-after and required reassign/cancel reason atomically |
 | INT-04 | assignment→notice→granted/declined ordering holds; decline stores minimal audit and creates no baseline/response; collector-only withdrawal from draft/submitted/returned/verified is terminal/immediately excluded; unauthorized transitions fail |
 | INT-05 | collector edits content only in granted/valid `draft`; idempotent `draft→submitted` revalidates auth/assignment/consent/version; returned/submitted/verified content mutation denied |
@@ -99,7 +99,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | REP-02 | research report/export | shared base enforces workspace, selected active/superseded run, locked-at date, eligible/non-soft-deleted population/sample and not-withdrawn; each exact stage predicate reconciles independently; early stages do not use export predicate; export-eligible is granted+verified+not-withdrawn |
 | OFF-01 | offline | IndexedDB draft survives reload, visibly remains device-only, cannot submit or claim server receipt offline |
 | OFF-02 | reconnect | online returned resume revalidates granted consent/assignment/version and is status-only; content edit/submit occurs only after draft confirmation; declined/withdrawn/reassigned conflict blocks and offers safe draft deletion; success clears draft |
-| A11Y-01 | automated/manual | 360/desktop critical pages have semantics, labels, contrast, focus and no critical WCAG 2.1 AA finding |
+| A11Y-01 | automated/manual | 360/desktop critical pages have semantics, labels, contrast, focus and no serious/critical WCAG 2.1 AA finding; sampling receipt runs a page-specific axe scan |
 | A11Y-02 | keyboard/screen reader | modal focus, error summary/live status, chart table alternative and primary journeys operate without pointer |
 | BAK-01 | database recovery | logical export + encrypted identity manifest/checksum restore app data into clean target while preserving stable profile UUIDs and relinking new Auth UIDs |
 | BAK-02 | storage recovery | private object manifest/checksum copied, restored privately, metadata/object reconciliation and access policies pass |
@@ -112,7 +112,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 
 | ID | Assertion |
 |---|---|
-| AUD-01 | sampling draft/lock/activate/supersede/cancel records actor UUID, UTC timestamp, workspace/run action/entity, reason where required, before/after status, candidate hash and authoritative ordered-result hash without raw PII |
+| AUD-01 | sampling draft/lock/activate/supersede/cancel/regenerate records actor UUID, UTC timestamp, workspace/run action/entity, reason where required, before/after status, candidate hash, authoritative ordered-result hash/version, population size, target and algorithm without raw PII |
 | AUD-02 | every anonymized and full-PII export records actor UUID, UTC timestamp, action/entity, `export_mode`, filter digest, selected `sampling_run_id`, row count and result without exported rows; full PII additionally requires approval reference and reason/purpose; denied attempts record result safely |
 | AUD-03 | farm/plot/activity/expense/harvest/sale soft-delete records actor UUID, UTC timestamp, action/entity, required reason, before/after active/deleted status and report digest; direct hard delete is denied |
 | AUD-04 | authorized/denied attachment list/read/download/delete records actor UUID, UTC timestamp, action/entity, object metadata ID and result; deletion additionally requires reason and before/after metadata/object status; audit excludes signed URL/path leakage |

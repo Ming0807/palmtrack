@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   allocateLargestRemainder,
   buildSamplingEvidence,
+  canonicalizeMarginOfErrorText,
   calculateSampleSize,
   replaySamplingEvidence,
   type SamplingCandidate,
@@ -48,6 +49,27 @@ describe("calculateSampleSize", () => {
     expect(() => calculateSampleSize(populationSize, marginOfError)).toThrow(
       "invalid sampling bounds",
     );
+  });
+});
+
+describe("margin-of-error text contract", () => {
+  it("canonicalizes 0.050 to 0.05 without losing the persisted text contract", () => {
+    expect(canonicalizeMarginOfErrorText("0.050")).toBe("0.05");
+    expect(canonicalizeMarginOfErrorText("0.5000")).toBe("0.5");
+    expect(canonicalizeMarginOfErrorText("0.000100")).toBe("0.0001");
+  });
+
+  it.each(["", "0", "0.0", "1", "0.05e0", "0.050 ", "-0.05", `0.${"0".repeat(400)}1`])(
+    "rejects non-canonical or unsafe margin text %j",
+    (value) => {
+      expect(() => canonicalizeMarginOfErrorText(value)).toThrow("invalid margin of error text");
+    },
+  );
+
+  it("includes the canonical text in replayable evidence", async () => {
+    const evidence = await buildSamplingEvidence({ ...evidenceInput, marginOfErrorText: "0.500" });
+    expect(evidence.marginOfErrorText).toBe("0.5");
+    await expect(replaySamplingEvidence({ ...evidenceInput, marginOfErrorText: "0.500" }, evidence)).resolves.toBe(true);
   });
 });
 
@@ -241,6 +263,7 @@ describe("deterministic sampling evidence", () => {
       },
       populationSize: 5,
       marginOfError: 0.5,
+      marginOfErrorText: "0.5",
       unrounded: 2.2222222222222223,
       roundingRule: "ceil",
       targetN: 3,

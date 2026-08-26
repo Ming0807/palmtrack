@@ -268,14 +268,14 @@ begin
     and new.cancelled_by is null and new.cancelled_at is null
     and new.cancellation_reason_digest is null
     and (to_jsonb(new) - array[
-      'margin_of_error', 'unrounded_result', 'target_n', 'formula_version',
+      'margin_of_error', 'margin_of_error_text', 'unrounded_result', 'target_n', 'formula_version',
       'stratum_definition_version', 'seed_text', 'seed_normalized',
       'seed_normalized_utf8_hex', 'seed_digest_hex', 'seed_u32',
       'algorithm_version', 'ordered_candidate_set_hash', 'ordered_result_hash', 'allocation_evidence',
       'result_evidence', 'updated_at'
     ]::text[])
       = (to_jsonb(old) - array[
-        'margin_of_error', 'unrounded_result', 'target_n', 'formula_version',
+        'margin_of_error', 'margin_of_error_text', 'unrounded_result', 'target_n', 'formula_version',
         'stratum_definition_version', 'seed_text', 'seed_normalized',
         'seed_normalized_utf8_hex', 'seed_digest_hex', 'seed_u32',
         'algorithm_version', 'ordered_candidate_set_hash', 'ordered_result_hash', 'allocation_evidence',
@@ -413,23 +413,23 @@ begin
       'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_locked' then array[
-      'before_status', 'after_status', 'input_digest', 'candidate_set_hash',
+      'before_status', 'after_status', 'population_size', 'target_n', 'input_digest', 'candidate_set_hash', 'algorithm_version',
       'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_activated' then array[
-      'before_status', 'after_status', 'candidate_set_hash',
+      'before_status', 'after_status', 'population_size', 'target_n', 'candidate_set_hash', 'algorithm_version',
       'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_superseded' then array[
-      'before_status', 'after_status', 'candidate_set_hash',
+      'before_status', 'after_status', 'population_size', 'target_n', 'candidate_set_hash', 'algorithm_version',
       'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_cancelled' then array[
-      'before_status', 'after_status', 'reason_digest',
+      'before_status', 'after_status', 'population_size', 'target_n', 'reason_digest', 'candidate_set_hash', 'algorithm_version',
       'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_regenerated' then array[
-      'before_status', 'after_status', 'input_digest', 'candidate_set_hash',
+      'before_status', 'after_status', 'population_size', 'target_n', 'input_digest', 'candidate_set_hash', 'algorithm_version',
       'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     else null
@@ -503,37 +503,53 @@ begin
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') <> 'draft'
       or coalesce(p_details ->> 'after_status', '') <> 'locked'
+      or coalesce(p_details ->> 'population_size', '') !~ '^[1-9][0-9]*$'
+      or coalesce(p_details ->> 'target_n', '') !~ '^[1-9][0-9]*$'
       or coalesce(p_details ->> 'input_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'algorithm_version', '') <> 'sha256-mulberry32-fy-v1'
       or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
       or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_activated' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') <> 'locked'
       or coalesce(p_details ->> 'after_status', '') <> 'active'
+      or coalesce(p_details ->> 'population_size', '') !~ '^[1-9][0-9]*$'
+      or coalesce(p_details ->> 'target_n', '') !~ '^[1-9][0-9]*$'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'algorithm_version', '') <> 'sha256-mulberry32-fy-v1'
       or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
       or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_superseded' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') <> 'active'
       or coalesce(p_details ->> 'after_status', '') <> 'superseded'
+      or coalesce(p_details ->> 'population_size', '') !~ '^[1-9][0-9]*$'
+      or coalesce(p_details ->> 'target_n', '') !~ '^[1-9][0-9]*$'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'algorithm_version', '') <> 'sha256-mulberry32-fy-v1'
       or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
       or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_cancelled' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') not in ('draft', 'locked')
       or coalesce(p_details ->> 'after_status', '') <> 'cancelled'
+      or coalesce(p_details ->> 'population_size', '') !~ '^[1-9][0-9]*$'
+      or coalesce(p_details ->> 'target_n', '') !~ '^[1-9][0-9]*$'
       or coalesce(p_details ->> 'reason_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'algorithm_version', '') <> 'sha256-mulberry32-fy-v1'
       or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
       or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_regenerated' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') <> 'draft'
       or coalesce(p_details ->> 'after_status', '') <> 'draft'
+      or coalesce(p_details ->> 'population_size', '') !~ '^[1-9][0-9]*$'
+      or coalesce(p_details ->> 'target_n', '') !~ '^[1-9][0-9]*$'
       or coalesce(p_details ->> 'input_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'algorithm_version', '') <> 'sha256-mulberry32-fy-v1'
       or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
       or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     else true
@@ -597,6 +613,10 @@ as $$
 declare
   v_key text;
 begin
+  -- The final-review migration persists this canonical text alongside the
+  -- legacy numeric evidence. Shape validation intentionally ignores that
+  -- additive compatibility field; replay validates it against the input.
+  p_result_evidence := p_result_evidence - 'margin_of_error_text';
   if jsonb_typeof(p_allocation_evidence) is distinct from 'array'
     or jsonb_typeof(p_result_evidence) is distinct from 'object' then
     raise exception using errcode = '22023', message = 'sampling evidence shape is invalid';
@@ -1437,6 +1457,7 @@ begin
   from jsonb_to_recordset(p_result_evidence -> 'ordered_selected_members') as selected(member_id uuid, stratum_code text, selection_order bigint);
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_regenerated', 'sampling_run', v_run.id, 'success', jsonb_build_object(
     'before_status', 'draft', 'after_status', 'draft',
+    'population_size', v_n, 'target_n', p_target_n, 'algorithm_version', p_algorithm_version,
     'input_digest', v_import.input_digest, 'candidate_set_hash', p_ordered_candidate_set_hash,
     'ordered_result_digest_version', p_result_evidence ->> 'ordered_result_digest_version',
     'ordered_result_hash', p_result_evidence ->> 'ordered_result_hash'
@@ -1509,6 +1530,7 @@ begin
   update public.sampling_run set status = 'locked', locked_by = v_actor, locked_at = statement_timestamp(), updated_at = statement_timestamp() where public.sampling_run.id = v_run.id;
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_locked', 'sampling_run', v_run.id, 'success', jsonb_build_object(
     'before_status', 'draft', 'after_status', 'locked', 'input_digest', (select population_import.input_digest from public.population_import as population_import where population_import.id = v_run.population_import_id),
+    'population_size', v_run.population_size, 'target_n', v_run.target_n, 'algorithm_version', v_run.algorithm_version,
     'candidate_set_hash', v_run.ordered_candidate_set_hash,
     'ordered_result_digest_version', v_run.result_evidence ->> 'ordered_result_digest_version',
     'ordered_result_hash', v_run.ordered_result_hash
@@ -1560,6 +1582,7 @@ begin
     update public.sampling_run set status = 'superseded', superseded_by = v_actor, superseded_at = statement_timestamp(), updated_at = statement_timestamp() where public.sampling_run.id = v_previous.id;
     perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_superseded', 'sampling_run', v_previous.id, 'success', jsonb_build_object(
       'before_status', 'active', 'after_status', 'superseded', 'candidate_set_hash', v_previous.ordered_candidate_set_hash,
+      'population_size', v_previous.population_size, 'target_n', v_previous.target_n, 'algorithm_version', v_previous.algorithm_version,
       'ordered_result_digest_version', v_previous.result_evidence ->> 'ordered_result_digest_version',
       'ordered_result_hash', v_previous.ordered_result_hash
     ));
@@ -1568,6 +1591,7 @@ begin
   update public.sampling_run set status = 'active', activated_by = v_actor, activated_at = statement_timestamp(), updated_at = statement_timestamp() where public.sampling_run.id = v_run.id;
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_activated', 'sampling_run', v_run.id, 'success', jsonb_build_object(
     'before_status', 'locked', 'after_status', 'active', 'candidate_set_hash', v_run.ordered_candidate_set_hash,
+    'population_size', v_run.population_size, 'target_n', v_run.target_n, 'algorithm_version', v_run.algorithm_version,
     'ordered_result_digest_version', v_run.result_evidence ->> 'ordered_result_digest_version',
     'ordered_result_hash', v_run.ordered_result_hash
   ));
@@ -1614,6 +1638,7 @@ begin
   update public.sampling_run set status = 'cancelled', cancelled_by = v_actor, cancelled_at = statement_timestamp(), cancellation_reason_digest = v_reason_digest, updated_at = statement_timestamp() where public.sampling_run.id = v_run.id;
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_cancelled', 'sampling_run', v_run.id, 'success', jsonb_build_object(
     'before_status', v_run.status::text, 'after_status', 'cancelled', 'reason_digest', v_reason_digest,
+    'population_size', v_run.population_size, 'target_n', v_run.target_n, 'candidate_set_hash', v_run.ordered_candidate_set_hash, 'algorithm_version', v_run.algorithm_version,
     'ordered_result_digest_version', v_run.result_evidence ->> 'ordered_result_digest_version',
     'ordered_result_hash', v_run.ordered_result_hash
   ));

@@ -26,6 +26,10 @@
 
 Sampling run บันทึก `N`, `e`, unrounded result, rounding rule, `target_n`, formula version, population snapshot ID/digest, stratum definition version, deterministic-selection evidence, ordered-result digest contract/hash, actor และ UTC timestamp
 
+### Canonical margin input contract
+
+FormData รับ `margin_of_error_text` เป็นข้อความ decimal และ server ส่งค่าข้อความนี้ต่อผ่าน action/service/gateway ถึงฐานข้อมูลโดยไม่แปลงเป็น `number` ก่อน persistence ฐานข้อมูลและ domain canonicalize เพียงครั้งเดียวตามรูปแบบ `^0\.0*[1-9](?:\d*[1-9])?$`: ต้องเป็นเลขทศนิยมบวกที่น้อยกว่า 1, ไม่มี exponent/sign/whitespace และไม่มีศูนย์ท้ายที่ไม่มีความหมาย ดังนั้น `0.050` จะ canonicalize และ persist เป็นข้อความ **`0.05`** ค่าตัวเลข `e` ถูก derive จาก canonical text เฉพาะเพื่อคำนวณ Yamane และ replay เท่านั้น โดย canonical text ต้องอยู่ใน `sampling_run.margin_of_error_text`, result evidence และ receipt/UI เสมอ
+
 ## Proportional stratification: largest remainder
 
 ให้แต่ละ stratum `h` มี `N_h`; คำนวณ quota `q_h = target_n × N_h / N`:

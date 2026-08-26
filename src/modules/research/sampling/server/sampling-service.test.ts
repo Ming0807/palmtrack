@@ -111,6 +111,20 @@ async function setup(role: Role = "research_manager") {
 }
 
 describe("sampling service", () => {
+  it("keeps the canonical margin text through trusted evidence before gateway persistence", async () => {
+    const deps = await setup();
+    const textInput = {
+      ...input,
+      marginOfError: undefined,
+      marginOfErrorText: "0.500",
+    };
+
+    await expect(createSamplingDraft(textInput, deps)).resolves.toMatchObject({ status: "ready" });
+    expect(deps.gateway.createDraft).toHaveBeenCalledWith(expect.objectContaining({
+      evidence: expect.objectContaining({ marginOfErrorText: "0.5" }),
+    }));
+  });
+
   it("recomputes trusted candidate evidence before preview and create", async () => {
     const deps = await setup();
     await expect(previewSampling(input, deps)).resolves.toMatchObject({

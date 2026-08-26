@@ -8,6 +8,7 @@
 export const SAMPLING_ALGORITHM_VERSION = "sha256-mulberry32-fy-v1" as const;
 export const SAMPLE_SIZE_FORMULA_VERSION = "yamane-v1" as const;
 export const ORDERED_RESULT_DIGEST_VERSION = "ordered-result-sha256-v1" as const;
+export const MARGIN_OF_ERROR_TEXT_PATTERN = /^0\.0*[1-9](?:\d*[1-9])?$/u;
 
 export type SamplingCandidate = {
   memberId: string;
@@ -23,7 +24,9 @@ export type SamplingStratum = {
 
 export type SamplingEvidenceInput = {
   populationSize: number;
-  marginOfError: number;
+  /** Legacy numeric adapter; server paths must provide marginOfErrorText. */
+  marginOfError?: number;
+  marginOfErrorText?: string;
   seedText: string;
   candidates: readonly SamplingCandidate[];
   strata?: readonly SamplingStratum[];
@@ -61,6 +64,8 @@ export type SamplingEvidence = {
   formula: SampleSizeCalculation;
   populationSize: number;
   marginOfError: number;
+  /** Canonical persisted input. The accepted form is 0.xxx with no trailing zero. */
+  marginOfErrorText?: string;
   unrounded: number;
   roundingRule: "ceil";
   targetN: number;
@@ -92,6 +97,39 @@ const canonicalUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
 
 function invalid(message: string): never {
   throw new Error(message);
+}
+
+/**
+ * Canonical decimal contract for e. Input accepts only decimal text in the
+ * open interval (0, 1); trailing fractional zeroes are removed, so 0.050 is
+ * persisted and replayed as exactly 0.05. Exponential notation, whitespace,
+ * signs, and an integer form are not part of the contract.
+ */
+export function canonicalizeMarginOfErrorText(value: string): string {
+  if (typeof value !== "string") invalid("invalid margin of error text");
+  const match = /^0\.(\d+)$/u.exec(value);
+  if (!match) invalid("invalid margin of error text");
+  const fraction = match[1].replace(/0+$/u, "");
+  if (fraction.length === 0) invalid("invalid margin of error text");
+  const canonical = `0.${fraction}`;
+  const numericValue = Number(canonical);
+  if (!Number.isFinite(numericValue) || numericValue <= 0 || numericValue >= 1) {
+    invalid("invalid margin of error text");
+  }
+  return canonical;
+}
+
+function marginOfErrorInput(input: SamplingEvidenceInput): { text: string; value: number } {
+  const text = input.marginOfErrorText !== undefined
+    ? canonicalizeMarginOfErrorText(input.marginOfErrorText)
+    : input.marginOfError !== undefined
+      ? canonicalizeMarginOfErrorText(String(input.marginOfError))
+      : invalid("invalid margin of error text");
+  if (input.marginOfErrorText !== undefined && input.marginOfError !== undefined
+    && Number(input.marginOfError) !== Number(text)) {
+    invalid("margin of error inputs disagree");
+  }
+  return { text, value: Number(text) };
 }
 
 function utf8(value: string): Uint8Array {
@@ -410,6 +448,7 @@ function evidenceComparable(evidence: SamplingEvidence): unknown {
     formula: evidence.formula,
     populationSize: evidence.populationSize,
     marginOfError: evidence.marginOfError,
+    marginOfErrorText: evidence.marginOfErrorText,
     unrounded: evidence.unrounded,
     roundingRule: evidence.roundingRule,
     targetN: evidence.targetN,
@@ -435,7 +474,8 @@ export async function buildSamplingEvidence(
   input: SamplingEvidenceInput,
 ): Promise<SamplingEvidence> {
   const populationSize = input.populationSize;
-  const marginOfError = input.marginOfError;
+  const marginInput = marginOfErrorInput(input);
+  const marginOfError = marginInput.value;
   const calculation = calculateSampleSize(populationSize, marginOfError);
   const targetN = inputTargetN(input, calculation);
   const seedText = input.seedText;
@@ -512,6 +552,7 @@ export async function buildSamplingEvidence(
     formula: calculation,
     populationSize,
     marginOfError,
+    marginOfErrorText: marginInput.text,
     unrounded: calculation.unrounded,
     roundingRule: calculation.roundingRule,
     targetN,

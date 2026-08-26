@@ -1,6 +1,6 @@
 # Deployment runbook
 
-เอกสารนี้เป็น runbook สำหรับ Safety Skeleton ที่ผ่าน review gate แล้ว ปัจจุบัน Supabase hosted มี schema/RLS/audit foundation และ public app environment ถูกตั้งเฉพาะใน ignored local configuration; ยังไม่มีข้อมูลจริง, private Storage, Vercel deployment หรือ CI
+เอกสารนี้เป็น runbook สำหรับ Safety Skeleton และ local research increment ที่ผ่าน review gate แล้ว ปัจจุบัน Supabase hosted มีเฉพาะ schema/RLS/audit foundation จาก migration `202608250001`; population/sampling migrations ยังอยู่ local และยังไม่มีข้อมูลจริง, private Storage, Vercel deployment หรือ CI
 
 ## Planned environments
 
@@ -26,7 +26,7 @@ Environment-variable **names only** ที่วางแผน: `NEXT_PUBLIC_SU
 
 ## Migration and deploy
 
-ก่อน apply ให้รัน `supabase migration list` และยืนยันว่า local/remote history ตรงกับสภาพจริง Apply เฉพาะ version ที่ pending ผ่าน `supabase db push` หรือ migration tooling ที่ได้รับอนุมัติ **หนึ่งครั้ง** ห้ามคัดลอก ordered migration ที่ remote บันทึกแล้วไปรันซ้ำใน SQL Editor เพราะจะเกิด duplicate-object error เช่น `42P07`; ห้ามแก้ด้วยการ drop relation เดิม ปัจจุบัน `202608250001` อยู่บน hosted แล้ว ส่วน `202608250002` เป็น local-only และต้องผ่าน backup/approval ก่อน apply ภายหลัง
+ก่อน apply ให้รัน `supabase migration list` และยืนยันว่า local/remote history ตรงกับสภาพจริง Apply เฉพาะ version ที่ pending ผ่าน `supabase db push` หรือ migration tooling ที่ได้รับอนุมัติ **หนึ่งครั้ง** ห้ามคัดลอก ordered migration ที่ remote บันทึกแล้วไปรันซ้ำใน SQL Editor เพราะจะเกิด duplicate-object error เช่น `42P07`; ห้ามแก้ด้วยการ drop relation เดิม ปัจจุบัน `202608250001` อยู่บน hosted แล้ว ส่วน `202608250002`, `202608260003` และ `202608260004` เป็น local-only ต้อง apply ตามลำดับหลัง backup/approval และห้ามข้าม `202608260004` เพราะเป็น DB replay trust-boundary hardening ของ sampling
 
 1. Lock approved commit, backup current DB/storage ตาม procedure ด้านล่าง และ verify checksum/restore ล่าสุด
 2. Dry-run migration กับ clone/clean synthetic target; review destructive/locking query และ backward compatibility

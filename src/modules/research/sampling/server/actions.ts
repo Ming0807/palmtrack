@@ -29,11 +29,10 @@ function textField(formData: FormData, name: string): string | null {
   return typeof value === "string" ? value : null;
 }
 
-function finiteNumberField(formData: FormData, name: string): number | null {
-  const value = textField(formData, name);
-  if (value === null || value.trim() === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+function marginOfErrorTextField(formData: FormData): string | null {
+  // Keep the submitted decimal as text. Canonicalization and numeric
+  // derivation happen inside the domain boundary, never in FormData parsing.
+  return textField(formData, "marginOfErrorText") ?? textField(formData, "marginOfError");
 }
 
 function uuidField(formData: FormData, name: string): string | null {
@@ -72,12 +71,12 @@ export async function previewSamplingAction(
 ): Promise<SamplingPreviewState> {
   const populationImportId = uuidField(formData, "populationImportId");
   const seedText = textField(formData, "seedText");
-  const marginOfError = finiteNumberField(formData, "marginOfError");
+  const marginOfErrorText = marginOfErrorTextField(formData);
   const stratumDefinitionVersion = textField(formData, "stratumDefinitionVersion");
   if (
     populationImportId === null ||
     seedText === null ||
-    marginOfError === null ||
+    marginOfErrorText === null ||
     stratumDefinitionVersion === null
   ) {
     return { status: "invalid" };
@@ -86,7 +85,7 @@ export async function previewSamplingAction(
   const dependencies = await dependenciesOrUnavailable();
   if (!("gateway" in dependencies)) return dependencies;
   return previewSampling(
-    { populationImportId, seedText, marginOfError, stratumDefinitionVersion },
+    { populationImportId, seedText, marginOfErrorText, stratumDefinitionVersion },
     dependencies,
   );
 }
@@ -97,13 +96,13 @@ export async function createSamplingDraftAction(
 ): Promise<SamplingRunState> {
   const populationImportId = uuidField(formData, "populationImportId");
   const seedText = textField(formData, "seedText");
-  const marginOfError = finiteNumberField(formData, "marginOfError");
+  const marginOfErrorText = marginOfErrorTextField(formData);
   const stratumDefinitionVersion = textField(formData, "stratumDefinitionVersion");
   const idempotencyKey = uuidField(formData, "idempotencyKey");
   if (
     populationImportId === null ||
     seedText === null ||
-    marginOfError === null ||
+    marginOfErrorText === null ||
     stratumDefinitionVersion === null ||
     idempotencyKey === null
   ) {
@@ -114,7 +113,7 @@ export async function createSamplingDraftAction(
   if (!("gateway" in dependencies)) return dependencies;
   return revalidateOnSuccess(
     await createSamplingDraft(
-      { populationImportId, seedText, marginOfError, stratumDefinitionVersion, idempotencyKey },
+      { populationImportId, seedText, marginOfErrorText, stratumDefinitionVersion, idempotencyKey },
       dependencies,
     ),
   );

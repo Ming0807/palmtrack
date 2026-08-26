@@ -11,6 +11,7 @@ select enum_has_labels(
 );
 select has_table('public', 'sampling_run', '[INT-02] sampling run table exists');
 select has_column('public', 'sampling_run', 'ordered_result_hash', '[INT-02] sampling run stores the authoritative ordered result hash');
+select has_column('public', 'sampling_run', 'margin_of_error_text', '[INT-02] sampling run stores canonical decimal input text');
 select has_table('public', 'sampling_allocation', '[INT-02] allocation table exists');
 select has_table('public', 'sample_member', '[INT-02] sample member table exists');
 select has_function(
@@ -18,6 +19,12 @@ select has_function(
   'create_sampling_draft',
   array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'],
   '[INT-02] create sampling draft RPC exists'
+);
+select has_function(
+  'public',
+  'create_sampling_draft',
+  array['uuid', 'text', 'text', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'],
+  '[SEC-02] text-preserving create RPC exists'
 );
 select has_function('public', 'lock_sampling_run', array['uuid', 'timestamptz'], '[INT-02] lock RPC exists');
 select has_function('public', 'activate_sampling_run', array['uuid'], '[INT-02] activate RPC exists');
@@ -42,6 +49,7 @@ select ok(
 select table_privs_are('public', 'sampling_run', 'authenticated', array[]::text[], '[RLS-09] authenticated has no run table privilege');
 select table_privs_are('public', 'sample_member', 'service_role', array[]::text[], '[RLS-09] service role has no sample table privilege');
 select function_privs_are('public', 'create_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call create RPC only');
+select function_privs_are('public', 'create_sampling_draft', array['uuid', 'text', 'text', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call text-preserving create RPC only');
 select function_privs_are('public', 'lock_sampling_run', array['uuid', 'timestamptz'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call lock RPC only');
 select function_privs_are('public', 'activate_sampling_run', array['uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call activate RPC only');
 select function_privs_are('public', 'cancel_sampling_run', array['uuid', 'text'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call cancel RPC only');
@@ -120,6 +128,9 @@ set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000802';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000802","role":"authenticated"}';
 set local role palmtrack_transaction_owner;
 
+select is(private.canonical_margin_of_error_text('0.050'), '0.05', '[SEC-02] database canonicalizes trailing decimal zeros without numeric persistence');
+select is(private.canonical_margin_of_error_text('0.00500'), '0.005', '[SEC-02] database preserves significant decimal scale after canonicalization');
+
 select lives_ok(
   $$ select * from public.get_sampling_population_candidates((select id from public.list_population_imports() where source_label = 'FX-SAMPLING')) $$,
   '[INT-02] manager reads every eligible accepted population candidate'
@@ -195,12 +206,17 @@ select is((select status::text from public.sampling_run), 'draft', '[INT-02] new
 select is((select population_size from public.sampling_run), 4::bigint, '[INT-02] N stores eligible population exactly');
 select is((select target_n from public.sampling_run), 2::bigint, '[INT-02] target stores exact numeric result');
 select is((select ordered_result_hash from public.sampling_run), (select result_evidence ->> 'ordered_result_hash' from public.sampling_run), '[INT-02] ordered result hash column matches result evidence');
-select is((select count(*) from jsonb_object_keys((select result_evidence from public.sampling_run))), 19::bigint, '[INT-02] result evidence has an exact allowlisted shape');
+select is((select count(*) from jsonb_object_keys((select result_evidence from public.sampling_run))), 20::bigint, '[INT-02] result evidence has an exact allowlisted shape including canonical margin text');
 select is((select result_evidence ->> 'ordered_result_digest_version' from public.sampling_run), 'ordered-result-sha256-v1', '[INT-02] ordered result digest contract is explicit');
 select is((select count(*) from public.sampling_allocation), 3::bigint, '[INT-02] allocation has one row per stratum');
 select is((select count(*) from public.sample_member), 2::bigint, '[INT-02] member evidence totals target');
 select is((select count(*) from public.sample_member where selection_order in (1, 2)), 2::bigint, '[INT-02] member selection orders are globally unique');
 select is((select ordered_result_hash from public.list_sampling_runs() limit 1), (select ordered_result_hash from public.sampling_run limit 1), '[INT-02] summary projection exposes the ordered result hash');
+select is(
+  (select to_jsonb(summary) ->> 'margin_of_error_text' from public.list_sampling_runs() as summary limit 1),
+  '0.5',
+  '[INT-02] summary projection preserves canonical margin text'
+);
 select ok(not ((select to_jsonb(row) from public.list_sampling_runs() as row limit 1) ?| array['workspace_id', 'contact', 'phone']), '[SEC-02] run projection omits workspace and contact data');
 select is((select count(*) from public.create_sampling_draft(
   (select id from public.population_import where source_label = 'FX-SAMPLING'), 'sample-seed', 0.5,
@@ -210,6 +226,19 @@ select is((select count(*) from public.create_sampling_draft(
   (select result_evidence from public.sampling_run limit 1),
   '00000000-0000-0000-0000-000000000902'::uuid
 )), 1::bigint, '[INT-02] identical idempotency retry returns one run');
+select is((select count(*) from public.create_sampling_draft(
+  (select id from public.population_import where source_label = 'FX-SAMPLING'), 'sample-seed', '0.500'::text,
+  'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+  '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+  (select allocation_evidence from public.sampling_run limit 1),
+  (select result_evidence from public.sampling_run limit 1),
+  '00000000-0000-0000-0000-000000000902'::uuid
+)), 1::bigint, '[INT-02] text create idempotency retry returns the existing run');
+
+select ok(
+  position('margin_of_error_text' in pg_get_functiondef('private.guard_sampling_run_update()'::regprocedure)) > 0,
+  '[INT-02] regeneration lifecycle guard permits the canonical margin field to change with replayed evidence'
+);
 
 select lives_ok($$ select * from public.lock_sampling_run((select id from public.sampling_run), (select updated_at from public.sampling_run)) $$, '[INT-02] manager locks draft after evidence replay');
 select is((select status::text from public.sampling_run), 'locked', '[INT-02] lock freezes run state');
@@ -238,6 +267,37 @@ select lives_ok($$ select * from public.activate_sampling_run((select id from pu
 select is((select count(*) from public.sampling_run where status = 'active'), 1::bigint, '[INT-02] partial unique active index leaves exactly one active run');
 select is((select count(*) from public.sampling_run where status = 'superseded'), 1::bigint, '[INT-02] activation supersedes the previous active run');
 reset role;
+select ok(
+  not exists (
+    select 1
+    from public.audit_event
+    where action_code in (
+      'sampling.run_created', 'sampling.run_locked', 'sampling.run_activated',
+      'sampling.run_superseded', 'sampling.run_cancelled', 'sampling.run_regenerated'
+    )
+    and not (details ?& array[
+      'candidate_set_hash', 'ordered_result_hash', 'ordered_result_digest_version',
+      'population_size', 'target_n', 'algorithm_version'
+    ])
+  ),
+  '[AUD-01] every sampling lifecycle audit carries candidate/result hashes, N/target and algorithm'
+);
+select ok(
+  not exists (
+    select 1 from public.audit_event
+    where action_code like 'sampling.%'
+      and (details ->> 'candidate_set_hash') !~ '^[0-9a-f]{64}$'
+  ),
+  '[AUD-01] lifecycle candidate hashes are lowercase SHA-256 values'
+);
+select ok(
+  not exists (
+    select 1 from public.audit_event
+    where action_code like 'sampling.%'
+      and (details ->> 'ordered_result_digest_version') <> 'ordered-result-sha256-v1'
+  ),
+  '[AUD-01] lifecycle result digest version is allowlisted'
+);
 select is((select count(*) from public.audit_event where action_code = 'sampling.run_superseded'), 1::bigint, '[AUD-01] supersession appends its own audited transition');
 select is((select details ->> 'ordered_result_digest_version' from public.audit_event where action_code = 'sampling.run_activated' and entity_id = (select id from public.sampling_run where status = 'active') order by occurred_at desc limit 1), 'ordered-result-sha256-v1', '[AUD-01] activation audit stores the ordered-result digest contract');
 select is((select details ->> 'ordered_result_hash' from public.audit_event where action_code = 'sampling.run_activated' and entity_id = (select id from public.sampling_run where status = 'active') order by occurred_at desc limit 1), (select ordered_result_hash from public.sampling_run where status = 'active'), '[AUD-01] activation audit stores the affected run result hash');
@@ -341,6 +401,34 @@ select throws_ok(
   ) $$,
   '22023', null,
   '[SEC-02] forged per-stratum N_h is rejected even when aggregate allocation totals match'
+);
+
+select throws_ok(
+  $$ select * from public.create_sampling_draft(
+    (select id from public.population_import where source_label = 'FX-SAMPLING'),
+    'sample-seed', '0.500', 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where status = 'active' limit 1),
+    jsonb_set(
+      jsonb_set(
+        (select result_evidence from public.sampling_run where status = 'active' limit 1),
+        '{ordered_selected_members,0,member_id}',
+        to_jsonb((select id from public.population_member where farmer_code = 'SYN-103' order by id limit 1))
+      ),
+      '{ordered_selected_member_ids,0}',
+      to_jsonb((select id from public.population_member where farmer_code = 'SYN-103' order by id limit 1))
+    ) || jsonb_build_object('ordered_result_hash', private.ordered_result_hash(jsonb_set(
+      jsonb_set(
+        (select result_evidence -> 'ordered_selected_members' from public.sampling_run where status = 'active' limit 1),
+        '{0,member_id}',
+        to_jsonb((select id from public.population_member where farmer_code = 'SYN-103' order by id limit 1))
+      ),
+      '{0,selection_order}', '1'::jsonb
+    ))),
+    '00000000-0000-0000-0000-000000000917'::uuid
+  ) $$,
+  '22023', null,
+  '[SEC-02] structurally valid but forged selection is rejected by the server replay'
 );
 
 insert into public.workspace (id, name, status)

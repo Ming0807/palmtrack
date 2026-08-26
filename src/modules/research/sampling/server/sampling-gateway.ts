@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { ORDERED_RESULT_DIGEST_VERSION } from "@/modules/research/sampling/domain/deterministic-sampling";
+import {
+  canonicalizeMarginOfErrorText,
+  ORDERED_RESULT_DIGEST_VERSION,
+} from "@/modules/research/sampling/domain/deterministic-sampling";
 import type {
   AllocationRow,
   SamplingCandidate,
@@ -29,6 +32,7 @@ export type SamplingRun = {
   populationImportId: string;
   populationSize: number;
   marginOfError: number;
+  marginOfErrorText?: string;
   unroundedResult: number;
   roundingRule: "ceil";
   targetN: number;
@@ -76,7 +80,7 @@ export type SamplingRunSummary = Pick<
   | "activatedAt"
   | "supersededAt"
   | "cancelledAt"
-> & { allocationEvidence: AllocationRow[] };
+> & { allocationEvidence: AllocationRow[]; marginOfErrorText?: string };
 
 export interface SamplingGateway {
   /** Reads trusted candidate rows for a snapshot/run. */
@@ -161,6 +165,13 @@ const integer = z
   .transform((value) => (typeof value === "string" ? Number(value) : value));
 const hash = z.string().regex(/^[0-9a-f]{64}$/u);
 
+function canonicalMarginFromNumeric(value: number): string {
+  return canonicalizeMarginOfErrorText(value.toLocaleString("en-US", {
+    useGrouping: false,
+    maximumFractionDigits: 20,
+  }));
+}
+
 const allocationRowSchema = z.object({
   stratum_code: z.string().min(1),
   eligible_count: integer,
@@ -180,6 +191,7 @@ const resultEvidenceSchema = z.object({
   formula_version: z.literal("yamane-v1"),
   population_size: integer,
   margin_of_error: numeric,
+  margin_of_error_text: z.string().optional(),
   unrounded: numeric,
   rounding_rule: z.literal("ceil"),
   target_n: integer,
@@ -204,6 +216,7 @@ const fullRunRowSchema = z.object({
   population_import_id: uuid,
   population_size: integer,
   margin_of_error: numeric,
+  margin_of_error_text: z.string().optional(),
   unrounded_result: numeric,
   rounding_rule: z.literal("ceil"),
   target_n: integer,
@@ -234,6 +247,7 @@ const listRunRowSchema = z.object({
   version: integer,
   population_size: integer,
   margin_of_error: numeric,
+  margin_of_error_text: z.string().optional(),
   unrounded_result: numeric,
   rounding_rule: z.literal("ceil"),
   target_n: integer,
@@ -287,9 +301,14 @@ function mapAllocation(row: z.infer<typeof allocationRowSchema>): AllocationRow 
 
 function mapResultEvidence(
   row: ResultEvidenceRow,
-  run: Pick<FullRunRow, "algorithm_version" | "seed_text" | "stratum_definition_version" | "population_import_id" | "allocation_evidence">,
+  run: Pick<FullRunRow, "algorithm_version" | "seed_text" | "stratum_definition_version" | "population_import_id" | "allocation_evidence" | "margin_of_error" | "margin_of_error_text">,
 ): SamplingEvidence {
   const allocationRows = run.allocation_evidence.map(mapAllocation);
+  const marginOfErrorText = row.margin_of_error_text
+    ? canonicalizeMarginOfErrorText(row.margin_of_error_text)
+    : run.margin_of_error_text
+      ? canonicalizeMarginOfErrorText(run.margin_of_error_text)
+      : canonicalMarginFromNumeric(row.margin_of_error);
   return {
     algorithmVersion: run.algorithm_version,
     formulaVersion: row.formula_version,
@@ -302,6 +321,7 @@ function mapResultEvidence(
     },
     populationSize: row.population_size,
     marginOfError: row.margin_of_error,
+    marginOfErrorText,
     unrounded: row.unrounded,
     roundingRule: row.rounding_rule,
     targetN: row.target_n,
@@ -331,12 +351,18 @@ function mapFullRun(row: unknown): SamplingRun {
   const parsed = fullRunRowSchema.safeParse(row);
   if (!parsed.success) return malformed();
   const value = parsed.data;
+  const marginOfErrorText = value.margin_of_error_text
+    ? canonicalizeMarginOfErrorText(value.margin_of_error_text)
+    : value.result_evidence.margin_of_error_text
+      ? canonicalizeMarginOfErrorText(value.result_evidence.margin_of_error_text)
+    : canonicalMarginFromNumeric(value.margin_of_error);
   return {
     id: value.id,
     version: value.version,
     populationImportId: value.population_import_id,
     populationSize: value.population_size,
     marginOfError: value.margin_of_error,
+    marginOfErrorText,
     unroundedResult: value.unrounded_result,
     roundingRule: value.rounding_rule,
     targetN: value.target_n,
@@ -367,11 +393,15 @@ function mapListRun(row: unknown): SamplingRunSummary {
   const parsed = listRunRowSchema.safeParse(row);
   if (!parsed.success) return malformed();
   const value = parsed.data;
+  const marginOfErrorText = value.margin_of_error_text
+    ? canonicalizeMarginOfErrorText(value.margin_of_error_text)
+    : canonicalMarginFromNumeric(value.margin_of_error);
   return {
     id: value.id,
     version: value.version,
     populationSize: value.population_size,
     marginOfError: value.margin_of_error,
+    marginOfErrorText,
     unroundedResult: value.unrounded_result,
     roundingRule: value.rounding_rule,
     targetN: value.target_n,
@@ -416,6 +446,7 @@ function resultPayload(evidence: SamplingEvidence) {
     formula_version: evidence.formulaVersion,
     population_size: evidence.populationSize,
     margin_of_error: evidence.marginOfError,
+    margin_of_error_text: evidence.marginOfErrorText ?? canonicalMarginFromNumeric(evidence.marginOfError),
     unrounded: evidence.unrounded,
     rounding_rule: evidence.roundingRule,
     target_n: evidence.targetN,
@@ -487,7 +518,7 @@ export function createSupabaseSamplingGateway(client: RpcClient): SamplingGatewa
         await singleRpc(client, "create_sampling_draft", {
           p_population_import_id: input.populationImportId,
           p_seed_text: input.evidence.seedText,
-          p_margin_of_error: input.evidence.marginOfError,
+          p_margin_of_error_text: input.evidence.marginOfErrorText ?? canonicalMarginFromNumeric(input.evidence.marginOfError),
           p_stratum_definition_version: input.stratumDefinitionVersion,
           p_algorithm_version: input.evidence.algorithmVersion,
           p_target_n: input.evidence.targetN,

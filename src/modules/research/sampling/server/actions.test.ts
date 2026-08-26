@@ -71,6 +71,21 @@ describe("sampling server actions", () => {
     expect(mocks.preview).not.toHaveBeenCalled();
   });
 
+  it("passes the submitted margin decimal text unchanged to the service", async () => {
+    mocks.preview.mockResolvedValue({ status: "ready", evidence: { targetN: 93 } });
+    const form = new FormData();
+    form.set("populationImportId", "11111111-1111-4111-8111-111111111111");
+    form.set("seedText", "seed-v1");
+    form.set("marginOfErrorText", "0.050");
+    form.set("stratumDefinitionVersion", "strata-v1");
+
+    await expect(previewSamplingAction({ status: "invalid" }, form)).resolves.toMatchObject({ status: "ready" });
+    expect(mocks.preview).toHaveBeenCalledWith(
+      expect.objectContaining({ marginOfErrorText: "0.050" }),
+      expect.anything(),
+    );
+  });
+
   it("rejects a malformed preview population UUID before resolving session", async () => {
     const form = new FormData();
     form.set("populationImportId", "not-a-uuid");
@@ -123,7 +138,7 @@ describe("sampling server actions", () => {
       {
         populationImportId: "11111111-1111-4111-8111-111111111111",
         seedText: "seed-v1",
-        marginOfError: 0.05,
+        marginOfErrorText: "0.05",
         stratumDefinitionVersion: "strata-v1",
       },
       expect.objectContaining({ session: expect.objectContaining({ status: "authorized" }) }),

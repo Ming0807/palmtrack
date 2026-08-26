@@ -735,8 +735,8 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Error code / sanitized message | `LOCAL_E2E_SUITE_SCOPE_MISMATCH` — the local-auth configuration also collected unconfigured-environment and prototype-only specs; the authenticated sampling journey additionally exceeded the generic 30-second test timeout under the combined run |
 | Impact | The first full local E2E command reported 7 failures although unit/build/database checks and the focused sampling journey were green; no hosted resource or real-person data was involved |
 | Reproduction / evidence | `npm run test:e2e:local` collected 50 tests, including safety-skeleton assertions that require empty public environment values; sampling manager tests timed out at 30 seconds while their measured focused duration exceeded that boundary |
-| Resolution / status | `resolved` — restrict `playwright.local.config.ts` to the two authenticated local-only specs and set a 180-second lifecycle-test budget; the fresh full local-auth run passes 22/22 in 11.1 minutes |
-| Related commit | pending milestone verification commit |
+| Resolution / status | `resolved` — restrict `playwright.local.config.ts` to the two authenticated local-only specs and set a 180-second lifecycle-test budget; the milestone run passed 22/22 and the final security-hardening run passed 22/22 in 3.4 minutes |
+| Related commit | `7661cc8` |
 
 ### DEV-20260826-052 — Sampling keyboard access and supersession evidence boundary
 
@@ -751,3 +751,17 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Tab from a fresh sampling page skipped the hidden link; after a second activation, the first receipt was correctly superseded but had no open persisted-evidence heading |
 | Resolution / status | `resolved` — keep the link focusable with off-canvas transform/clip, focus `main` on Enter, create/lock/activate a second v2 run, and scope exact digest assertions to the second active receipt; focused local sampling rerun passed 6/6 |
 | Related commit | follow-up Task 6 acceptance review commit |
+
+### DEV-20260826-054 — Sampling lock trusted caller-supplied evidence
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T08:10:00Z` |
+| Environment | final sampling security review and Supabase local regression suite |
+| Severity | high |
+| Component | deterministic sampling trust boundary |
+| Error code / sanitized message | `SAMPLING_FORGED_EVIDENCE_LOCK` — a directly authenticated research manager could submit structurally valid but forged selection evidence before locking a run |
+| Impact | A privileged workflow caller could create a biased sample while preserving valid-looking evidence; no hosted resource or real-person data was involved |
+| Reproduction / evidence | Final review constructed a shape-valid forged selection; the new pgTAP regression proves database replay rejects it |
+| Resolution / status | `resolved` — persist canonical margin text through create/retry/regenerate/list receipts, independently replay Yamane/allocation/shuffle/result evidence in PostgreSQL, verify persisted membership at lock, and expand lifecycle audit evidence; final app verification passes 263/263, database assertions pass 231/231, and focused sampling E2E passes 6/6 |
+| Related commit | final sampling security hardening commit |

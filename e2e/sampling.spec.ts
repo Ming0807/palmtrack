@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 import {
@@ -107,6 +108,12 @@ test.describe("sampling acceptance", () => {
     expect(concreteDigests.every((digest) => /^[0-9a-f]{64}$/u.test(digest ?? ""))).toBe(true);
     await expect(page.getByText("ข้อมูลสังเคราะห์เท่านั้น")).toBeVisible();
     await expect(page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).resolves.toBe(true);
+
+    const samplingA11y = await new AxeBuilder({ page }).analyze();
+    expect(
+      samplingA11y.violations.filter(({ impact }) => impact === "critical" || impact === "serious"),
+      "sampling receipt must have no serious or critical axe violations",
+    ).toEqual([]);
 
     const skipLink = page.locator('a[href="#main-content"]');
     const unfocusedSkipLink = await skipLink.evaluate((element) => {

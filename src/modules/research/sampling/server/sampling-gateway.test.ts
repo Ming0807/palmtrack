@@ -20,6 +20,7 @@ const candidateIds = [
 const evidenceInput = {
   populationSize: candidateIds.length,
   marginOfError: 0.5,
+  marginOfErrorText: "0.5",
   seedText: "sampling-seed-v1",
   candidates: candidateIds.map((memberId, index) => ({
     memberId,
@@ -49,6 +50,7 @@ function runRow(evidence: Awaited<ReturnType<typeof fixture>>) {
     population_import_id: importId,
     population_size: evidence.populationSize,
     margin_of_error: evidence.marginOfError,
+    margin_of_error_text: evidence.marginOfErrorText,
     unrounded_result: evidence.unrounded,
     rounding_rule: evidence.roundingRule,
     target_n: evidence.targetN,
@@ -82,6 +84,7 @@ function runRow(evidence: Awaited<ReturnType<typeof fixture>>) {
       formula_version: evidence.formulaVersion,
       population_size: evidence.populationSize,
       margin_of_error: evidence.marginOfError,
+      margin_of_error_text: evidence.marginOfErrorText,
       unrounded: evidence.unrounded,
       target_n: evidence.targetN,
       rounding_rule: evidence.roundingRule,
@@ -127,7 +130,7 @@ describe("Supabase sampling gateway", () => {
       expect.objectContaining({
         p_population_import_id: importId,
         p_seed_text: evidence.seedText,
-        p_margin_of_error: evidence.marginOfError,
+        p_margin_of_error_text: evidence.marginOfErrorText,
         p_target_n: evidence.targetN,
         p_ordered_candidate_set_hash: evidence.orderedCandidateSetHash,
         p_allocation_evidence: expect.arrayContaining([
@@ -176,7 +179,9 @@ describe("Supabase sampling gateway", () => {
         orderedSelectedMemberIds: evidence.orderedSelectedMemberIds,
       }),
     });
-    await expect(gateway.listRuns()).resolves.toHaveLength(1);
+    await expect(gateway.listRuns()).resolves.toEqual([
+      expect.objectContaining({ marginOfErrorText: evidence.marginOfErrorText }),
+    ]);
     await expect(gateway.lock(runId, row.updated_at)).resolves.toMatchObject({ status: "draft" });
     await expect(gateway.activate(runId)).resolves.toMatchObject({ status: "draft" });
     await expect(gateway.cancel(runId, "เหตุผลสังเคราะห์")).resolves.toMatchObject({
@@ -203,6 +208,35 @@ describe("Supabase sampling gateway", () => {
       "lock_sampling_run",
       { p_run_id: runId, p_expected_updated_at: row.updated_at },
     );
+  });
+
+  it("uses persisted canonical margin text without reconstructing it from a number", async () => {
+    const evidence = await fixture();
+    const canonicalMargin = "0.000000000000000000001";
+    const row = {
+      ...runRow(evidence),
+      margin_of_error: 1e-21,
+      margin_of_error_text: canonicalMargin,
+      result_evidence: {
+        ...runRow(evidence).result_evidence,
+        margin_of_error: 1e-21,
+        margin_of_error_text: canonicalMargin,
+      },
+    };
+    const client = clientFor(row);
+    client.rpc.mockImplementation((name: string) =>
+      name === "list_sampling_runs"
+        ? Promise.resolve({ data: [row], error: null })
+        : { single: vi.fn().mockResolvedValue({ data: row, error: null }) },
+    );
+    const gateway = createSupabaseSamplingGateway(client as never);
+
+    await expect(gateway.listRuns()).resolves.toEqual([
+      expect.objectContaining({ marginOfErrorText: canonicalMargin }),
+    ]);
+    await expect(gateway.lock(runId, row.updated_at)).resolves.toMatchObject({
+      marginOfErrorText: canonicalMargin,
+    });
   });
 
   it.each(["23505", "40001"])("maps %s to conflict without leaking provider details", async (code) => {

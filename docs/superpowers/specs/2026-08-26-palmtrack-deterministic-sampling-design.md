@@ -23,7 +23,7 @@
 
 ## Data contract
 
-`sampling_run` stores workspace and population-import IDs, monotonic workspace version, `N`, decimal `margin_of_error`, unrounded result, `target_n`, formula and algorithm versions, raw/normalized seed, lowercase SHA-256 digest, unsigned seed value represented safely as bigint, candidate-set hash, status and actor/timestamps. A draft owns allocation rows and globally ordered sample-member rows. Unique constraints cover run/member, run/order and run/stratum; a partial unique index permits at most one active run per workspace.
+`sampling_run` stores workspace and population-import IDs, monotonic workspace version, `N`, derived decimal `margin_of_error` plus canonical `margin_of_error_text`, unrounded result, `target_n`, formula and algorithm versions, raw/normalized seed, lowercase SHA-256 digest, unsigned seed value represented safely as bigint, candidate-set hash, status and actor/timestamps. FormData text crosses action/service/gateway unchanged; the canonical contract is `^0\.0*[1-9](?:\d*[1-9])?$`, with trailing meaningless zeros removed (`0.050` persists as `0.05`). Numeric `e` is derived only for formula/replay. The canonical text is also present in result evidence and the UI receipt. A draft owns allocation rows and globally ordered sample-member rows. Unique constraints cover run/member, run/order and run/stratum; a partial unique index permits at most one active run per workspace.
 
 Only an `accepted` population import can create a draft. Eligible members are ordered by UTF-8 bytewise `farmer_code`. Candidate evidence contains identifiers already present in the synthetic snapshot; UI projections expose counts/codes but no contact data.
 
@@ -41,7 +41,7 @@ Direct table mutation is unavailable to application roles. Only `research_manage
 
 The implementation follows `RESEARCH_PROTOCOL.md` literally: `ceil(N/(1+Ne²))`; largest remainder with UTF-8 bytewise stratum tie-break; seed NFC normalization; SHA-256; first four digest bytes as unsigned big-endian state; full-array Mulberry32 Fisher–Yates; then quota-aware selection in shuffled order. The engine returns enough evidence for tests to assert normalized UTF-8 hex, digest, seed, candidate byte stream/hash, every `(i,j)`, shuffled order, allocations and final result.
 
-Numerical input is constrained to integer `N > 0`, finite `0 < e < 1`, and `target_n <= N`. Persistence uses exact decimal input text for `e`; the mandated fixture `N=121,e=0.05` produces approximately `92.8983` and target `93`.
+Numerical input is constrained to integer `N > 0`, canonical decimal text matching `^0\.0*[1-9](?:\d*[1-9])?$`, and `target_n <= N`. Persistence uses the canonical decimal text for `e`; `0.050` is explicitly stored as `0.05`, while the mandated fixture `N=121,e=0.05` produces approximately `92.8983` and target `93`.
 
 ## UI and states
 
@@ -53,7 +53,7 @@ Empty, forbidden, invalid input, stale/conflict, replay mismatch and unavailable
 
 Client-facing failures are non-enumerating categories: invalid input, forbidden, conflict/stale state, replay mismatch, or service unavailable. Raw database errors, seed text, member rows and credentials never enter logs. `LOG.md` records only development failures and remediations without secrets.
 
-Successful draft, lock, activation/supersession and cancellation append allowlisted audit events with actor, UTC time, entity, before/after status, algorithm/digest/count metadata, and cancellation reason digest rather than raw reason. Denied direct writes remain denied by grants/RLS.
+Successful draft, lock, activation/supersession, cancellation and regeneration append allowlisted audit events with actor, UTC time, entity, before/after status, candidate hash, authoritative ordered-result hash/version, population size, target and algorithm metadata, and cancellation reason digest rather than raw reason. Denied direct writes remain denied by grants/RLS. Lock independently replays the accepted snapshot and compares the full ordered membership/order/hash under the row lock; client/server evidence is never trust material.
 
 ## Verification strategy
 
