@@ -46,7 +46,7 @@
 - Modify: `LOG.md` only if local migration reveals a failure.
 
 **Interfaces:**
-- Produces RPCs `create_sampling_draft(uuid,text,numeric,text,text,bigint,text,jsonb,jsonb,uuid)`, `lock_sampling_run(uuid)`, `activate_sampling_run(uuid)`, `cancel_sampling_run(uuid,text)`, `list_sampling_runs()` and `get_sampling_candidates(uuid)`.
+- Produces RPCs `create_sampling_draft(uuid,text,numeric,text,text,bigint,text,jsonb,jsonb,uuid)`, `lock_sampling_run(uuid,timestamptz)`, `activate_sampling_run(uuid)`, `cancel_sampling_run(uuid,text)`, `list_sampling_runs()`, `get_sampling_population_candidates(uuid)` for accepted-snapshot replay and `get_sampling_candidates(uuid)` for active-run projections.
 - RPC results expose safe run/allocation/member projections and never contact data.
 
 - [ ] Write pgTAP failures for exact role matrix, accepted-only input, cross-workspace denial, evidence totals/membership, idempotency, immutable tables, transition legality, cancellation reason, partial active uniqueness and atomic supersession.
