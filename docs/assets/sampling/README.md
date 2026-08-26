@@ -26,4 +26,4 @@
 npx playwright test e2e/sampling.spec.ts --config playwright.local.config.ts
 ```
 
-สำหรับ capture ใหม่ให้ตั้ง `PALMTRACK_E2E_CAPTURE_EVIDENCE=1` ใน process เดียวกับคำสั่งด้านบน ภาพนี้บันทึกเมื่อ 2026-08-26 และเป็นหลักฐาน local-only; ยังไม่อ้าง hosted migration หรือ full-suite verification
+สำหรับ capture ใหม่ให้ตั้ง `PALMTRACK_E2E_CAPTURE_EVIDENCE=1` ใน process เดียวกับคำสั่งด้านบน ภาพนี้บันทึกเมื่อ 2026-08-26 และเป็นหลักฐาน local-only Milestone เดียวกันผ่าน full lint/typecheck/unit/build/database/local-auth E2E แล้ว แต่ยังไม่อ้าง hosted migration หรือความพร้อมใช้ข้อมูลจริง

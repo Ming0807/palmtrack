@@ -724,6 +724,20 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Resolution / status | `resolved` — scope lifecycle and evaluator checks to the created run within one manager test, add a fresh evaluator context, and hide skip links with visibility/opacity/pointer guards; focused local sampling rerun passed 6/6 |
 | Related commit | follow-up Task 6 acceptance review commit |
 
+### DEV-20260826-053 — Local E2E configuration mixed incompatible suites
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T06:47:23Z` |
+| Environment | full local milestone verification with Docker and Supabase local |
+| Severity | medium |
+| Component | Playwright local-auth test collection and timeout policy |
+| Error code / sanitized message | `LOCAL_E2E_SUITE_SCOPE_MISMATCH` — the local-auth configuration also collected unconfigured-environment and prototype-only specs; the authenticated sampling journey additionally exceeded the generic 30-second test timeout under the combined run |
+| Impact | The first full local E2E command reported 7 failures although unit/build/database checks and the focused sampling journey were green; no hosted resource or real-person data was involved |
+| Reproduction / evidence | `npm run test:e2e:local` collected 50 tests, including safety-skeleton assertions that require empty public environment values; sampling manager tests timed out at 30 seconds while their measured focused duration exceeded that boundary |
+| Resolution / status | `resolved` — restrict `playwright.local.config.ts` to the two authenticated local-only specs and set a 180-second lifecycle-test budget; the fresh full local-auth run passes 22/22 in 11.1 minutes |
+| Related commit | pending milestone verification commit |
+
 ### DEV-20260826-052 — Sampling keyboard access and supersession evidence boundary
 
 | Field | Value |
