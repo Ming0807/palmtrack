@@ -1,0 +1,237 @@
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import type { PopulationReceipt } from "@/modules/research/population/server/population-gateway";
+import type { SamplingEvidence } from "@/modules/research/sampling/domain/deterministic-sampling";
+import type { SamplingRun } from "@/modules/research/sampling/server/sampling-gateway";
+import type {
+  SamplingPreviewState,
+  SamplingRunState,
+} from "@/modules/research/sampling/server/sampling-service";
+
+import { SamplingWorkbench } from "./sampling-workbench";
+
+const importId = "11111111-1111-4111-8111-111111111111";
+const runId = "22222222-2222-4222-8222-222222222222";
+
+const acceptedSnapshot: PopulationReceipt = {
+  id: importId,
+  sourceLabel: "ชุดสังเคราะห์ FX-BASE",
+  sourceAuthorizationRef: "SYN-FX_BASE",
+  referenceDate: "2026-08-25",
+  schemaVersion: "synthetic-population-v1",
+  eligibilityRuleVersion: "synthetic-eligibility-v1",
+  inputDigest: "eab2656fc47894c6e8aefb8896086a3043cdfb2c43bbdb4f42be81e8d6b31e5b",
+  totalCount: 121,
+  eligibleCount: 121,
+  excludedCount: 0,
+  status: "accepted",
+  createdByProfileId: "33333333-3333-4333-8333-333333333333",
+  createdAt: "2026-08-25T05:00:00.000Z",
+  acceptedByProfileId: "44444444-4444-4444-8444-444444444444",
+  acceptedAt: "2026-08-25T06:00:00.000Z",
+};
+
+const evidence = {
+  algorithmVersion: "sha256-mulberry32-fy-v1",
+  formulaVersion: "yamane-v1",
+  formula: {
+    populationSize: 121,
+    marginOfError: 0.05,
+    unrounded: 92.897644445,
+    roundingRule: "ceil",
+    targetN: 93,
+  },
+  populationSize: 121,
+  marginOfError: 0.05,
+  unrounded: 92.897644445,
+  roundingRule: "ceil",
+  targetN: 93,
+  seedText: "palmtrack-acceptance-seed-v1",
+  seedNormalized: "palmtrack-acceptance-seed-v1",
+  seedNormalizedUtf8Hex: "70616c6d747261636b2d616363657074616e63652d736565642d7631",
+  seedDigestHex: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  seedU32: 19088743,
+  orderedCandidateSetByteStreamHex: "00",
+  orderedCandidateSetHash: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  initialCandidateMemberIds: ["55555555-5555-4555-8555-555555555555"],
+  swapTrace: [],
+  shuffledMemberIds: ["55555555-5555-4555-8555-555555555555"],
+  allocationRows: [
+    { stratumCode: "NORTH", eligibleCount: 61, quota: 46.983, floorAllocation: 46, remainder: 0.983, finalAllocation: 47 },
+    { stratumCode: "SOUTH", eligibleCount: 60, quota: 46.016, floorAllocation: 46, remainder: 0.016, finalAllocation: 46 },
+  ],
+  orderedSelectedMembers: [
+    { memberId: "55555555-5555-4555-8555-555555555555", stratumCode: "NORTH", selectionOrder: 1 },
+  ],
+  orderedSelectedMemberIds: ["55555555-5555-4555-8555-555555555555"],
+} satisfies SamplingEvidence;
+
+const initialRun: SamplingRun = {
+  id: runId,
+  version: 1,
+  populationImportId: importId,
+  populationSize: 121,
+  marginOfError: 0.05,
+  unroundedResult: 92.897644445,
+  roundingRule: "ceil",
+  targetN: 93,
+  formulaVersion: "yamane-v1",
+  stratumDefinitionVersion: "synthetic-strata-v1",
+  seedText: evidence.seedText,
+  seedNormalized: evidence.seedNormalized,
+  seedNormalizedUtf8Hex: evidence.seedNormalizedUtf8Hex,
+  seedDigestHex: evidence.seedDigestHex,
+  seedU32: evidence.seedU32,
+  algorithmVersion: evidence.algorithmVersion,
+  orderedCandidateSetHash: evidence.orderedCandidateSetHash,
+  status: "draft",
+  createdAt: "2026-08-26T01:00:00.000Z",
+  updatedAt: "2026-08-26T01:00:01.000Z",
+  lockedAt: null,
+  activatedAt: null,
+  supersededAt: null,
+  cancelledAt: null,
+  cancellationReasonDigest: null,
+  allocationEvidence: evidence.allocationRows,
+  resultEvidence: evidence,
+};
+
+const idlePreview = vi.fn(async (): Promise<SamplingPreviewState> => ({ status: "invalid" }));
+const idleRun = vi.fn(async (): Promise<SamplingRunState> => ({ status: "invalid" }));
+
+function renderWorkbench(overrides: Partial<React.ComponentProps<typeof SamplingWorkbench>> = {}) {
+  return render(
+    <SamplingWorkbench
+      initialImports={[acceptedSnapshot]}
+      initialRuns={[]}
+      previewAction={idlePreview}
+      createDraftAction={idleRun}
+      lockAction={idleRun}
+      activateAction={idleRun}
+      cancelAction={idleRun}
+      {...overrides}
+    />,
+  );
+}
+
+describe("SamplingWorkbench", () => {
+  it("starts with one Thai worksheet and accepted snapshot inputs", () => {
+    renderWorkbench();
+
+    expect(screen.getByRole("heading", { name: "สร้างการสุ่มตัวอย่าง" })).toBeVisible();
+    expect(screen.getByText("ข้อมูลสังเคราะห์เท่านั้น")).toBeVisible();
+    expect(screen.getByLabelText("ประชากรที่รับรองแล้ว")).toHaveValue(importId);
+    expect(screen.getByLabelText(/ค่าความคลาดเคลื่อน \(e\)/u)).toHaveValue(0.05);
+    expect(screen.getByLabelText(/seed สำหรับการสุ่ม/u)).toHaveValue("palmtrack-acceptance-seed-v1");
+    expect(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" })).toBeEnabled();
+  });
+
+  it("previews Yamane and allocation evidence from the selected inputs", async () => {
+    let submitted: FormData | null = null;
+    const preview = vi.fn(async (_previous: SamplingPreviewState, form: FormData): Promise<SamplingPreviewState> => {
+      submitted = form;
+      return { status: "ready", evidence };
+    });
+    renderWorkbench({ previewAction: preview });
+
+    fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "หลักฐานจากตัวอย่าง" })).toBeVisible(), { timeout: 5000 });
+    expect(screen.getByText("Yamane · yamane-v1")).toBeVisible();
+    expect(screen.getByText("92.897644")).toBeVisible();
+    expect(screen.getByText("การจัดสรรตามชั้นพื้นที่ · รวม 93 ราย")).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: "quota" })).toBeVisible();
+    expect(screen.getByText("sha256-mulberry32-fy-v1")).toBeVisible();
+    expect(screen.getByRole("button", { name: "บันทึกฉบับร่าง" })).toBeVisible();
+    expect((submitted as FormData | null)?.get("populationImportId")).toBe(importId);
+    expect((submitted as FormData | null)?.get("marginOfError")).toBe("0.05");
+    expect((submitted as FormData | null)?.get("seedText")).toBe("palmtrack-acceptance-seed-v1");
+  });
+
+  it("shows safe validation copy and keeps full digests available as text", async () => {
+    let attempts = 0;
+    const preview = vi.fn(async (): Promise<SamplingPreviewState> => {
+      attempts += 1;
+      return attempts === 1 ? { status: "invalid" } : { status: "ready", evidence };
+    });
+    renderWorkbench({ previewAction: preview });
+    fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("ตรวจข้อมูลที่กรอกอีกครั้ง แล้วลองใหม่"), { timeout: 5000 });
+    expect(screen.queryByText(/database|supabase|SQL|ข้อผิดพลาดภายใน/iu)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
+    await waitFor(() => expect(screen.getByText(evidence.seedDigestHex)).toBeInTheDocument(), { timeout: 5000 });
+    expect(screen.getByText(evidence.orderedCandidateSetHash)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "คัดลอก seed digest แบบเต็ม" })).toBeVisible();
+  });
+
+  it("saves a reviewed preview as a draft through the server action boundary", async () => {
+    let submitted: FormData | null = null;
+    const create = vi.fn(async (_previous: SamplingRunState, form: FormData): Promise<SamplingRunState> => {
+      submitted = form;
+      return { status: "ready", run: initialRun };
+    });
+    renderWorkbench({
+      previewAction: vi.fn(async (): Promise<SamplingPreviewState> => ({ status: "ready", evidence })),
+      createDraftAction: create,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "บันทึกฉบับร่าง" })).toBeVisible(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกฉบับร่าง" }));
+    await waitFor(() => expect(screen.getByText(/ฉบับร่าง · แก้ไขได้/u)).toBeVisible(), { timeout: 5000 });
+    expect((submitted as FormData | null)?.get("populationImportId")).toBe(importId);
+    expect((submitted as FormData | null)?.get("stratumDefinitionVersion")).toBe("synthetic-strata-v1");
+  });
+
+  it("locks then activates a draft through explicit confirmations", async () => {
+    const lockedRun = { ...initialRun, status: "locked" as const, lockedAt: "2026-08-26T02:00:00.000Z" };
+    const activeRun = { ...lockedRun, status: "active" as const, activatedAt: "2026-08-26T02:05:00.000Z" };
+    let lockedForm: FormData | null = null;
+    let activatedForm: FormData | null = null;
+    const lock = vi.fn(async (_previous: SamplingRunState, form: FormData): Promise<SamplingRunState> => {
+      lockedForm = form;
+      return { status: "ready", run: lockedRun };
+    });
+    const activate = vi.fn(async (_previous: SamplingRunState, form: FormData): Promise<SamplingRunState> => {
+      activatedForm = form;
+      return { status: "ready", run: activeRun };
+    });
+    renderWorkbench({ initialRuns: [initialRun], lockAction: lock, activateAction: activate });
+
+    fireEvent.click(screen.getByRole("button", { name: "ล็อกหลักฐาน" }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("เมื่อล็อกแล้ว input, seed, candidate hash และผลลัพธ์จะแก้ไขไม่ได้");
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "ล็อกหลักฐาน" }));
+    await waitFor(() => expect(screen.getByText(/ล็อกแล้ว · แก้ไขไม่ได้/u)).toBeVisible(), { timeout: 5000 });
+    expect(screen.getByRole("button", { name: "เปิดใช้งาน" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "เปิดใช้งาน" }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("active เดิมจะถูกแทนที่");
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "เปิดใช้งาน" }));
+    await waitFor(() => expect(screen.getByText(/กำลังใช้งาน · เป็นชุดปัจจุบัน/u)).toBeVisible(), { timeout: 5000 });
+    expect(screen.getByText(/สถานะ: กำลังใช้งาน/u)).toHaveAttribute("data-status", "active");
+    expect((lockedForm as FormData | null)?.get("runId")).toBe(runId);
+    expect((activatedForm as FormData | null)?.get("runId")).toBe(runId);
+  });
+
+  it("requires a reason before destructive cancellation and keeps controls locked while loading", async () => {
+    let resolveCancel!: (state: SamplingRunState) => void;
+    const cancel = vi.fn(() => new Promise<SamplingRunState>((resolve) => { resolveCancel = resolve; }));
+    renderWorkbench({ initialRuns: [initialRun], cancelAction: cancel });
+
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิก run" }));
+    const dialog = screen.getByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: "ยืนยันยกเลิก" });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText("เหตุผลการยกเลิก"), { target: { value: "ทดสอบเหตุผล" } });
+    expect(confirmButton).toBeEnabled();
+    fireEvent.click(confirmButton);
+    expect(confirmButton).toBeDisabled();
+    expect(screen.getByRole("button", { name: "ยกเลิก run" })).toBeDisabled();
+
+    resolveCancel({ status: "ready", run: { ...initialRun, status: "cancelled" as const, cancelledAt: "2026-08-26T02:10:00.000Z" } });
+    await waitFor(() => expect(screen.getByText(/ยกเลิกแล้ว · เลือกใช้ไม่ได้/u)).toBeVisible(), { timeout: 5000 });
+    expect(screen.getByText(/สถานะ: ยกเลิกแล้ว/u)).toHaveAttribute("data-status", "cancelled");
+  });
+});

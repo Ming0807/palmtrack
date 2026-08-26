@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   samplingGateway: vi.fn(),
   listRuns: vi.fn(),
+  populationGateway: vi.fn(),
+  listImports: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -29,6 +31,12 @@ vi.mock("@/modules/identity/server/session", () => ({
 vi.mock("@/modules/research/sampling/server/sampling-gateway", () => ({
   createSupabaseSamplingGateway: mocks.samplingGateway,
 }));
+vi.mock("@/modules/research/population/server/population-gateway", () => ({
+  createSupabasePopulationGateway: mocks.populationGateway,
+}));
+vi.mock("@/modules/research/population/server/population-service", () => ({
+  listPopulationImports: mocks.listImports,
+}));
 vi.mock("@/modules/research/sampling/server/sampling-service", () => ({
   listSamplingRuns: mocks.listRuns,
 }));
@@ -42,6 +50,8 @@ describe("sampling route authorization", () => {
     mocks.identityGateway.mockReturnValue({});
     mocks.samplingGateway.mockReturnValue({});
     mocks.listRuns.mockResolvedValue({ status: "ready", runs: [] });
+    mocks.populationGateway.mockReturnValue({});
+    mocks.listImports.mockResolvedValue({ status: "ready", imports: [] });
     mocks.redirect.mockImplementation((path: string) => {
       throw new Error(`redirect:${path}`);
     });

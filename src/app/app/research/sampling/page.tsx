@@ -11,17 +11,20 @@ import {
   ForbiddenState,
   UnconfiguredState,
 } from "@/modules/identity/ui";
+import {
+  activateSamplingRunAction,
+  cancelSamplingRunAction,
+  createSamplingDraftAction,
+  lockSamplingRunAction,
+  previewSamplingAction,
+} from "@/modules/research/sampling/server/actions";
+import { createSupabasePopulationGateway } from "@/modules/research/population/server/population-gateway";
+import type { PopulationReceipt } from "@/modules/research/population/server/population-gateway";
+import { listPopulationImports } from "@/modules/research/population/server/population-service";
 import { createSupabaseSamplingGateway } from "@/modules/research/sampling/server/sampling-gateway";
 import { listSamplingRuns } from "@/modules/research/sampling/server/sampling-service";
+import { SamplingWorkbench } from "@/modules/research/sampling/ui/sampling-workbench";
 import styles from "../../app-shell.module.css";
-
-const statusLabels = {
-  draft: "ฉบับร่าง",
-  locked: "ล็อกแล้ว",
-  active: "กำลังใช้งาน",
-  superseded: "แทนที่แล้ว",
-  cancelled: "ยกเลิกแล้ว",
-} as const;
 
 function SamplingListState({ status }: { status: "conflict" | "replay_mismatch" }) {
   return (
@@ -60,31 +63,33 @@ export default async function SamplingPage() {
   if (result.status !== "ready") return <ConfigurationErrorState />;
 
   const backHref = session.profile.role === "research_manager" ? "/app/research" : "/app";
+  const canManageSampling = session.profile.role === "research_manager";
+  let initialImports: PopulationReceipt[] = [];
+  if (session.profile.role === "research_manager" || session.profile.role === "admin") {
+    const populationResult = await listPopulationImports({
+      session,
+      gateway: createSupabasePopulationGateway(clientResult.client),
+    });
+    if (populationResult.status === "forbidden") return <ForbiddenState />;
+    if (populationResult.status === "service_unavailable") return <ConfigurationErrorState />;
+    initialImports = populationResult.imports;
+  }
 
   return (
-    <section className={styles.content}>
-      <p className={styles.eyebrow}>RESEARCH / SAMPLING</p>
-      <h1>การสุ่มตัวอย่าง</h1>
-      <p className={styles.lead}>
-        หน้านี้แสดงรายการ sampling run ของพื้นที่ทำงานเท่านั้น ส่วนแบบฟอร์มและ workbench จะเพิ่มในขั้นถัดไป
-      </p>
+    <section className={styles.contentWide}>
       <p>
         <Link href={backHref}>{session.profile.role === "research_manager" ? "กลับไปงานวิจัย" : "กลับหน้าหลัก"}</Link>
       </p>
-      <section className={styles.notice} aria-labelledby="sampling-runs-title">
-        <h2 id="sampling-runs-title">รายการ sampling runs</h2>
-        {result.runs.length === 0 ? (
-          <p>ยังไม่มี sampling run ในพื้นที่ทำงานนี้</p>
-        ) : (
-          <ul>
-            {result.runs.map((run) => (
-              <li key={`${run.id}-${run.version}`}>
-                <strong>Run v{run.version}</strong> · {statusLabels[run.status]} · n={run.targetN}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <SamplingWorkbench
+        initialImports={initialImports}
+        initialRuns={result.runs}
+        canMutate={canManageSampling}
+        previewAction={previewSamplingAction}
+        createDraftAction={createSamplingDraftAction}
+        lockAction={lockSamplingRunAction}
+        activateAction={activateSamplingRunAction}
+        cancelAction={cancelSamplingRunAction}
+      />
     </section>
   );
 }

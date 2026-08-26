@@ -1,5 +1,6 @@
 .boundary { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: var(--paper); }
 .content { max-width: 780px; }
+.contentWide { max-width: 1000px; }
 .eyebrow { margin: 0 0 8px; color: var(--rust); font-size: 0.78rem; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; }
 .lead { max-width: 62ch; color: var(--muted); font-size: clamp(1rem, 2vw, 1.12rem); }
 .notice { margin-top: 32px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
