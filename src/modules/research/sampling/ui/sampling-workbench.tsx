@@ -105,8 +105,8 @@ function EvidencePreview({ evidence, context = "preview", title, titleId = "samp
         <table className={styles.evidenceTable}>
           <caption>การจัดสรรตามชั้นพื้นที่ · รวม {number(evidence.targetN, 0)} ราย</caption>
           <thead><tr><th scope="col">ชั้นพื้นที่</th><th scope="col">N<sub>h</sub></th><th scope="col">quota</th><th scope="col">floor</th><th scope="col">เศษเหลือ</th><th scope="col">จัดสรรจริง</th></tr></thead>
-          <tbody>{evidence.allocationRows.map((row) => <tr key={row.stratumCode}><th scope="row">{row.stratumCode}</th><td>{number(row.eligibleCount, 0)}</td><td>{number(row.quota)}</td><td>{number(row.floorAllocation, 0)}</td><td>{number(row.remainder)}</td><td className={styles.emphasis}>{number(row.finalAllocation, 0)}</td></tr>)}</tbody>
-          <tfoot><tr><th scope="row">รวม</th><td>{number(evidence.populationSize, 0)}</td><td colSpan={3}>—</td><td>{number(evidence.targetN, 0)}</td></tr></tfoot>
+          <tbody>{evidence.allocationRows.map((row) => <tr key={row.stratumCode}><th scope="row" data-label="ชั้นพื้นที่">{row.stratumCode}</th><td data-label="N_h">{number(row.eligibleCount, 0)}</td><td data-label="quota">{number(row.quota)}</td><td data-label="floor">{number(row.floorAllocation, 0)}</td><td data-label="เศษเหลือ">{number(row.remainder)}</td><td data-label="จัดสรรจริง" className={styles.emphasis}>{number(row.finalAllocation, 0)}</td></tr>)}</tbody>
+          <tfoot><tr><th scope="row" data-label="ชั้นพื้นที่">รวม</th><td data-label="N_h">{number(evidence.populationSize, 0)}</td><td data-label="quota / floor / เศษเหลือ" colSpan={3}>—</td><td data-label="จัดสรรจริง">{number(evidence.targetN, 0)}</td></tr></tfoot>
         </table>
       </div>
       <dl className={styles.receiptGrid}>
@@ -185,7 +185,7 @@ function RunReceipt({ run, detail, isLatest, focusOnSuccess, onConfirm, disabled
     if (focusOnSuccess) receiptHeadingRef.current?.focus();
   }, [focusOnSuccess]);
   return (
-    <li className={styles.runReceipt}>
+    <li className={styles.runReceipt} data-testid="sampling-run-receipt" data-run-id={run.id} data-run-version={run.version}>
       <div className={styles.runHeader}><div><h3 ref={receiptHeadingRef} tabIndex={-1}>Sampling run <span>v{run.version}</span></h3><p>สร้างเมื่อ {thaiDate(run.createdAt)}</p></div><span className={`${styles.status} ${statusClass}`} data-status={run.status}>สถานะ: {statusLabels[run.status]}</span></div>
       <dl className={styles.runFacts}><div><dt>ประชากร</dt><dd>{number(run.populationSize, 0)} ราย</dd></div><div><dt>e</dt><dd>{number(run.marginOfError)}</dd></div><div><dt>ตัวอย่าง n</dt><dd>{number(run.targetN, 0)} ราย</dd></div><div><dt>สูตร</dt><dd>{run.formulaVersion}</dd></div><div><dt>การจัดสรร</dt><dd>{run.allocationEvidence.length} ชั้นพื้นที่</dd></div><div><dt>ordered result hash</dt><dd><DigestValue label="ordered result hash" value={run.orderedResultHash} /></dd></div></dl>
       {detailEvidence && <details className={styles.persistedEvidence} open={isLatest || run.status === "active"}><summary>เปิดดูหลักฐานที่บันทึกไว้</summary><EvidencePreview context="persisted" evidence={detailEvidence} titleId={`sampling-run-evidence-${run.id}`} /></details>}
@@ -255,7 +255,7 @@ export function SamplingWorkbench({ initialImports, initialRuns, initialRunDetai
   const capturePreviewInput = (event: FormEvent<HTMLFormElement>) => { setValidationAttempted(true); if (Object.keys(errors).length > 0) { event.preventDefault(); return; } setSubmittedPreview(snapshotFromForm(new FormData(event.currentTarget))); };
   return (
     <section className={styles.workbench} aria-labelledby="sampling-workbench-title">
-      <header className={styles.pageHeading}><div><p className={styles.path}>งานวิจัย · การสุ่มตัวอย่าง</p><h1 id="sampling-workbench-title">สร้างการสุ่มตัวอย่าง</h1><p className={styles.intro}>ตรวจตัวเลขและหลักฐานใน worksheet เดียว ตั้งแต่ snapshot ที่รับรองจนถึงการเปิดใช้งาน</p></div><span className={styles.syntheticBoundary}>ข้อมูลสังเคราะห์เท่านั้น</span></header>
+      <header className={styles.pageHeading}><div><p className={styles.path}>งานวิจัย · การสุ่มตัวอย่าง</p><h1 id="sampling-workbench-title" tabIndex={-1}>สร้างการสุ่มตัวอย่าง</h1><p className={styles.intro}>ตรวจตัวเลขและหลักฐานใน worksheet เดียว ตั้งแต่ snapshot ที่รับรองจนถึงการเปิดใช้งาน</p></div><span className={styles.syntheticBoundary}>ข้อมูลสังเคราะห์เท่านั้น</span></header>
       {canMutate && acceptedImports.length === 0 && <section className={styles.emptyState} aria-labelledby="sampling-empty-title"><h2 id="sampling-empty-title">ยังไม่มี snapshot ที่รับรอง</h2><p>ต้องยืนยัน snapshot จากงานประชากรก่อน จึงจะคำนวณหลักฐานการสุ่มได้</p><Link className={styles.secondaryButton} href="/app/research/population">ไปงานประชากร</Link></section>}
       {!canMutate && <p className={styles.readonlyIntro} role="status">บัญชีนี้อ่านใบเสร็จหลักฐานได้เท่านั้น · ไม่มีฟอร์มหรือปุ่มเปลี่ยนสถานะ</p>}
       <div className={styles.worksheet} aria-hidden={modalOpen ? "true" : undefined} inert={modalOpen}>

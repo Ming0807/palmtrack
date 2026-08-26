@@ -125,6 +125,7 @@ describe("SamplingWorkbench", () => {
     renderWorkbench();
 
     expect(screen.getByRole("heading", { name: "สร้างการสุ่มตัวอย่าง" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "สร้างการสุ่มตัวอย่าง" })).toHaveAttribute("tabindex", "-1");
     expect(screen.getByText("ข้อมูลสังเคราะห์เท่านั้น")).toBeVisible();
     expect(screen.getByLabelText("ประชากรที่รับรองแล้ว")).toHaveValue(importId);
     expect(screen.getByLabelText(/ค่าความคลาดเคลื่อน \(e\)/u)).toHaveValue(0.05);
@@ -152,6 +153,29 @@ describe("SamplingWorkbench", () => {
     expect((submitted as FormData | null)?.get("populationImportId")).toBe(importId);
     expect((submitted as FormData | null)?.get("marginOfError")).toBe("0.05");
     expect((submitted as FormData | null)?.get("seedText")).toBe("palmtrack-acceptance-seed-v1");
+  });
+
+  it("exposes all allocation fields as labeled cells and a stable receipt hook", async () => {
+    renderWorkbench({
+      initialRuns: [initialRun],
+      previewAction: vi.fn(async (): Promise<SamplingPreviewState> => ({ status: "ready", evidence })),
+    });
+
+    const receipt = screen.getByTestId("sampling-run-receipt");
+    expect(receipt).toHaveAttribute("data-run-id", runId);
+    expect(receipt).toHaveAttribute("data-run-version", "1");
+
+    fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "ผลคำนวณเบื้องต้น" })).toBeVisible(), { timeout: 5000 });
+
+    const previewRegion = screen.getByRole("region", { name: "ผลคำนวณเบื้องต้น" });
+    const allocationTable = within(previewRegion)
+      .getByRole("region", { name: "ตารางการจัดสรรตามชั้นพื้นที่" })
+      .querySelector("table");
+    expect(allocationTable).not.toBeNull();
+    const firstRowLabels = Array.from(allocationTable!.querySelectorAll("tbody tr:first-child [data-label]"), (cell) => cell.getAttribute("data-label"));
+    expect(firstRowLabels).toEqual(["ชั้นพื้นที่", "N_h", "quota", "floor", "เศษเหลือ", "จัดสรรจริง"]);
+    expect(allocationTable!.querySelector('tfoot [data-label="จัดสรรจริง"]')).toHaveTextContent("93");
   });
 
   it("shows safe validation copy and keeps full digests available as text", async () => {

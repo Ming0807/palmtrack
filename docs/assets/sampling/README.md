@@ -9,14 +9,14 @@
 - Margin of error: `e=0.05`
 - Yamane result: `N=121`, unrounded `92.898272552783`, `ceil n=93`
 - Strata: `NORTH=32`, `CENTRAL=32`, `SOUTH=57`; largest-remainder allocation totals 93
-- The authenticated manager journey imports/accepts the snapshot, previews, creates a draft, locks, activates, reloads the receipt, and checks focus/no-overflow and role negatives.
+- The authenticated manager journey imports/accepts the snapshot, previews, creates a draft, locks, activates, reloads the created receipt, and verifies exact `N=121`, `e=0.05`, `n=93`, seed, algorithm, digest and active status. The same lifecycle checks evaluator aggregate-only access; collector/farmer negatives are independent tests.
 
 ## Captures
 
 - [Desktop 1365×900](desktop.png)
 - [Mobile 360×800](mobile.png)
 
-ภาพเป็น full-page captures ของหน้า sampling ที่ผ่านการยืนยันตัวตนจริงใน local E2E; ป้าย `ข้อมูลสังเคราะห์เท่านั้น` ต้องมองเห็นในทั้งสองภาพ ภาพ desktop แสดง receipt สังเคราะห์ก่อนหน้าด้วยเพราะ Playwright projects ใช้ local reset เดียวกัน ส่วนภาพ mobile เป็น receipt แรกของ run
+ภาพเป็น full-page captures ของหน้า sampling ที่ผ่านการยืนยันตัวตนจริงใน local E2E; ป้าย `ข้อมูลสังเคราะห์เท่านั้น` ต้องมองเห็นในทั้งสองภาพ และภาพถูกบันทึกหลังย้าย focus ไปยังหัวข้อหลักเพื่อซ่อน skip link ภาพ mobile แสดง allocation ทั้งหกฟิลด์ด้วย row labels แบบ responsive พร้อม `เศษเหลือ` และ `จัดสรรจริง = 93` โดยไม่มี table overflow ภาพ desktop แสดง receipt สังเคราะห์ก่อนหน้าด้วยเพราะ Playwright projects ใช้ local reset เดียวกัน ส่วนภาพ mobile เป็น receipt แรกของ run
 
 ## Reproduction
 

@@ -709,3 +709,17 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Focused sampling E2E preview reached `N=121`, `n=93`; direct local RPC diagnostics identified the allocation-formula check. A 32/32/57 synthetic stratum distribution keeps both quota and remainder errors below tolerance and the clean 8-test sampling run passes |
 | Resolution / status | `resolved` — use `NORTH=32`, `CENTRAL=32`, `SOUTH=57` in the acceptance fixture; no runtime or migration change was required |
 | Related commit | `test: verify sampling workflow end to end` |
+
+### DEV-20260826-051 — Sampling E2E independence and skip-link capture boundary
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T05:47:32Z` |
+| Environment | Supabase local authenticated sampling E2E review rerun |
+| Severity | low |
+| Component | sampling acceptance test setup and authenticated shell evidence capture |
+| Error code / sanitized message | `SAMPLING_E2E_SHARED_STATE` / `SKIP_LINK_CAPTURE_VISIBILITY` — evaluator-only execution found no active run after reset, and full-page capture retained a transform-hidden fixed skip link |
+| Impact | Review checks were not independently reproducible and evidence images contained a non-focused skip-link artifact; no hosted database or real-person data was involved |
+| Reproduction / evidence | evaluator grep after one local reset failed before a manager lifecycle; post-reload full-page captures showed the fixed link although heading focus had moved |
+| Resolution / status | `resolved` — scope lifecycle and evaluator checks to the created run within one manager test, add a fresh evaluator context, and hide skip links with visibility/opacity/pointer guards; focused local sampling rerun passed 6/6 |
+| Related commit | follow-up Task 6 acceptance review commit |

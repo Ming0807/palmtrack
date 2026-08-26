@@ -28,7 +28,7 @@
 | [Population import design](superpowers/specs/2026-08-25-palmtrack-population-import-design.md) | Approved for implementation | research_manager | FR-02 synthetic CSV validation, atomic import, immutable accepted snapshot, RLS/audit และ production UI |
 | [Population import plan](superpowers/plans/2026-08-25-palmtrack-population-import.md) | Approved for execution | admin | แผน TDD สำหรับ domain parser, local SQL/RLS/audit, server action, production UI และ local authenticated evidence |
 | [Population import visual evidence](assets/population-import/README.md) | Verified local evidence | research_manager | ภาพ accepted synthetic snapshot ที่ 360px/desktop พร้อม fixture digest และขอบเขต local-only |
-| [Sampling acceptance visual evidence](assets/sampling/README.md) | Verified local evidence | research_manager | ภาพ authenticated sampling receipt ที่ 360px/desktop พร้อม FX-BASE 121-member fixture, seed, `n=93`, lifecycle และ role-evidence boundary |
+| [Sampling acceptance visual evidence](assets/sampling/README.md) | Verified local evidence | research_manager | ภาพ authenticated sampling receipt ที่ 360px/desktop พร้อม FX-BASE 121-member fixture, exact `N=121/e=0.05/n=93` receipt, seed/algorithm/digest, lifecycle, responsive six-field allocation และ role-evidence boundary |
 
 ไฟล์ระดับ root: [product context](../PRODUCT.md), [implemented design system](../DESIGN.md), [project overview](../README.md), [contribution instructions](../AGENTS.md) และ [sanitized development error/incident ledger](../LOG.md) (ไม่ใช่ application runtime log)
 

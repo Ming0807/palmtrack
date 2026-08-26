@@ -136,6 +136,15 @@
   .formula > div { border-left: 0 !important; }
   .formula > div + div { border-top: 1px solid var(--line); }
   .receiptGrid { grid-template-columns: 1fr; }
+  .tableWrap { overflow-x: visible; }
+  .evidenceTable { display: block; width: 100%; }
+  .evidenceTable thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .evidenceTable tbody, .evidenceTable tfoot { display: block; }
+  .evidenceTable tbody tr, .evidenceTable tfoot tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .evidenceTable tbody th, .evidenceTable tbody td, .evidenceTable tfoot th, .evidenceTable tfoot td { display: flex; width: 100%; min-width: 0; align-items: baseline; justify-content: space-between; gap: 14px; padding: 5px 0; border-bottom: 0; text-align: right !important; white-space: normal; overflow-wrap: anywhere; }
+  .evidenceTable tbody th::before, .evidenceTable tbody td::before, .evidenceTable tfoot th::before, .evidenceTable tfoot td::before { flex: 1 1 auto; color: var(--muted); content: attr(data-label); font-size: .72rem; font-weight: 700; text-align: left; }
+  .evidenceTable tfoot tr { border-top: 1px solid var(--line-strong); border-bottom: 0; }
+  .evidenceTable tfoot th, .evidenceTable tfoot td { font-weight: 750; }
   .runFacts { grid-template-columns: 1fr 1fr; }
   .runFacts > div { border-left: 0 !important; }
   .runFacts > div + div { border-left: 1px solid var(--line) !important; }
