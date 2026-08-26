@@ -67,6 +67,8 @@ const evidence = {
     { memberId: "55555555-5555-4555-8555-555555555555", stratumCode: "NORTH", selectionOrder: 1 },
   ],
   orderedSelectedMemberIds: ["55555555-5555-4555-8555-555555555555"],
+  orderedResultDigestVersion: "ordered-result-sha256-v1",
+  orderedResultHash: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
 } satisfies SamplingEvidence;
 
 const initialRun: SamplingRun = {
@@ -87,6 +89,7 @@ const initialRun: SamplingRun = {
   seedU32: evidence.seedU32,
   algorithmVersion: evidence.algorithmVersion,
   orderedCandidateSetHash: evidence.orderedCandidateSetHash,
+  orderedResultHash: evidence.orderedResultHash,
   status: "draft",
   createdAt: "2026-08-26T01:00:00.000Z",
   updatedAt: "2026-08-26T01:00:01.000Z",
@@ -139,7 +142,7 @@ describe("SamplingWorkbench", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
 
-    await waitFor(() => expect(screen.getByRole("heading", { name: "หลักฐานจากตัวอย่าง" })).toBeVisible(), { timeout: 5000 });
+    await waitFor(() => expect(screen.getByRole("heading", { name: "ผลคำนวณเบื้องต้น" })).toBeVisible(), { timeout: 5000 });
     expect(screen.getByText("Yamane · yamane-v1")).toBeVisible();
     expect(screen.getByText("92.897644445")).toBeVisible();
     expect(screen.getByText("การจัดสรรตามชั้นพื้นที่ · รวม 93 ราย")).toBeVisible();
@@ -289,6 +292,21 @@ describe("SamplingWorkbench", () => {
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "เปิดใช้งาน" }));
     await waitFor(() => expect(screen.getByText(/แทนที่แล้ว · หลักฐานย้อนหลัง/u)).toBeVisible(), { timeout: 5000 });
     expect(screen.getByText(/สถานะ: กำลังใช้งาน/u)).toHaveAttribute("data-status", "active");
+  });
+
+  it("does not let a stale lifecycle response overwrite newer server props", async () => {
+    const newerDraft = { ...initialRun, updatedAt: "2026-08-26T03:00:00.000Z" };
+    const lock = vi.fn(async (): Promise<SamplingRunState> => ({
+      status: "ready",
+      run: { ...initialRun, status: "locked", lockedAt: "2026-08-26T02:00:00.000Z" },
+    }));
+    renderWorkbench({ initialRuns: [newerDraft], lockAction: lock });
+
+    fireEvent.click(screen.getByRole("button", { name: "ล็อกหลักฐาน" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "ล็อกหลักฐาน" }));
+
+    await waitFor(() => expect(screen.getByText(/สถานะ: ฉบับร่าง/u)).toBeVisible(), { timeout: 5000 });
+    expect(screen.queryByText(/สถานะ: ล็อกแล้ว/u)).not.toBeInTheDocument();
   });
 
   it("gives read-only users receipts without a disabled mutation form", () => {

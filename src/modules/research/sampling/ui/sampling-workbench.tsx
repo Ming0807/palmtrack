@@ -85,11 +85,12 @@ function StateNotice({ state }: { state: SamplingPreviewState | SamplingRunState
   return message ? <p className={styles.feedbackError} role="alert" aria-live="polite">{message}</p> : null;
 }
 
-function EvidencePreview({ evidence, title = "หลักฐานจากตัวอย่าง", titleId = "sampling-evidence-title" }: { evidence: SamplingEvidence; title?: string; titleId?: string }) {
+function EvidencePreview({ evidence, context = "preview", title, titleId = "sampling-evidence-title" }: { evidence: SamplingEvidence; context?: "preview" | "persisted"; title?: string; titleId?: string }) {
+  const isPersisted = context === "persisted";
   return (
     <section className={styles.evidenceSection} aria-labelledby={titleId}>
       <div className={styles.sectionHeading}>
-        <div><h2 id={titleId}>{title}</h2><p>คำนวณจาก snapshot ที่รับรองแล้วด้วยกติกาเดียวกันทุกครั้ง</p><p className={styles.feedbackSuccess} role="status" aria-live="polite">ผลคำนวณเบื้องต้นพร้อมตรวจสอบ</p></div>
+        <div><h2 id={titleId}>{title ?? (isPersisted ? "หลักฐานที่บันทึกไว้" : "ผลคำนวณเบื้องต้น")}</h2><p>คำนวณจาก snapshot ที่รับรองแล้วด้วยกติกาเดียวกันทุกครั้ง</p>{!isPersisted && <p className={styles.feedbackSuccess} role="status" aria-live="polite">ผลคำนวณเบื้องต้นพร้อมตรวจสอบ</p>}</div>
         <span className={styles.evidenceMark}><Check size={16} aria-hidden="true" />ตรวจสูตรแล้ว</span>
       </div>
       <dl className={styles.formula}>
@@ -113,6 +114,7 @@ function EvidencePreview({ evidence, title = "หลักฐานจากต�
         <div><dt>seed digest · SHA-256</dt><dd><DigestValue label="seed digest" value={evidence.seedDigestHex} /></dd></div>
         <div><dt>algorithm</dt><dd><code>{evidence.algorithmVersion}</code></dd></div>
         <div><dt>ordered candidate-set hash</dt><dd><DigestValue label="candidate-set hash" value={evidence.orderedCandidateSetHash} /></dd></div>
+        <div><dt>ordered result hash · {evidence.orderedResultDigestVersion}</dt><dd><DigestValue label="ordered result hash" value={evidence.orderedResultHash} /></dd></div>
       </dl>
       <div className={styles.resultEvidence}>
         <h3>ผลลัพธ์ที่เรียงลำดับแล้ว</h3><p>เลือกแล้ว {number(evidence.orderedSelectedMembers.length, 0)} ราย · ลำดับและชั้นพื้นที่ถูกบันทึกเป็นหลักฐาน</p>
@@ -127,7 +129,7 @@ function EvidencePreview({ evidence, title = "หลักฐานจากต�
 
 type Confirmation = { kind: "lock" | "activate" | "cancel"; run: SamplingRunSummary };
 
-function ConfirmationDialog({ confirmation, pending, cancelReason, setCancelReason, submitLock, submitActivate, submitCancel, onDismiss, restoreFocusRef }: { confirmation: Confirmation; pending: boolean; cancelReason: string; setCancelReason: (value: string) => void; submitLock: (formData: FormData) => void; submitActivate: (formData: FormData) => void; submitCancel: (formData: FormData) => void; onDismiss: () => void; restoreFocusRef: RefObject<HTMLElement | null> }) {
+function ConfirmationDialog({ confirmation, pending, cancelReason, setCancelReason, submitLock, submitActivate, submitCancel, onDismiss, restoreFocusRef, restoreFocusOnClose }: { confirmation: Confirmation; pending: boolean; cancelReason: string; setCancelReason: (value: string) => void; submitLock: (formData: FormData) => void; submitActivate: (formData: FormData) => void; submitCancel: (formData: FormData) => void; onDismiss: () => void; restoreFocusRef: RefObject<HTMLElement | null>; restoreFocusOnClose: boolean }) {
   const { kind, run } = confirmation;
   const isCancel = kind === "cancel";
   const title = kind === "lock" ? "ยืนยันการล็อกหลักฐาน" : kind === "activate" ? "ยืนยันการเปิดใช้งาน" : "ยืนยันการยกเลิก";
@@ -136,9 +138,13 @@ function ConfirmationDialog({ confirmation, pending, cancelReason, setCancelReas
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstControlRef = useRef<HTMLInputElement | HTMLButtonElement>(null);
   const dismissRef = useRef(onDismiss);
+  const restoreFocusOnCloseRef = useRef(restoreFocusOnClose);
   useEffect(() => {
     dismissRef.current = onDismiss;
   }, [onDismiss]);
+  useEffect(() => {
+    restoreFocusOnCloseRef.current = restoreFocusOnClose;
+  }, [restoreFocusOnClose]);
   useEffect(() => {
     const previousFocus = restoreFocusRef.current ?? document.activeElement as HTMLElement | null;
     firstControlRef.current?.focus();
@@ -152,7 +158,7 @@ function ConfirmationDialog({ confirmation, pending, cancelReason, setCancelReas
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => { document.removeEventListener("keydown", onKeyDown); if (previousFocus?.isConnected) previousFocus.focus(); };
+    return () => { document.removeEventListener("keydown", onKeyDown); if (restoreFocusOnCloseRef.current && previousFocus?.isConnected) previousFocus.focus(); };
   }, [restoreFocusRef]);
   return (
     <div className={styles.dialogScrim}>
@@ -171,14 +177,18 @@ function ConfirmationDialog({ confirmation, pending, cancelReason, setCancelReas
   );
 }
 
-function RunReceipt({ run, detail, onConfirm, disabled }: { run: SamplingRunSummary; detail?: SamplingRun; onConfirm: (kind: Confirmation["kind"], run: SamplingRunSummary, trigger: HTMLElement) => void; disabled: boolean }) {
+function RunReceipt({ run, detail, isLatest, focusOnSuccess, onConfirm, disabled }: { run: SamplingRunSummary; detail?: SamplingRun; isLatest: boolean; focusOnSuccess: boolean; onConfirm: (kind: Confirmation["kind"], run: SamplingRunSummary, trigger: HTMLElement) => void; disabled: boolean }) {
   const statusClass = styles[`status_${run.status}` as keyof typeof styles];
   const detailEvidence = detail?.evidence ?? detail?.resultEvidence;
+  const receiptHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusOnSuccess) receiptHeadingRef.current?.focus();
+  }, [focusOnSuccess]);
   return (
     <li className={styles.runReceipt}>
-      <div className={styles.runHeader}><div><h3>Sampling run <span>v{run.version}</span></h3><p>สร้างเมื่อ {thaiDate(run.createdAt)}</p></div><span className={`${styles.status} ${statusClass}`} data-status={run.status}>สถานะ: {statusLabels[run.status]}</span></div>
-      <dl className={styles.runFacts}><div><dt>ประชากร</dt><dd>{number(run.populationSize, 0)} ราย</dd></div><div><dt>e</dt><dd>{number(run.marginOfError)}</dd></div><div><dt>ตัวอย่าง n</dt><dd>{number(run.targetN, 0)} ราย</dd></div><div><dt>สูตร</dt><dd>{run.formulaVersion}</dd></div><div><dt>การจัดสรร</dt><dd>{run.allocationEvidence.length} ชั้นพื้นที่</dd></div></dl>
-      {detailEvidence && <details className={styles.persistedEvidence} open><summary>เปิดดูหลักฐานที่บันทึกไว้</summary><EvidencePreview evidence={detailEvidence} title="หลักฐานที่บันทึกไว้" titleId={`sampling-run-evidence-${run.id}`} /></details>}
+      <div className={styles.runHeader}><div><h3 ref={receiptHeadingRef} tabIndex={-1}>Sampling run <span>v{run.version}</span></h3><p>สร้างเมื่อ {thaiDate(run.createdAt)}</p></div><span className={`${styles.status} ${statusClass}`} data-status={run.status}>สถานะ: {statusLabels[run.status]}</span></div>
+      <dl className={styles.runFacts}><div><dt>ประชากร</dt><dd>{number(run.populationSize, 0)} ราย</dd></div><div><dt>e</dt><dd>{number(run.marginOfError)}</dd></div><div><dt>ตัวอย่าง n</dt><dd>{number(run.targetN, 0)} ราย</dd></div><div><dt>สูตร</dt><dd>{run.formulaVersion}</dd></div><div><dt>การจัดสรร</dt><dd>{run.allocationEvidence.length} ชั้นพื้นที่</dd></div><div><dt>ordered result hash</dt><dd><DigestValue label="ordered result hash" value={run.orderedResultHash} /></dd></div></dl>
+      {detailEvidence && <details className={styles.persistedEvidence} open={isLatest || run.status === "active"}><summary>เปิดดูหลักฐานที่บันทึกไว้</summary><EvidencePreview context="persisted" evidence={detailEvidence} titleId={`sampling-run-evidence-${run.id}`} /></details>}
       <div className={styles.runActions}>
         {run.status === "draft" && <button type="button" className={styles.primaryButton} onClick={(event) => onConfirm("lock", run, event.currentTarget)} disabled={disabled}><LockKeyhole size={16} aria-hidden="true" />ล็อกหลักฐาน</button>}
         {run.status === "locked" && <button type="button" className={styles.primaryButton} onClick={(event) => onConfirm("activate", run, event.currentTarget)} disabled={disabled}><Play size={16} aria-hidden="true" />เปิดใช้งาน</button>}
@@ -194,6 +204,8 @@ function makeIdempotencyKey(): string { return globalThis.crypto?.randomUUID?.()
 function snapshotFromForm(formData: FormData): PreviewInputSnapshot { return { populationImportId: String(formData.get("populationImportId") ?? ""), marginOfError: String(formData.get("marginOfError") ?? ""), seedText: String(formData.get("seedText") ?? ""), stratumDefinitionVersion: String(formData.get("stratumDefinitionVersion") ?? STRATUM_DEFINITION_VERSION) }; }
 function sameSnapshot(left: PreviewInputSnapshot | null, right: PreviewInputSnapshot): boolean { return left !== null && left.populationImportId === right.populationImportId && left.marginOfError === right.marginOfError && left.seedText === right.seedText && left.stratumDefinitionVersion === right.stratumDefinitionVersion; }
 function mergeRunResult(initialRuns: SamplingRunSummary[], result: SamplingRun, kind: "create" | "lock" | "activate" | "cancel"): SamplingRunSummary[] {
+  const existing = initialRuns.find((run) => run.id === result.id);
+  if (existing && Date.parse(result.updatedAt) < Date.parse(existing.updatedAt)) return initialRuns;
   const serverAlreadyHasResult = initialRuns.some((run) => run.id === result.id && run.status === result.status && run.version === result.version && run.lockedAt === result.lockedAt && run.activatedAt === result.activatedAt && run.supersededAt === result.supersededAt && run.cancelledAt === result.cancelledAt);
   let current = [...initialRuns];
   if (kind === "create") { if (!serverAlreadyHasResult) current = [result, ...current.filter((run) => run.id !== result.id)]; return current; }
@@ -236,8 +248,10 @@ export function SamplingWorkbench({ initialImports, initialRuns, initialRunDetai
   const showDraftSuccess = createState.status === "ready" && sameSnapshot(createdInput, currentInput);
   const runs = useMemo(() => { let current = initialRuns; if (createState.status === "ready") current = mergeRunResult(current, createState.run, "create"); if (lockState.status === "ready") current = mergeRunResult(current, lockState.run, "lock"); if (activateState.status === "ready") current = mergeRunResult(current, activateState.run, "activate"); if (cancelState.status === "ready") current = mergeRunResult(current, cancelState.run, "cancel"); return current; }, [activateState, cancelState, createState, initialRuns, lockState]);
   const detailById = useMemo(() => new Map(initialRunDetails.map((run) => [run.id, run])), [initialRunDetails]);
+  const latestRunVersion = runs[0]?.version ?? 0;
   const confirmationComplete = confirmation !== null && ((confirmation.kind === "lock" && lockState.status === "ready" && lockState.run.id === confirmation.run.id) || (confirmation.kind === "activate" && activateState.status === "ready" && activateState.run.id === confirmation.run.id) || (confirmation.kind === "cancel" && cancelState.status === "ready" && cancelState.run.id === confirmation.run.id));
   const modalOpen = Boolean(confirmation && !confirmationComplete && canMutate);
+  const focusReceiptId = confirmationComplete ? confirmation?.run.id : null;
   const capturePreviewInput = (event: FormEvent<HTMLFormElement>) => { setValidationAttempted(true); if (Object.keys(errors).length > 0) { event.preventDefault(); return; } setSubmittedPreview(snapshotFromForm(new FormData(event.currentTarget))); };
   return (
     <section className={styles.workbench} aria-labelledby="sampling-workbench-title">
@@ -249,7 +263,7 @@ export function SamplingWorkbench({ initialImports, initialRuns, initialRunDetai
           <div className={styles.sectionHeading}><div><h2>กำหนดชุดตัวอย่าง</h2><p id="sampling-input-note">เลือกเฉพาะ snapshot ที่รับรองแล้ว ระบบจะคำนวณจากข้อมูลที่อนุญาตเท่านั้น</p></div><span className={styles.stepMark}>INPUT</span></div>
           <div className={styles.fields}>
             <label htmlFor="sampling-population">ประชากรที่รับรองแล้ว<select id="sampling-population" name="populationImportId" value={selectedPopulationId} onChange={(event) => setPopulationImportId(event.target.value)} required disabled={mutationPending} aria-invalid={validationAttempted && Boolean(errors.population)} aria-describedby={validationAttempted && errors.population ? "sampling-population-error" : undefined}>{acceptedImports.map((item) => <option value={item.id} key={item.id}>{item.sourceLabel} · {number(item.eligibleCount, 0)} ราย</option>)}</select>{validationAttempted && errors.population && <small id="sampling-population-error" className={styles.fieldError}>{errors.population}</small>}</label>
-            <label htmlFor="sampling-margin">ค่าความคลาดเคลื่อน (e)<input id="sampling-margin" name="marginOfError" type="number" min="0.001" max="0.999" step="0.001" value={marginOfError} onChange={(event) => setMarginOfError(event.target.value)} required disabled={mutationPending} aria-invalid={validationAttempted && Boolean(errors.margin)} aria-describedby={`sampling-margin-help${validationAttempted && errors.margin ? " sampling-margin-error" : ""}`} /><small id="sampling-margin-help">ค่าระหว่าง 0 ถึง 1 เช่น 0.05</small>{validationAttempted && errors.margin && <small id="sampling-margin-error" className={styles.fieldError}>{errors.margin}</small>}</label>
+            <label htmlFor="sampling-margin">ค่าความคลาดเคลื่อน (e)<input id="sampling-margin" name="marginOfError" type="number" value={marginOfError} onChange={(event) => setMarginOfError(event.target.value)} required disabled={mutationPending} aria-invalid={validationAttempted && Boolean(errors.margin)} aria-describedby={`sampling-margin-help${validationAttempted && errors.margin ? " sampling-margin-error" : ""}`} /><small id="sampling-margin-help">ค่ามากกว่า 0 และน้อยกว่า 1 เช่น 0.05</small>{validationAttempted && errors.margin && <small id="sampling-margin-error" className={styles.fieldError}>{errors.margin}</small>}</label>
             <label htmlFor="sampling-seed">seed สำหรับการสุ่ม<input id="sampling-seed" name="seedText" type="text" maxLength={200} value={seedText} onChange={(event) => setSeedText(event.target.value)} required disabled={mutationPending} aria-invalid={validationAttempted && Boolean(errors.seed)} aria-describedby={validationAttempted && errors.seed ? "sampling-seed-error" : undefined} /><small>ข้อความนี้ไม่ใช่รหัสลับ แต่จะถูกบันทึกเป็นหลักฐาน</small>{validationAttempted && errors.seed && <small id="sampling-seed-error" className={styles.fieldError}>{errors.seed}</small>}</label>
           </div>
           <input type="hidden" name="stratumDefinitionVersion" value={STRATUM_DEFINITION_VERSION} />
@@ -259,10 +273,13 @@ export function SamplingWorkbench({ initialImports, initialRuns, initialRunDetai
         {previewState.status === "ready" && !hasFreshPreview && <p className={styles.feedbackWarning} role="status">ข้อมูลเปลี่ยนแล้ว · ดูตัวอย่างหลักฐานใหม่ก่อนบันทึก</p>}
         {hasFreshPreview && <><EvidencePreview evidence={previewState.evidence} />{canMutate && !showDraftSuccess && <form className={styles.draftFooter} action={submitCreate}><input type="hidden" name="populationImportId" value={currentInput.populationImportId} /><input type="hidden" name="seedText" value={currentInput.seedText} /><input type="hidden" name="marginOfError" value={currentInput.marginOfError} /><input type="hidden" name="stratumDefinitionVersion" value={STRATUM_DEFINITION_VERSION} /><input type="hidden" name="idempotencyKey" value={idempotencyKey} /><div><strong>{createState.status === "conflict" ? "บันทึกไม่สำเร็จ · ลองอีกครั้งได้" : "พร้อมบันทึกฉบับร่าง"}</strong><p>{createState.status === "conflict" ? "ระบบยังเก็บหลักฐานเดิมไว้เพื่อให้ลองซ้ำอย่างปลอดภัย" : "สร้างหลักฐานบนเซิร์ฟเวอร์เพื่อเข้าสู่ขั้นตอน lock"}</p></div><button type="submit" className={styles.primaryButton} disabled={mutationPending}>{createPending ? "กำลังบันทึก…" : createState.status === "conflict" ? "บันทึกฉบับร่างอีกครั้ง" : "บันทึกฉบับร่าง"}</button></form>}{canMutate && showDraftSuccess && <p className={styles.feedbackSuccessBlock} role="status" aria-live="polite">บันทึกฉบับร่างแล้ว · รอการล็อก</p>}</>}
         <StateNotice state={createState} />
-        <section className={styles.runsSection} aria-labelledby="sampling-runs-title"><div className={styles.sectionHeading}><div><h2 id="sampling-runs-title">หลักฐานและสถานะ run</h2><p>ทุกสถานะมีข้อความกำกับ ไม่ใช้สีอย่างเดียว</p></div><span className={styles.stepMark}>RECEIPTS · {runs.length}</span></div>{!canMutate && <p className={styles.feedbackWarning} role="status">บัญชีนี้อ่านหลักฐานได้ แต่ไม่มีสิทธิ์เปลี่ยนสถานะ run</p>}{runs.length === 0 ? <p className={styles.empty}>ยังไม่มี sampling run ในพื้นที่ทำงานนี้</p> : <ol className={styles.runList}>{runs.map((run) => <RunReceipt key={`${run.id}-${run.version}`} run={run} detail={canMutate ? detailById.get(run.id) : undefined} onConfirm={(kind, selectedRun, trigger) => { restoreFocusRef.current = trigger; setCancelReason(""); setConfirmation({ kind, run: selectedRun }); }} disabled={!canMutate || mutationPending} />)}</ol>}</section>
+        <section className={styles.runsSection} aria-labelledby="sampling-runs-title"><div className={styles.sectionHeading}><div><h2 id="sampling-runs-title">หลักฐานและสถานะ run</h2><p>ทุกสถานะมีข้อความกำกับ ไม่ใช้สีอย่างเดียว</p></div><span className={styles.stepMark}>RECEIPTS · {runs.length}</span></div>{!canMutate && <p className={styles.feedbackWarning} role="status">บัญชีนี้อ่านหลักฐานได้ แต่ไม่มีสิทธิ์เปลี่ยนสถานะ run</p>}{canMutate && initialRuns.length > initialRunDetails.length && <p className={styles.feedbackWarning} role="status">แสดงรายละเอียดหลักฐานล่าสุดไม่เกิน 10 run · run เก่ากว่านี้ยังดูสถานะและข้อมูลสรุปได้</p>}{runs.length === 0 ? <p className={styles.empty}>ยังไม่มี sampling run ในพื้นที่ทำงานนี้</p> : <ol className={styles.runList}>{runs.map((run) => <RunReceipt key={`${run.id}-${run.version}`} run={run} detail={canMutate ? detailById.get(run.id) : undefined} isLatest={run.version === latestRunVersion} focusOnSuccess={focusReceiptId === run.id} onConfirm={(kind, selectedRun, trigger) => { restoreFocusRef.current = trigger; setCancelReason(""); setConfirmation({ kind, run: selectedRun }); }} disabled={!canMutate || mutationPending} />)}</ol>}</section>
+        {!mutationPending && activateState.status === "ready" && <p className={styles.feedbackSuccessBlock} role="status" aria-live="polite">เปิดใช้งานสำเร็จ · run นี้เป็นชุดปัจจุบัน</p>}
+        {!mutationPending && activateState.status !== "ready" && cancelState.status === "ready" && <p className={styles.feedbackSuccessBlock} role="status" aria-live="polite">ยกเลิก run สำเร็จ · หลักฐานนี้เลือกใช้ไม่ได้</p>}
+        {!mutationPending && activateState.status !== "ready" && cancelState.status !== "ready" && lockState.status === "ready" && <p className={styles.feedbackSuccessBlock} role="status" aria-live="polite">ล็อกหลักฐานสำเร็จ · run รอการเปิดใช้งาน</p>}
         <StateNotice state={lockState} /><StateNotice state={activateState} /><StateNotice state={cancelState} />
       </div>
-      {modalOpen && confirmation && <ConfirmationDialog confirmation={confirmation} pending={mutationPending} cancelReason={cancelReason} setCancelReason={setCancelReason} submitLock={submitLock} submitActivate={submitActivate} submitCancel={submitCancel} onDismiss={() => setConfirmation(null)} restoreFocusRef={restoreFocusRef} />}
+      {modalOpen && confirmation && <ConfirmationDialog confirmation={confirmation} pending={mutationPending} cancelReason={cancelReason} setCancelReason={setCancelReason} submitLock={submitLock} submitActivate={submitActivate} submitCancel={submitCancel} onDismiss={() => setConfirmation(null)} restoreFocusRef={restoreFocusRef} restoreFocusOnClose={!confirmationComplete} />}
     </section>
   );
 }
