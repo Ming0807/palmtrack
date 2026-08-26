@@ -12,6 +12,8 @@ import {
   type SamplingRun,
 } from "@/modules/research/sampling/server/sampling-gateway";
 import {
+  activateSamplingRun,
+  cancelSamplingRun,
   createSamplingDraft,
   listSamplingRuns,
   lockSamplingRun,
@@ -94,6 +96,7 @@ async function setup(role: Role = "research_manager") {
   const receipt = run(evidence);
   const gateway: SamplingGateway = {
     getCandidates: vi.fn().mockResolvedValue(candidates),
+    getPopulationCandidates: vi.fn().mockResolvedValue(candidates),
     getEvidence: vi.fn().mockResolvedValue(receipt),
     createDraft: vi.fn().mockResolvedValue(receipt),
     listRuns: vi.fn().mockResolvedValue([receipt]),
@@ -115,7 +118,7 @@ describe("sampling service", () => {
       status: "ready",
       run: { id: runId },
     });
-    expect(deps.gateway.getCandidates).toHaveBeenCalledWith(importId);
+    expect(deps.gateway.getPopulationCandidates).toHaveBeenCalledWith(importId);
     expect(deps.gateway.createDraft).toHaveBeenCalledWith(
       expect.objectContaining({
         populationImportId: importId,
@@ -124,6 +127,18 @@ describe("sampling service", () => {
     );
   });
 
+  it.each(["admin", "evaluator_readonly"] as const)(
+    "forbids %s from candidate preview while retaining aggregate read access",
+    async (role) => {
+      const deps = await setup(role);
+      await expect(previewSampling(input, deps)).resolves.toEqual({
+        status: "forbidden",
+      });
+      expect(deps.gateway.getPopulationCandidates).not.toHaveBeenCalled();
+      await expect(listSamplingRuns(deps)).resolves.toMatchObject({ status: "ready" });
+    },
+  );
+
   it.each(["admin", "field_collector", "farmer", "evaluator_readonly"] as const)(
     "forbids %s from mutation before gateway access",
     async (role) => {
@@ -131,7 +146,7 @@ describe("sampling service", () => {
       await expect(createSamplingDraft(input, deps)).resolves.toEqual({
         status: "forbidden",
       });
-      expect(deps.gateway.getCandidates).not.toHaveBeenCalled();
+      expect(deps.gateway.getPopulationCandidates).not.toHaveBeenCalled();
       expect(deps.gateway.createDraft).not.toHaveBeenCalled();
     },
   );
@@ -150,7 +165,7 @@ describe("sampling service", () => {
     await expect(
       createSamplingDraft({ ...input, seedText: "a".repeat(201) }, deps),
     ).resolves.toEqual({ status: "invalid" });
-    expect(deps.gateway.getCandidates).not.toHaveBeenCalled();
+    expect(deps.gateway.getPopulationCandidates).not.toHaveBeenCalled();
   });
 
   it("replays persisted evidence and fetches candidates before lock", async () => {
@@ -160,7 +175,7 @@ describe("sampling service", () => {
       run: { status: "locked" },
     });
     expect(deps.gateway.getEvidence!).toHaveBeenCalledWith(runId);
-    expect(deps.gateway.getCandidates).toHaveBeenCalledWith(runId);
+    expect(deps.gateway.getPopulationCandidates).toHaveBeenCalledWith(importId);
     expect(deps.gateway.lock).toHaveBeenCalledWith(runId);
     expect(
       vi.mocked(deps.gateway.getEvidence!).mock.invocationCallOrder[0],
@@ -175,6 +190,76 @@ describe("sampling service", () => {
       status: "replay_mismatch",
     });
     expect(deps.gateway.lock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["populationSize", 4],
+    ["marginOfError", 0.25],
+    ["unroundedResult", 99],
+    ["roundingRule", "floor"],
+    ["targetN", 2],
+    ["formulaVersion", "other-v1"],
+    ["seedText", "other-seed"],
+    ["seedNormalized", "other-seed"],
+    ["seedNormalizedUtf8Hex", "00"],
+    ["seedDigestHex", "a".repeat(64)],
+    ["seedU32", 7],
+    ["algorithmVersion", "other-algorithm"],
+    ["orderedCandidateSetHash", "b".repeat(64)],
+  ] as const)("rejects tampered persisted top-level %s before lock", async (field, value) => {
+    const deps = await setup();
+    vi.mocked(deps.gateway.getEvidence!).mockResolvedValue({
+      ...deps.receipt,
+      [field]: value,
+    });
+    await expect(lockSamplingRun(runId, deps)).resolves.toEqual({
+      status: "replay_mismatch",
+    });
+    expect(deps.gateway.lock).not.toHaveBeenCalled();
+  });
+
+  it("rejects tampered top-level allocation evidence before lock", async () => {
+    const deps = await setup();
+    vi.mocked(deps.gateway.getEvidence!).mockResolvedValue({
+      ...deps.receipt,
+      allocationEvidence: deps.receipt.allocationEvidence.map((row, index) =>
+        index === 0 ? { ...row, finalAllocation: row.finalAllocation + 1 } : row,
+      ),
+    });
+    await expect(lockSamplingRun(runId, deps)).resolves.toEqual({
+      status: "replay_mismatch",
+    });
+    expect(deps.gateway.lock).not.toHaveBeenCalled();
+  });
+
+  it("maps candidate load failures to safe replay/unavailable states", async () => {
+    const mismatch = await setup();
+    vi.mocked(mismatch.gateway.getPopulationCandidates).mockRejectedValue(
+      new SamplingGatewayError("REPLAY_MISMATCH"),
+    );
+    await expect(lockSamplingRun(runId, mismatch)).resolves.toEqual({
+      status: "replay_mismatch",
+    });
+
+    const unavailable = await setup();
+    vi.mocked(unavailable.gateway.getPopulationCandidates).mockRejectedValue(
+      new Error("raw provider details"),
+    );
+    await expect(lockSamplingRun(runId, unavailable)).resolves.toEqual({
+      status: "service_unavailable",
+    });
+  });
+
+  it("rejects malformed lifecycle inputs before gateway access", async () => {
+    const deps = await setup();
+    await expect(lockSamplingRun("not-a-uuid", deps)).resolves.toEqual({ status: "invalid" });
+    await expect(activateSamplingRun("not-a-uuid", deps)).resolves.toEqual({ status: "invalid" });
+    await expect(cancelSamplingRun({ runId: "not-a-uuid", reason: "x" }, deps)).resolves.toEqual({
+      status: "invalid",
+    });
+    expect(deps.gateway.lock).not.toHaveBeenCalled();
+    expect(deps.gateway.activate).not.toHaveBeenCalled();
+    expect(deps.gateway.cancel).not.toHaveBeenCalled();
   });
 
   it("maps gateway failures to safe states and permits aggregate reads to readonly roles", async () => {

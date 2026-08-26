@@ -150,7 +150,7 @@ describe("Supabase sampling gateway", () => {
     }));
     const client = clientFor(row);
     client.rpc.mockImplementation((name: string) => {
-      if (name === "get_sampling_candidates") {
+      if (name === "get_sampling_candidates" || name === "get_sampling_population_candidates") {
         return Promise.resolve({ data: candidateRows, error: null });
       }
       if (name === "list_sampling_runs") {
@@ -161,6 +161,9 @@ describe("Supabase sampling gateway", () => {
     const gateway = createSupabaseSamplingGateway(client as never);
 
     await expect(gateway.getCandidates(runId)).resolves.toEqual(
+      evidenceInput.candidates,
+    );
+    await expect(gateway.getPopulationCandidates(importId)).resolves.toEqual(
       evidenceInput.candidates,
     );
     await expect(gateway.getEvidence!(runId)).resolves.toMatchObject({
@@ -179,6 +182,10 @@ describe("Supabase sampling gateway", () => {
     expect(client.rpc).toHaveBeenCalledWith(
       "get_sampling_candidates",
       { p_run_id: runId },
+    );
+    expect(client.rpc).toHaveBeenCalledWith(
+      "get_sampling_population_candidates",
+      { p_population_import_id: importId },
     );
     expect(client.rpc).toHaveBeenCalledWith(
       "get_sampling_run_evidence",
@@ -207,5 +214,44 @@ describe("Supabase sampling gateway", () => {
     await expect(
       createSupabaseSamplingGateway(malformed as never).lock(runId),
     ).rejects.toEqual(new SamplingGatewayError("UNAVAILABLE"));
+  });
+
+  it.each([
+    ["population_size", null],
+    ["target_n", true],
+    ["version", Number.MAX_SAFE_INTEGER + 1],
+    ["unrounded_result", Number.MAX_SAFE_INTEGER + 1],
+    ["margin_of_error", "Infinity"],
+  ])("rejects malformed numeric field %s without coercing it", async (field, value) => {
+    const row = runRow(await fixture());
+    const malformedRow = { ...row, [field]: value };
+    const client = clientFor(malformedRow);
+    await expect(
+      createSupabaseSamplingGateway(client as never).lock(runId),
+    ).rejects.toEqual(new SamplingGatewayError("UNAVAILABLE"));
+  });
+
+  it("accepts canonical database numeric strings", async () => {
+    const row = runRow(await fixture());
+    const numericRow = {
+      ...row,
+      version: "1",
+      population_size: "5",
+      margin_of_error: "0.5",
+      unrounded_result: "2.2222222222222223",
+      target_n: "3",
+      seed_u32: String((await fixture()).seedU32),
+      allocation_evidence: row.allocation_evidence.map((allocation) => ({
+        ...allocation,
+        eligible_count: String(allocation.eligible_count),
+        quota: String(allocation.quota),
+        floor_allocation: String(allocation.floor_allocation),
+        remainder: String(allocation.remainder),
+        final_allocation: String(allocation.final_allocation),
+      })),
+    };
+    await expect(
+      createSupabaseSamplingGateway(clientFor(numericRow) as never).lock(runId),
+    ).resolves.toMatchObject({ populationSize: 5, targetN: 3 });
   });
 });

@@ -23,6 +23,7 @@ select has_function('public', 'activate_sampling_run', array['uuid'], '[INT-02] 
 select has_function('public', 'cancel_sampling_run', array['uuid', 'text'], '[INT-02] cancel RPC exists');
 select has_function('public', 'list_sampling_runs', array[]::text[], '[INT-02] safe run list RPC exists');
 select has_function('public', 'get_sampling_candidates', array['uuid'], '[INT-02] safe candidate RPC exists');
+select has_function('public', 'get_sampling_population_candidates', array['uuid'], '[INT-02] accepted population candidate RPC exists');
 select has_function('public', 'get_sampling_run_evidence', array['uuid'], '[INT-02] manager evidence RPC exists');
 select has_function('public', 'update_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], '[INT-02] draft regeneration RPC exists');
 select has_function('public', 'regenerate_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], '[INT-02] draft regeneration alias RPC exists');
@@ -45,6 +46,7 @@ select function_privs_are('public', 'activate_sampling_run', array['uuid'], 'aut
 select function_privs_are('public', 'cancel_sampling_run', array['uuid', 'text'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call cancel RPC only');
 select function_privs_are('public', 'list_sampling_runs', array[]::text[], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call list RPC only');
 select function_privs_are('public', 'get_sampling_candidates', array['uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call candidate RPC only');
+select function_privs_are('public', 'get_sampling_population_candidates', array['uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call accepted population candidate RPC only');
 select function_privs_are('public', 'get_sampling_run_evidence', array['uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call manager evidence RPC only');
 select function_privs_are('public', 'update_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call draft update RPC only');
 select function_privs_are('public', 'regenerate_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call draft regeneration alias only');
@@ -116,6 +118,21 @@ set local role authenticated;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000802';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000802","role":"authenticated"}';
 set local role palmtrack_transaction_owner;
+
+select lives_ok(
+  $$ select * from public.get_sampling_population_candidates((select id from public.list_population_imports() where source_label = 'FX-SAMPLING')) $$,
+  '[INT-02] manager reads every eligible accepted population candidate'
+);
+select is(
+  (select count(*) from public.get_sampling_population_candidates((select id from public.list_population_imports() where source_label = 'FX-SAMPLING'))),
+  4::bigint,
+  '[INT-02] population candidate projection excludes ineligible members'
+);
+select is(
+  (select count(*) from public.get_sampling_population_candidates((select id from public.list_population_imports() where source_label = 'FX-SAMPLING')) where farmer_code = 'SYN-104'),
+  0::bigint,
+  '[SEC-02] population candidate projection never returns ineligible members'
+);
 
 select throws_ok(
   $$ select * from public.create_sampling_draft(
@@ -258,6 +275,11 @@ select lives_ok(
   '[INT-02] unaccepted population fixture remains validated'
 );
 select throws_ok(
+  $$ select * from public.get_sampling_population_candidates((select id from public.list_population_imports() where source_label = 'FX-SAMPLING-UNACCEPTED')) $$,
+  '42501', null,
+  '[SEC-02] unaccepted snapshots cannot expose population candidates'
+);
+select throws_ok(
   $$ select * from public.create_sampling_draft(
     (select id from public.list_population_imports() where source_label = 'FX-SAMPLING-UNACCEPTED'),
     'sample-seed', 0.5, 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
@@ -323,6 +345,11 @@ select throws_ok(
   ) $$,
   '42501', null,
   '[RLS-09] cross-workspace accepted snapshots are denied'
+);
+select throws_ok(
+  $$ select * from public.get_sampling_population_candidates('00000000-0000-0000-0000-000000000992'::uuid) $$,
+  '42501', null,
+  '[RLS-09] cross-workspace population candidates are denied'
 );
 
 select throws_ok(
@@ -447,6 +474,7 @@ set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000801';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000801","role":"authenticated"}';
 select lives_ok($$ select * from public.list_sampling_runs() $$, '[RLS-09] admin receives aggregate summaries after runs exist');
 select throws_ok($$ select * from public.get_sampling_candidates((select id from public.sampling_run where status = 'active' limit 1)) $$, '42501', null, '[RLS-09] admin cannot read active member-level candidates');
+select throws_ok($$ select * from public.get_sampling_population_candidates((select id from public.list_population_imports() where status = 'accepted' limit 1)) $$, '42501', null, '[RLS-09] admin cannot read accepted population candidates');
 select throws_ok($$ select * from public.get_sampling_run_evidence((select id from public.sampling_run where status = 'active' limit 1)) $$, '42501', null, '[RLS-09] admin cannot read active detailed evidence');
 reset role;
 
@@ -455,16 +483,19 @@ set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000803';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000803","role":"authenticated"}';
 select throws_ok($$ select * from public.list_sampling_runs() $$, '42501', null, '[RLS-09] field collector cannot list sampling runs');
 select throws_ok($$ select * from public.get_sampling_candidates('00000000-0000-0000-0000-000000000999'::uuid) $$, '42501', null, '[RLS-09] field collector cannot read sampling candidates');
+select throws_ok($$ select * from public.get_sampling_population_candidates('00000000-0000-0000-0000-000000000999'::uuid) $$, '42501', null, '[RLS-09] field collector cannot read population candidates');
 select throws_ok($$ select * from public.activate_sampling_run('00000000-0000-0000-0000-000000000999'::uuid) $$, '42501', null, '[RLS-09] field collector cannot activate sampling runs');
 
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000804';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000804","role":"authenticated"}';
 select throws_ok($$ select * from public.list_sampling_runs() $$, '42501', null, '[RLS-09] farmer cannot list sampling runs');
+select throws_ok($$ select * from public.get_sampling_population_candidates('00000000-0000-0000-0000-000000000999'::uuid) $$, '42501', null, '[RLS-09] farmer cannot read population candidates');
 
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000805';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000805","role":"authenticated"}';
 select lives_ok($$ select * from public.list_sampling_runs() $$, '[RLS-09] evaluator receives safe run projections');
 select throws_ok($$ select * from public.get_sampling_candidates((select id from public.list_sampling_runs() where status = 'active')) $$, '42501', null, '[RLS-09] evaluator cannot read member-level candidates');
+select throws_ok($$ select * from public.get_sampling_population_candidates('00000000-0000-0000-0000-000000000999'::uuid) $$, '42501', null, '[RLS-09] evaluator cannot read accepted population candidates');
 select throws_ok($$ select * from public.get_sampling_run_evidence((select id from public.list_sampling_runs() where status = 'active')) $$, '42501', null, '[RLS-09] evaluator cannot read detailed sampling evidence');
 select ok(
   not ((select to_jsonb(row) from public.list_sampling_runs() as row where status = 'active' limit 1)
