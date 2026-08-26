@@ -63,6 +63,7 @@ function runRow(evidence: Awaited<ReturnType<typeof fixture>>) {
     ordered_candidate_set_hash: evidence.orderedCandidateSetHash,
     status: "draft",
     created_at: "2026-08-26T01:00:00.000Z",
+    updated_at: "2026-08-26T01:00:01.000Z",
     locked_at: null,
     activated_at: null,
     superseded_at: null,
@@ -173,7 +174,7 @@ describe("Supabase sampling gateway", () => {
       }),
     });
     await expect(gateway.listRuns()).resolves.toHaveLength(1);
-    await expect(gateway.lock(runId)).resolves.toMatchObject({ status: "draft" });
+    await expect(gateway.lock(runId, row.updated_at)).resolves.toMatchObject({ status: "draft" });
     await expect(gateway.activate(runId)).resolves.toMatchObject({ status: "draft" });
     await expect(gateway.cancel(runId, "เหตุผลสังเคราะห์")).resolves.toMatchObject({
       status: "draft",
@@ -195,24 +196,28 @@ describe("Supabase sampling gateway", () => {
       "cancel_sampling_run",
       { p_run_id: runId, p_reason: "เหตุผลสังเคราะห์" },
     );
+    expect(client.rpc).toHaveBeenCalledWith(
+      "lock_sampling_run",
+      { p_run_id: runId, p_expected_updated_at: row.updated_at },
+    );
   });
 
   it.each(["23505", "40001"])("maps %s to conflict without leaking provider details", async (code) => {
     const client = clientFor(null, { code, message: "postgres secret" });
     await expect(
-      createSupabaseSamplingGateway(client as never).lock(runId),
+      createSupabaseSamplingGateway(client as never).lock(runId, "2026-08-26T01:00:01.000Z"),
     ).rejects.toEqual(new SamplingGatewayError("CONFLICT"));
   });
 
   it("maps evidence rejection to replay_mismatch and malformed rows to unavailable", async () => {
     const evidenceError = clientFor(null, { code: "22023", message: "raw details" });
     await expect(
-      createSupabaseSamplingGateway(evidenceError as never).lock(runId),
+      createSupabaseSamplingGateway(evidenceError as never).lock(runId, "2026-08-26T01:00:01.000Z"),
     ).rejects.toEqual(new SamplingGatewayError("REPLAY_MISMATCH"));
 
     const malformed = clientFor({ ...runRow(await fixture()), id: "not-a-uuid" });
     await expect(
-      createSupabaseSamplingGateway(malformed as never).lock(runId),
+      createSupabaseSamplingGateway(malformed as never).lock(runId, "2026-08-26T01:00:01.000Z"),
     ).rejects.toEqual(new SamplingGatewayError("UNAVAILABLE"));
   });
 
@@ -227,7 +232,7 @@ describe("Supabase sampling gateway", () => {
     const malformedRow = { ...row, [field]: value };
     const client = clientFor(malformedRow);
     await expect(
-      createSupabaseSamplingGateway(client as never).lock(runId),
+      createSupabaseSamplingGateway(client as never).lock(runId, "2026-08-26T01:00:01.000Z"),
     ).rejects.toEqual(new SamplingGatewayError("UNAVAILABLE"));
   });
 
@@ -237,10 +242,14 @@ describe("Supabase sampling gateway", () => {
       ...row,
       version: "1",
       population_size: "5",
-      margin_of_error: "0.5",
+      margin_of_error: "0.05",
       unrounded_result: "2.2222222222222223",
       target_n: "3",
       seed_u32: String((await fixture()).seedU32),
+      result_evidence: {
+        ...row.result_evidence,
+        margin_of_error: "0.05",
+      },
       allocation_evidence: row.allocation_evidence.map((allocation) => ({
         ...allocation,
         eligible_count: String(allocation.eligible_count),
@@ -251,7 +260,21 @@ describe("Supabase sampling gateway", () => {
       })),
     };
     await expect(
-      createSupabaseSamplingGateway(clientFor(numericRow) as never).lock(runId),
-    ).resolves.toMatchObject({ populationSize: 5, targetN: 3 });
+      createSupabaseSamplingGateway(clientFor(numericRow) as never).lock(runId, "2026-08-26T01:00:01.000Z"),
+    ).resolves.toMatchObject({ populationSize: 5, marginOfError: 0.05, targetN: 3 });
+  });
+
+  it("rejects decimal strings that lose precision when parsed as numbers", async () => {
+    const row = runRow(await fixture());
+    const malformedRow = {
+      ...row,
+      unrounded_result: "2.222222222222222222222222",
+    };
+    await expect(
+      createSupabaseSamplingGateway(clientFor(malformedRow) as never).lock(
+        runId,
+        "2026-08-26T01:00:01.000Z",
+      ),
+    ).rejects.toEqual(new SamplingGatewayError("UNAVAILABLE"));
   });
 });

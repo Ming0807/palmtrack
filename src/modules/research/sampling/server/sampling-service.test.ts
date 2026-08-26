@@ -76,6 +76,7 @@ function run(evidence: SamplingEvidence): SamplingRun {
     orderedCandidateSetHash: evidence.orderedCandidateSetHash,
     status: "draft",
     createdAt: "2026-08-26T01:00:00.000Z",
+    updatedAt: "2026-08-26T01:00:01.000Z",
     lockedAt: null,
     activatedAt: null,
     supersededAt: null,
@@ -176,7 +177,7 @@ describe("sampling service", () => {
     });
     expect(deps.gateway.getEvidence!).toHaveBeenCalledWith(runId);
     expect(deps.gateway.getPopulationCandidates).toHaveBeenCalledWith(importId);
-    expect(deps.gateway.lock).toHaveBeenCalledWith(runId);
+    expect(deps.gateway.lock).toHaveBeenCalledWith(runId, deps.receipt.updatedAt);
     expect(
       vi.mocked(deps.gateway.getEvidence!).mock.invocationCallOrder[0],
     ).toBeLessThan(vi.mocked(deps.gateway.lock).mock.invocationCallOrder[0]);

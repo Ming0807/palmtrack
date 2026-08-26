@@ -18,7 +18,7 @@ select has_function(
   array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'],
   '[INT-02] create sampling draft RPC exists'
 );
-select has_function('public', 'lock_sampling_run', array['uuid'], '[INT-02] lock RPC exists');
+select has_function('public', 'lock_sampling_run', array['uuid', 'timestamptz'], '[INT-02] lock RPC exists');
 select has_function('public', 'activate_sampling_run', array['uuid'], '[INT-02] activate RPC exists');
 select has_function('public', 'cancel_sampling_run', array['uuid', 'text'], '[INT-02] cancel RPC exists');
 select has_function('public', 'list_sampling_runs', array[]::text[], '[INT-02] safe run list RPC exists');
@@ -41,7 +41,7 @@ select ok(
 select table_privs_are('public', 'sampling_run', 'authenticated', array[]::text[], '[RLS-09] authenticated has no run table privilege');
 select table_privs_are('public', 'sample_member', 'service_role', array[]::text[], '[RLS-09] service role has no sample table privilege');
 select function_privs_are('public', 'create_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call create RPC only');
-select function_privs_are('public', 'lock_sampling_run', array['uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call lock RPC only');
+select function_privs_are('public', 'lock_sampling_run', array['uuid', 'timestamptz'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call lock RPC only');
 select function_privs_are('public', 'activate_sampling_run', array['uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call activate RPC only');
 select function_privs_are('public', 'cancel_sampling_run', array['uuid', 'text'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call cancel RPC only');
 select function_privs_are('public', 'list_sampling_runs', array[]::text[], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call list RPC only');
@@ -201,13 +201,13 @@ select is((select count(*) from public.create_sampling_draft(
   '00000000-0000-0000-0000-000000000902'::uuid
 )), 1::bigint, '[INT-02] identical idempotency retry returns one run');
 
-select lives_ok($$ select * from public.lock_sampling_run((select id from public.sampling_run)) $$, '[INT-02] manager locks draft after evidence replay');
+select lives_ok($$ select * from public.lock_sampling_run((select id from public.sampling_run), (select updated_at from public.sampling_run)) $$, '[INT-02] manager locks draft after evidence replay');
 select is((select status::text from public.sampling_run), 'locked', '[INT-02] lock freezes run state');
 select throws_ok($$ update public.sample_member set selection_order = 9 $$, '42501', null, '[SEC-02] sample members are immutable');
 select throws_ok($$ insert into public.sampling_run default values $$, '42501', null, '[SEC-02] direct run inserts are denied outside the RPC boundary');
 select throws_ok($$ insert into public.sample_member default values $$, '42501', null, '[SEC-02] direct member inserts are denied outside the RPC boundary');
 select throws_ok($$ update public.sampling_run set target_n = 1 $$, '42501', null, '[SEC-02] locked evidence is immutable');
-select throws_ok($$ select * from public.lock_sampling_run((select id from public.sampling_run)) $$, '42501', null, '[INT-02] lock is not legal twice');
+select throws_ok($$ select * from public.lock_sampling_run((select id from public.sampling_run), (select updated_at from public.sampling_run)) $$, '42501', null, '[INT-02] lock is not legal twice');
 select lives_ok($$ select * from public.activate_sampling_run((select id from public.sampling_run)) $$, '[INT-02] manager activates locked run');
 select is((select status::text from public.sampling_run), 'active', '[INT-02] active status persists');
 select throws_ok($$ select * from public.cancel_sampling_run((select id from public.sampling_run), 'too late') $$, '42501', null, '[INT-02] active run cannot be cancelled');
@@ -223,7 +223,7 @@ select lives_ok(
   ) $$,
   '[INT-02] second evidence-backed draft is created'
 );
-select lives_ok($$ select * from public.lock_sampling_run((select id from public.sampling_run where status = 'draft')) $$, '[INT-02] second draft locks');
+select lives_ok($$ select * from public.lock_sampling_run((select id from public.sampling_run where status = 'draft'), (select updated_at from public.sampling_run where status = 'draft')) $$, '[INT-02] second draft locks');
 select lives_ok($$ select * from public.activate_sampling_run((select id from public.sampling_run where status = 'locked')) $$, '[INT-02] second locked run activates');
 select is((select count(*) from public.sampling_run where status = 'active'), 1::bigint, '[INT-02] partial unique active index leaves exactly one active run');
 select is((select count(*) from public.sampling_run where status = 'superseded'), 1::bigint, '[INT-02] activation supersedes the previous active run');
@@ -436,6 +436,31 @@ select lives_ok(
   ) $$,
   '[INT-02] identical regeneration idempotency retry returns the same run'
 );
+create temporary table sampling_lock_token on commit drop as
+select id, updated_at as expected_updated_at
+from public.sampling_run
+where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid;
+select lives_ok(
+  $$ select * from public.update_sampling_draft(
+    (select id from sampling_lock_token),
+    'sample-seed', 0.5, 'stratum-definition-v2', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    (select result_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    '00000000-0000-0000-0000-000000000915'::uuid
+  ) $$,
+  '[INT-02] draft update advances the optimistic lock token'
+);
+select ok(
+  (select updated_at from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid)
+    <> (select expected_updated_at from sampling_lock_token),
+  '[SEC-02] draft update changes updated_at before stale lock attempt'
+);
+select throws_ok(
+  $$ select * from public.lock_sampling_run((select id from sampling_lock_token), (select expected_updated_at from sampling_lock_token)) $$,
+  '40001', null,
+  '[SEC-02] stale optimistic lock token cannot lock a changed draft'
+);
 select throws_ok(
   $$ select * from public.update_sampling_draft(
     (select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
@@ -465,9 +490,14 @@ select throws_ok(
   '[INT-02] changed regeneration retry conflicts on the same idempotency key'
 );
 select lives_ok($$ select * from public.get_sampling_run_evidence((select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid)) $$, '[INT-02] manager can replay draft evidence through the dedicated detail RPC');
+select is(
+  (select updated_at from public.get_sampling_run_evidence((select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid))),
+  (select updated_at from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+  '[INT-02] detailed evidence exposes the current optimistic lock token'
+);
 select throws_ok($$ select * from public.get_sampling_candidates((select id from public.sampling_run where status = 'cancelled' limit 1)) $$, '42501', null, '[SEC-02] cancelled runs cannot provide selectable candidate projections');
 reset role;
-select is((select count(*) from public.audit_event where action_code = 'sampling.run_regenerated'), 1::bigint, '[AUD-01] regeneration appends one allowlisted audit event per change');
+select is((select count(*) from public.audit_event where action_code = 'sampling.run_regenerated'), 2::bigint, '[AUD-01] regeneration appends one allowlisted audit event per change');
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000801';
@@ -504,7 +534,7 @@ select ok(
 );
 
 reset role;
-select is((select count(*) from public.audit_event where action_code like 'sampling.%'), 11::bigint, '[AUD-01] all lifecycle transitions append allowlisted audits');
+select is((select count(*) from public.audit_event where action_code like 'sampling.%'), 12::bigint, '[AUD-01] all lifecycle transitions append allowlisted audits');
 
 select * from finish();
 rollback;
