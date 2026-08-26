@@ -76,6 +76,8 @@ export type SamplingRunSummary = Pick<
 export interface SamplingGateway {
   /** Reads trusted candidate rows for a snapshot/run. */
   getCandidates(id: string): Promise<SamplingCandidate[]>;
+  /** Reads all eligible rows from an accepted current-workspace snapshot. */
+  getPopulationCandidates(populationImportId: string): Promise<SamplingCandidate[]>;
   /** Reads the complete persisted evidence needed for a lock replay. */
   getEvidence?(runId: string): Promise<SamplingRun>;
   createDraft(input: SamplingDraftCommand): Promise<SamplingRun>;
@@ -95,8 +97,28 @@ export class SamplingGatewayError extends Error {
 const uuid = z.uuid();
 const timestamp = z.iso.datetime({ offset: true });
 const status = z.enum(["draft", "locked", "active", "superseded", "cancelled"]);
-const numeric = z.coerce.number().finite();
-const integer = numeric.int();
+const canonicalDecimalPattern = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/u;
+const canonicalIntegerPattern = /^-?(?:0|[1-9]\d*)$/u;
+const safeFiniteNumeric = (value: number): boolean =>
+  Number.isFinite(value) && (!Number.isInteger(value) || Number.isSafeInteger(value));
+const numeric = z
+  .union([
+    z.number().refine(safeFiniteNumeric),
+    z
+      .string()
+      .regex(canonicalDecimalPattern)
+      .refine((value) => safeFiniteNumeric(Number(value))),
+  ])
+  .transform((value) => (typeof value === "string" ? Number(value) : value));
+const integer = z
+  .union([
+    z.number().refine((value) => Number.isSafeInteger(value)),
+    z
+      .string()
+      .regex(canonicalIntegerPattern)
+      .refine((value) => Number.isSafeInteger(Number(value))),
+  ])
+  .transform((value) => (typeof value === "string" ? Number(value) : value));
 const hash = z.string().regex(/^[0-9a-f]{64}$/u);
 
 const allocationRowSchema = z.object({
@@ -391,6 +413,13 @@ export function createSupabaseSamplingGateway(client: RpcClient): SamplingGatewa
   return {
     async getCandidates(id) {
       return mapCandidates(await listRpc(client, "get_sampling_candidates", { p_run_id: id }));
+    },
+    async getPopulationCandidates(populationImportId) {
+      return mapCandidates(
+        await listRpc(client, "get_sampling_population_candidates", {
+          p_population_import_id: populationImportId,
+        }),
+      );
     },
     async getEvidence(runId) {
       const run = mapFullRun(

@@ -1612,6 +1612,43 @@ begin
 end;
 $$;
 
+create or replace function public.get_sampling_population_candidates(p_population_import_id uuid)
+returns table (
+  population_member_id uuid,
+  farmer_code text,
+  stratum_code text
+)
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_workspace uuid := public.current_workspace_id();
+  v_role public.app_role := public.current_role();
+begin
+  if v_role is distinct from 'research_manager'::public.app_role or v_workspace is null then
+    raise exception using errcode = '42501', message = 'operation is not permitted';
+  end if;
+  if not exists (
+    select 1
+    from public.population_import as population_import
+    where population_import.id = p_population_import_id
+      and population_import.workspace_id = v_workspace
+      and population_import.status = 'accepted'
+  ) then
+    raise exception using errcode = '42501', message = 'accepted population snapshot is required';
+  end if;
+  return query
+  select member.id, member.farmer_code, member.stratum_code
+  from public.population_member as member
+  where member.population_import_id = p_population_import_id
+    and member.workspace_id = v_workspace
+    and member.eligible
+  order by convert_to(member.farmer_code, 'UTF8');
+end;
+$$;
+
 create or replace function public.get_sampling_run_evidence(p_run_id uuid)
 returns table (
   id uuid, version bigint, population_import_id uuid, population_size bigint,
@@ -1644,7 +1681,7 @@ revoke all on function
   public.create_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid),
   public.lock_sampling_run(uuid), public.activate_sampling_run(uuid),
   public.cancel_sampling_run(uuid, text), public.list_sampling_runs(),
-  public.get_sampling_candidates(uuid), public.get_sampling_run_evidence(uuid),
+  public.get_sampling_candidates(uuid), public.get_sampling_population_candidates(uuid), public.get_sampling_run_evidence(uuid),
   public.update_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid),
   public.regenerate_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid)
   from public, anon, authenticated, service_role,
@@ -1653,7 +1690,7 @@ grant execute on function
   public.create_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid),
   public.lock_sampling_run(uuid), public.activate_sampling_run(uuid),
   public.cancel_sampling_run(uuid, text), public.list_sampling_runs(),
-  public.get_sampling_candidates(uuid), public.get_sampling_run_evidence(uuid),
+  public.get_sampling_candidates(uuid), public.get_sampling_population_candidates(uuid), public.get_sampling_run_evidence(uuid),
   public.update_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid),
   public.regenerate_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid)
   to authenticated;
@@ -1664,6 +1701,7 @@ alter function public.activate_sampling_run(uuid) owner to palmtrack_transaction
 alter function public.cancel_sampling_run(uuid, text) owner to palmtrack_transaction_owner;
 alter function public.list_sampling_runs() owner to palmtrack_transaction_owner;
 alter function public.get_sampling_candidates(uuid) owner to palmtrack_transaction_owner;
+alter function public.get_sampling_population_candidates(uuid) owner to palmtrack_transaction_owner;
 alter function public.get_sampling_run_evidence(uuid) owner to palmtrack_transaction_owner;
 alter function public.update_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid) owner to palmtrack_transaction_owner;
 alter function public.regenerate_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid) owner to palmtrack_transaction_owner;

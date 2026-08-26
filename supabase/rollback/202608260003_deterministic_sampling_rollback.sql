@@ -1,6 +1,7 @@
 begin;
 
 drop function if exists public.get_sampling_candidates(uuid);
+drop function if exists public.get_sampling_population_candidates(uuid);
 drop function if exists public.get_sampling_run_evidence(uuid);
 drop function if exists public.regenerate_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid);
 drop function if exists public.update_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid);

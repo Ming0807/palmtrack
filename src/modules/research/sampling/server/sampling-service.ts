@@ -74,7 +74,7 @@ async function trustedEvidence(
   gateway: SamplingGateway,
 ): Promise<SamplingEvidence | SamplingActionState> {
   try {
-    const candidates = await gateway.getCandidates(input.populationImportId);
+    const candidates = await gateway.getPopulationCandidates(input.populationImportId);
     return await buildSamplingEvidence({
       populationSize: candidates.length,
       marginOfError: input.marginOfError,
@@ -93,7 +93,7 @@ export async function previewSampling(
   input: SamplingDraftInput | Omit<SamplingDraftInput, "idempotencyKey">,
   deps: Dependencies,
 ): Promise<SamplingPreviewState> {
-  if (!canRead(deps.session)) return { status: "forbidden" };
+  if (!canMutate(deps.session)) return { status: "forbidden" };
   const parsed = previewInputSchema.safeParse(input);
   if (!parsed.success) return { status: "invalid" };
   const evidence = await trustedEvidence(parsed.data, deps.gateway);
@@ -146,9 +146,12 @@ export async function lockSamplingRun(
     // Both reads happen before the transition RPC. The lock RPC is never used
     // as proof of replay; it only freezes evidence already verified here.
     const persisted = await deps.gateway.getEvidence(runId);
-    const candidates = await deps.gateway.getCandidates(runId);
+    const candidates = await deps.gateway.getPopulationCandidates(persisted.populationImportId);
     const persistedEvidence = persisted.evidence ?? persisted.resultEvidence;
     if (!persistedEvidence) return { status: "replay_mismatch" };
+    if (!matchesTopLevelEvidence(persisted, persistedEvidence)) {
+      return { status: "replay_mismatch" };
+    }
     const replayInput = {
       populationSize: persisted.populationSize,
       marginOfError: persisted.marginOfError,
@@ -162,9 +165,6 @@ export async function lockSamplingRun(
     };
     const replayed = await replaySamplingEvidence(replayInput, {
       ...persistedEvidence,
-      // Allocation rows are persisted in their own immutable projection and
-      // are therefore compared with the detailed result evidence as well.
-      allocationRows: persisted.allocationEvidence,
     });
     if (!replayed) return { status: "replay_mismatch" };
     return { status: "ready", run: await deps.gateway.lock(runId) };
@@ -205,4 +205,25 @@ export async function cancelSamplingRun(
 
 function isEvidence(value: SamplingEvidence | SamplingActionState): value is SamplingEvidence {
   return !("status" in value);
+}
+
+function matchesTopLevelEvidence(
+  run: SamplingRun,
+  evidence: SamplingEvidence,
+): boolean {
+  return (
+    run.populationSize === evidence.populationSize &&
+    run.marginOfError === evidence.marginOfError &&
+    run.unroundedResult === evidence.unrounded &&
+    run.roundingRule === evidence.roundingRule &&
+    run.targetN === evidence.targetN &&
+    run.formulaVersion === evidence.formulaVersion &&
+    run.seedNormalized === evidence.seedNormalized &&
+    run.seedNormalizedUtf8Hex === evidence.seedNormalizedUtf8Hex &&
+    run.seedDigestHex === evidence.seedDigestHex &&
+    run.seedU32 === evidence.seedU32 &&
+    run.algorithmVersion === evidence.algorithmVersion &&
+    run.orderedCandidateSetHash === evidence.orderedCandidateSetHash &&
+    JSON.stringify(run.allocationEvidence) === JSON.stringify(evidence.allocationRows)
+  );
 }
