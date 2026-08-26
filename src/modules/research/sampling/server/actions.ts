@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/modules/research/sampling/server/sampling-service";
 
 const SAMPLING_PATH = "/app/research/sampling";
+const uuidSchema = z.uuid();
 
 type ProductionDependencies = Awaited<ReturnType<typeof productionDependencies>>;
 
@@ -32,6 +34,11 @@ function finiteNumberField(formData: FormData, name: string): number | null {
   if (value === null || value.trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function uuidField(formData: FormData, name: string): string | null {
+  const value = textField(formData, name);
+  return value !== null && uuidSchema.safeParse(value).success ? value : null;
 }
 
 async function productionDependencies() {
@@ -63,7 +70,7 @@ export async function previewSamplingAction(
   _previous: SamplingPreviewState,
   formData: FormData,
 ): Promise<SamplingPreviewState> {
-  const populationImportId = textField(formData, "populationImportId");
+  const populationImportId = uuidField(formData, "populationImportId");
   const seedText = textField(formData, "seedText");
   const marginOfError = finiteNumberField(formData, "marginOfError");
   const stratumDefinitionVersion = textField(formData, "stratumDefinitionVersion");
@@ -88,11 +95,11 @@ export async function createSamplingDraftAction(
   _previous: SamplingRunState,
   formData: FormData,
 ): Promise<SamplingRunState> {
-  const populationImportId = textField(formData, "populationImportId");
+  const populationImportId = uuidField(formData, "populationImportId");
   const seedText = textField(formData, "seedText");
   const marginOfError = finiteNumberField(formData, "marginOfError");
   const stratumDefinitionVersion = textField(formData, "stratumDefinitionVersion");
-  const idempotencyKey = textField(formData, "idempotencyKey");
+  const idempotencyKey = uuidField(formData, "idempotencyKey");
   if (
     populationImportId === null ||
     seedText === null ||
@@ -117,7 +124,7 @@ export async function lockSamplingRunAction(
   _previous: SamplingRunState,
   formData: FormData,
 ): Promise<SamplingRunState> {
-  const runId = textField(formData, "runId");
+  const runId = uuidField(formData, "runId");
   if (runId === null) return { status: "invalid" };
   const dependencies = await dependenciesOrUnavailable();
   if (!("gateway" in dependencies)) return dependencies;
@@ -128,7 +135,7 @@ export async function activateSamplingRunAction(
   _previous: SamplingRunState,
   formData: FormData,
 ): Promise<SamplingRunState> {
-  const runId = textField(formData, "runId");
+  const runId = uuidField(formData, "runId");
   if (runId === null) return { status: "invalid" };
   const dependencies = await dependenciesOrUnavailable();
   if (!("gateway" in dependencies)) return dependencies;
@@ -139,7 +146,7 @@ export async function cancelSamplingRunAction(
   _previous: SamplingRunState,
   formData: FormData,
 ): Promise<SamplingRunState> {
-  const runId = textField(formData, "runId");
+  const runId = uuidField(formData, "runId");
   const reason = textField(formData, "reason");
   if (runId === null || reason === null) return { status: "invalid" };
   const dependencies = await dependenciesOrUnavailable();

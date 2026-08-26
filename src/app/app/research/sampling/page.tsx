@@ -23,6 +23,19 @@ const statusLabels = {
   cancelled: "ยกเลิกแล้ว",
 } as const;
 
+function SamplingListState({ status }: { status: "conflict" | "replay_mismatch" }) {
+  return (
+    <section className={styles.content} aria-live="polite">
+      <h1>การสุ่มตัวอย่าง</h1>
+      {status === "conflict" ? (
+        <p role="alert">ไม่สามารถโหลดรายการ sampling run ได้ในขณะนี้ โปรดลองอีกครั้ง</p>
+      ) : (
+        <p role="alert">หลักฐานของ sampling run ไม่ตรงกัน จึงหยุดการทำงานไว้ก่อน</p>
+      )}
+    </section>
+  );
+}
+
 export default async function SamplingPage() {
   const clientResult = await createSupabaseServerClient();
   if (clientResult.status === "unconfigured") return <UnconfiguredState />;
@@ -32,6 +45,8 @@ export default async function SamplingPage() {
     gateway: createSupabaseIdentityGateway(clientResult.client),
   });
   if (session.status === "anonymous") redirect("/sign-in");
+  if (session.status === "unconfigured") return <UnconfiguredState />;
+  if (session.status === "configuration_error") return <ConfigurationErrorState />;
   if (session.status !== "authorized") return <ForbiddenState />;
 
   const result = await listSamplingRuns({
@@ -39,20 +54,25 @@ export default async function SamplingPage() {
     gateway: createSupabaseSamplingGateway(clientResult.client),
   });
   if (result.status === "forbidden") return <ForbiddenState />;
+  if (result.status === "conflict" || result.status === "replay_mismatch") {
+    return <SamplingListState status={result.status} />;
+  }
   if (result.status !== "ready") return <ConfigurationErrorState />;
+
+  const backHref = session.profile.role === "research_manager" ? "/app/research" : "/app";
 
   return (
     <section className={styles.content}>
       <p className={styles.eyebrow}>RESEARCH / SAMPLING</p>
       <h1>การสุ่มตัวอย่าง</h1>
       <p className={styles.lead}>
-        ตรวจสอบ sampling run ที่ผูกกับ snapshot ประชากรและหลักฐานการคำนวณได้จากพื้นที่ทำงานนี้
+        หน้านี้แสดงรายการ sampling run ของพื้นที่ทำงานเท่านั้น ส่วนแบบฟอร์มและ workbench จะเพิ่มในขั้นถัดไป
       </p>
       <p>
-        <Link href="/app/research">กลับไปงานวิจัย</Link>
+        <Link href={backHref}>{session.profile.role === "research_manager" ? "กลับไปงานวิจัย" : "กลับหน้าหลัก"}</Link>
       </p>
       <section className={styles.notice} aria-labelledby="sampling-runs-title">
-        <h2 id="sampling-runs-title">sampling runs</h2>
+        <h2 id="sampling-runs-title">รายการ sampling runs</h2>
         {result.runs.length === 0 ? (
           <p>ยังไม่มี sampling run ในพื้นที่ทำงานนี้</p>
         ) : (

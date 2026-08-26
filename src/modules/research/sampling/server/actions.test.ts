@@ -71,6 +71,42 @@ describe("sampling server actions", () => {
     expect(mocks.preview).not.toHaveBeenCalled();
   });
 
+  it("rejects a malformed preview population UUID before resolving session", async () => {
+    const form = new FormData();
+    form.set("populationImportId", "not-a-uuid");
+    form.set("seedText", "seed-v1");
+    form.set("marginOfError", "0.05");
+    form.set("stratumDefinitionVersion", "strata-v1");
+
+    await expect(previewSamplingAction({ status: "invalid" }, form)).resolves.toEqual({ status: "invalid" });
+    expect(mocks.resolveSession).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed draft UUIDs before resolving session", async () => {
+    const form = new FormData();
+    form.set("populationImportId", "11111111-1111-4111-8111-111111111111");
+    form.set("seedText", "seed-v1");
+    form.set("marginOfError", "0.05");
+    form.set("stratumDefinitionVersion", "strata-v1");
+    form.set("idempotencyKey", "also-not-a-uuid");
+
+    await expect(createSamplingDraftAction({ status: "invalid" }, form)).resolves.toEqual({ status: "invalid" });
+    expect(mocks.resolveSession).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["lock", lockSamplingRunAction],
+    ["activate", activateSamplingRunAction],
+    ["cancel", cancelSamplingRunAction],
+  ] as const)("rejects a malformed %s run UUID before resolving session", async (_name, action) => {
+    const form = new FormData();
+    form.set("runId", "not-a-uuid");
+    if (_name === "cancel") form.set("reason", "ยกเลิกชุดสังเคราะห์");
+
+    await expect(action({ status: "invalid" }, form)).resolves.toEqual({ status: "invalid" });
+    expect(mocks.resolveSession).not.toHaveBeenCalled();
+  });
+
   it("resolves the verified session and delegates a valid preview without revalidation", async () => {
     mocks.preview.mockResolvedValue({ status: "ready", evidence: { targetN: 93 } });
     const form = new FormData();
