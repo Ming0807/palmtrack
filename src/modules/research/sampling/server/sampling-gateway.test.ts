@@ -264,6 +264,24 @@ describe("Supabase sampling gateway", () => {
     ).resolves.toMatchObject({ populationSize: 5, marginOfError: 0.05, targetN: 3 });
   });
 
+  it("accepts canonical small decimal strings emitted by database numerics", async () => {
+    const row = runRow(await fixture());
+    const numericRow = {
+      ...row,
+      margin_of_error: "0.0000001",
+      result_evidence: {
+        ...row.result_evidence,
+        margin_of_error: "0.0000001",
+      },
+    };
+    await expect(
+      createSupabaseSamplingGateway(clientFor(numericRow) as never).lock(
+        runId,
+        "2026-08-26T01:00:01.000Z",
+      ),
+    ).resolves.toMatchObject({ marginOfError: 0.0000001 });
+  });
+
   it("rejects decimal strings that lose precision when parsed as numbers", async () => {
     const row = runRow(await fixture());
     const malformedRow = {
