@@ -10,6 +10,15 @@ import type {
   UpdateFarmInput,
   UpdatePlotInput,
 } from "../domain/farm-model";
+import { parseDecimal } from "../domain/decimal";
+
+function requireCanonicalDecimal(value: string, precision: number): string {
+  const parsed = parseDecimal(value, precision);
+  if (parsed === null) {
+    throw new Error("database returned a non-canonical decimal value");
+  }
+  return parsed;
+}
 
 export type FarmGateway = {
   ensureFarmerProfile(input?: { fullName?: string; phoneNumber?: string }): Promise<string>;
@@ -42,7 +51,7 @@ export function createSupabaseFarmGateway(client: SupabaseClient): FarmGateway {
         farmer_id: string;
         name: string;
         location_label: string | null;
-        total_area: number | string;
+        total_area: string;
         plot_count: number;
         created_at: string;
       }) => ({
@@ -50,7 +59,7 @@ export function createSupabaseFarmGateway(client: SupabaseClient): FarmGateway {
         farmerId: row.farmer_id,
         name: row.name,
         locationLabel: row.location_label,
-        totalArea: Number(row.total_area).toFixed(3),
+        totalArea: requireCanonicalDecimal(row.total_area, 3),
         plotCount: row.plot_count,
         createdAt: row.created_at,
       }));
@@ -60,7 +69,7 @@ export function createSupabaseFarmGateway(client: SupabaseClient): FarmGateway {
       const { data, error } = await client.rpc("create_farm", {
         p_name: input.name,
         p_location_label: input.locationLabel ?? null,
-        p_total_area: Number(input.totalArea),
+        p_total_area: input.totalArea,
       });
       if (error) throw error;
       return data as string;
@@ -71,7 +80,7 @@ export function createSupabaseFarmGateway(client: SupabaseClient): FarmGateway {
         p_farm_id: input.farmId,
         p_name: input.name,
         p_location_label: input.locationLabel ?? null,
-        p_total_area: Number(input.totalArea),
+        p_total_area: input.totalArea,
       });
       if (error) throw error;
     },
@@ -94,14 +103,14 @@ export function createSupabaseFarmGateway(client: SupabaseClient): FarmGateway {
         farm_id: string;
         code: string;
         name: string;
-        area: number | string;
+        area: string;
         created_at: string;
       }) => ({
         id: row.id,
         farmId: row.farm_id,
         code: row.code,
         name: row.name,
-        area: Number(row.area).toFixed(3),
+        area: requireCanonicalDecimal(row.area, 3),
         createdAt: row.created_at,
       }));
     },
@@ -111,7 +120,7 @@ export function createSupabaseFarmGateway(client: SupabaseClient): FarmGateway {
         p_farm_id: input.farmId,
         p_code: input.code,
         p_name: input.name,
-        p_area: Number(input.area),
+        p_area: input.area,
       });
       if (error) throw error;
       return data as string;
@@ -122,7 +131,7 @@ export function createSupabaseFarmGateway(client: SupabaseClient): FarmGateway {
         p_plot_id: input.plotId,
         p_code: input.code,
         p_name: input.name,
-        p_area: Number(input.area),
+        p_area: input.area,
       });
       if (error) throw error;
     },

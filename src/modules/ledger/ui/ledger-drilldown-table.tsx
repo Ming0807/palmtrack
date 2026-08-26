@@ -1,6 +1,12 @@
 "use client";
 
-import { formatMoney, formatQuantity } from "@/modules/farm-core/domain/decimal";
+import { Trash2 } from "lucide-react";
+
+import {
+  formatMoney,
+  formatQuantity,
+  isPositiveDecimal,
+} from "@/modules/farm-core/domain/decimal";
 import type { ExpenseItem, SaleItem } from "../domain/ledger-model";
 import styles from "./ledger.module.css";
 
@@ -39,6 +45,17 @@ export type LedgerDrilldownTableProps = {
   onDeleteSale: (sale: SaleItem) => void;
 };
 
+const thaiDateFormatter = new Intl.DateTimeFormat("th-TH-u-ca-buddhist", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function formatThaiDate(value: string): string {
+  return thaiDateFormatter.format(new Date(`${value}T00:00:00Z`));
+}
+
 export function LedgerDrilldownTable({
   expenses,
   sales,
@@ -55,7 +72,7 @@ export function LedgerDrilldownTable({
       plotCode: s.plotCode,
       title: `ขายผลผลิต ${s.buyerName ? `(${s.buyerName})` : ""}`,
       subDetail: `${formatQuantity(s.quantity)} ตัน @ ฿${formatMoney(s.unitPrice)}${
-        Number(s.deductions) > 0 ? ` (หัก ฿${formatMoney(s.deductions)})` : ""
+        isPositiveDecimal(s.deductions) ? ` (หัก ฿${formatMoney(s.deductions)})` : ""
       }`,
       amount: s.netAmount,
       isDeleted: s.isDeleted,
@@ -105,8 +122,8 @@ export function LedgerDrilldownTable({
               className={row.isDeleted ? styles.rowDeleted : ""}
               data-testid={`ledger-row-${row.id}`}
             >
-              <td>{row.date}</td>
-              <td>
+              <td data-label="วันที่">{formatThaiDate(row.date)}</td>
+              <td data-label="ประเภท">
                 {row.isDeleted ? (
                   <span className={`${styles.badge} ${styles.badgeDeleted}`} title={`เหตุผล: ${row.deleteReason || "-"}`}>
                     ยกเลิกแล้ว
@@ -117,13 +134,13 @@ export function LedgerDrilldownTable({
                   <span className={`${styles.badge} ${styles.badgeExpense}`}>- รายจ่าย</span>
                 )}
               </td>
-              <td>
+              <td data-label="สวน / แปลง">
                 <strong>{row.farmName}</strong>
                 {row.plotCode && (
                   <span style={{ color: "var(--muted)", marginLeft: "6px" }}>({row.plotCode})</span>
                 )}
               </td>
-              <td>
+              <td data-label="รายการ / รายละเอียด">
                 <div style={{ fontWeight: 600, color: "var(--ink)" }}>{row.title}</div>
                 <div style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
                   {row.subDetail}
@@ -135,6 +152,7 @@ export function LedgerDrilldownTable({
                 </div>
               </td>
               <td
+                data-label="จำนวนเงินสุทธิ"
                 className={styles.numeric}
                 style={{
                   fontWeight: 700,
@@ -148,7 +166,7 @@ export function LedgerDrilldownTable({
               >
                 {row.type === "sale" ? "+" : "-"}฿{formatMoney(row.amount)}
               </td>
-              <td>
+              <td data-label="การจัดการ" className={styles.actionCell}>
                 {!row.isDeleted ? (
                   <button
                     type="button"
@@ -163,7 +181,7 @@ export function LedgerDrilldownTable({
                     aria-label={`ลบรายการ ${row.title}`}
                     title="ลบรายการ"
                   >
-                    🗑️
+                    <Trash2 size={18} strokeWidth={1.8} aria-hidden="true" />
                   </button>
                 ) : (
                   <span style={{ fontSize: "0.78rem", color: "var(--muted)" }}>-</span>

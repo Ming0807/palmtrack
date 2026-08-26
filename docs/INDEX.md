@@ -32,6 +32,7 @@
 | [Dashboard design](superpowers/specs/2026-08-26-palmtrack-dashboard-workspace-design.md) | Implemented locally | research_manager | farm-first product framing, role-aware information hierarchy, truthful production states และ synthetic prototype boundary |
 | [Dashboard implementation plan](superpowers/plans/2026-08-26-palmtrack-dashboard-workspace.md) | Executed | admin | test-first integration ของ read model, `/app`, prototype, navigation, docs และ visual verification |
 | [Dashboard visual evidence](assets/dashboard/README.md) | Verified local evidence | research_manager | deterministic synthetic dashboard ที่ 360px/desktop พร้อม state, table, overflow และ axe evidence |
+| [Farm Core + Cash Ledger evidence](assets/farm-core-ledger/README.md) | Implemented locally; hosted pending | farmer | farmer-owned garden/plot, expense/sale, active cash report, security/decimal/rollback evidence และขอบเขตที่ยัง deferred |
 
 ไฟล์ระดับ root: [product context](../PRODUCT.md), [implemented design system](../DESIGN.md), [project overview](../README.md), [contribution instructions](../AGENTS.md) และ [sanitized development error/incident ledger](../LOG.md) (ไม่ใช่ application runtime log)
 

@@ -821,3 +821,59 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Modal snapshot in error context showed button state disabled with "กำลังบันทึก..."; subsequent standalone action invocation resolved cleanly |
 | Resolution / status | `resolved` — marked the comprehensive farmer journey with `test.slow()` and provided `{ timeout: 15_000 }` on server action modal transition expectations |
 | Related commit | farm core and cash ledger foundation commit |
+
+### DEV-20260826-060 — Decimal precision crossed the RPC boundary through JavaScript Number
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T16:30:00Z` |
+| Environment | local post-commit review of Farm Core + Cash Ledger |
+| Severity | high |
+| Component | Supabase farm/ledger gateways |
+| Error code / sanitized message | `DECIMAL_RPC_IEEE754_DRIFT` — canonical decimal strings were converted with `Number(...)` before RPC calls and after numeric results |
+| Impact | Large exact numeric values could be rounded silently between PostgreSQL and TypeScript, contradicting the documented decimal contract; no hosted migration or real-person data was involved |
+| Reproduction / evidence | focused gateway regressions received `9007199254740994.00` from input `9007199254740993.25` and failed 3/4 assertions before the fix |
+| Resolution / status | `resolved locally` — RPC numeric parameters/results remain canonical strings and focused decimal/domain/gateway tests pass |
+| Related commit | Farm Core + Cash Ledger review-fix commit |
+
+### DEV-20260826-061 — Farm ledger audit contained raw identifying fields
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T16:32:00Z` |
+| Environment | local pgTAP privacy regression review |
+| Severity | high |
+| Component | `private.append_audit_event` farm-ledger allowlist and RPC callers |
+| Error code / sanitized message | `AUDIT_RAW_PII_DETAILS` — `farmer.profile_created` stored raw full name and phone; farm/plot names were also stored directly |
+| Impact | Audit details violated the repository rule that audit must not contain raw PII; data was synthetic and remained local |
+| Reproduction / evidence | pgTAP privacy assertion expected a SHA-256 digest/presence flag but received the synthetic raw name/phone object |
+| Resolution / status | `resolved locally` — farmer/farm/plot identifying labels and expense category use digest metadata; phone uses a boolean presence flag; 75 focused pgTAP assertions pass |
+| Related commit | Farm Core + Cash Ledger review-fix commit |
+
+### DEV-20260826-062 — Farm rollback used the wrong function-owner context
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T16:35:00Z` |
+| Environment | disposable local Supabase rollback rehearsal |
+| Severity | high |
+| Component | `202608260005_farm_core_cash_ledger_rollback.sql` |
+| Error code / sanitized message | PostgreSQL `must be owner of function append_audit_event` while restoring the shared audit definition |
+| Impact | The first rehearsal aborted atomically and left the local schema unchanged; without correction the migration could not be rolled back safely |
+| Reproduction / evidence | rollback executed all drops inside a transaction, then failed at `CREATE OR REPLACE FUNCTION`; PostgreSQL rolled the transaction back |
+| Resolution / status | `resolved locally` — migration stores the prior definition in a private backup table readable by `palmtrack_audit_writer`; rollback restores under that role, completes, and pre-farm suites pass 231/231 afterward |
+| Related commit | Farm Core + Cash Ledger review-fix commit |
+
+### DEV-20260826-063 — Playwright web-server stream closed during teardown
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T17:08:00Z` |
+| Environment | focused local Farm Core + Cash Ledger Playwright evidence run on Windows |
+| Severity | low |
+| Component | Playwright-managed Next.js development web server |
+| Error code / sanitized message | `PLAYWRIGHT_WEBSERVER_STREAM_CLOSED_EARLY` — destination stream closed after browser assertions completed |
+| Impact | No product assertion failed and no hosted resource or real-person data was involved; the runner delayed teardown output |
+| Reproduction / evidence | Both mobile and desktop journeys reported pass before teardown; final runner result was `2 passed (2.2m)` with exit code 0 |
+| Resolution / status | `observed, non-blocking` — retained the passing focused evidence and did not repeat the expensive journey; investigate only if teardown begins returning non-zero or leaves processes alive |
+| Related commit | Farm Core + Cash Ledger review-fix commit |

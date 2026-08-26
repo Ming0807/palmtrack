@@ -244,6 +244,27 @@ for each row execute function private.reject_hard_deletion();
 
 -- 4. Extend Audit Allowlist in private.append_audit_event
 
+create table private.migration_202608260005_function_backup (
+  function_identity text primary key,
+  function_definition text not null
+);
+
+insert into private.migration_202608260005_function_backup (
+  function_identity,
+  function_definition
+)
+select
+  'private.append_audit_event(uuid,uuid,text,text,uuid,text,jsonb)',
+  pg_get_functiondef(
+    'private.append_audit_event(uuid,uuid,text,text,uuid,text,jsonb)'::regprocedure
+  );
+
+revoke all on table private.migration_202608260005_function_backup
+  from public, anon, authenticated, service_role,
+    palmtrack_transaction_owner, palmtrack_recovery_executor;
+grant select on table private.migration_202608260005_function_backup
+  to palmtrack_audit_writer;
+
 set local role palmtrack_audit_writer;
 
 create or replace function private.append_audit_event(
@@ -308,14 +329,14 @@ begin
       'before_status', 'after_status', 'population_size', 'target_n', 'input_digest', 'candidate_set_hash', 'algorithm_version',
       'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
-    when 'farmer.profile_created' then array['full_name', 'phone_number']::text[]
-    when 'farm.created' then array['farmer_id', 'name', 'total_area']::text[]
-    when 'farm.updated' then array['before_name', 'after_name', 'before_total_area', 'after_total_area']::text[]
+    when 'farmer.profile_created' then array['full_name_digest', 'phone_number_present']::text[]
+    when 'farm.created' then array['farmer_id', 'name_digest', 'total_area']::text[]
+    when 'farm.updated' then array['before_name_digest', 'after_name_digest', 'before_total_area', 'after_total_area']::text[]
     when 'farm.soft_deleted' then array['before_status', 'after_status', 'delete_reason_digest']::text[]
-    when 'plot.created' then array['farm_id', 'code', 'name', 'area']::text[]
-    when 'plot.updated' then array['before_code', 'after_code', 'before_name', 'after_name', 'before_area', 'after_area']::text[]
+    when 'plot.created' then array['farm_id', 'code_digest', 'name_digest', 'area']::text[]
+    when 'plot.updated' then array['before_code_digest', 'after_code_digest', 'before_name_digest', 'after_name_digest', 'before_area', 'after_area']::text[]
     when 'plot.soft_deleted' then array['before_status', 'after_status', 'delete_reason_digest']::text[]
-    when 'expense.created' then array['farm_id', 'category', 'amount', 'expense_date']::text[]
+    when 'expense.created' then array['farm_id', 'category_digest', 'amount', 'expense_date']::text[]
     when 'expense.soft_deleted' then array['farm_id', 'amount', 'delete_reason_digest']::text[]
     when 'sale.created' then array['farm_id', 'quantity', 'unit_price', 'gross_amount', 'deductions', 'net_amount', 'sale_date']::text[]
     when 'sale.soft_deleted' then array['farm_id', 'net_amount', 'delete_reason_digest']::text[]
@@ -441,14 +462,16 @@ begin
       or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'farmer.profile_created' then
       p_entity_type <> 'farmer'
-      or char_length(coalesce(p_details ->> 'full_name', '')) not between 1 and 120
+      or coalesce(p_details ->> 'full_name_digest', '') !~ '^[0-9a-f]{64}$'
+      or jsonb_typeof(p_details -> 'phone_number_present') is distinct from 'boolean'
     when 'farm.created' then
       p_entity_type <> 'farm'
-      or char_length(coalesce(p_details ->> 'name', '')) not between 1 and 120
+      or coalesce(p_details ->> 'name_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'total_area', '') !~ '^[0-9]+(\.[0-9]{1,3})?$'
     when 'farm.updated' then
       p_entity_type <> 'farm'
-      or char_length(coalesce(p_details ->> 'after_name', '')) not between 1 and 120
+      or coalesce(p_details ->> 'before_name_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'after_name_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'after_total_area', '') !~ '^[0-9]+(\.[0-9]{1,3})?$'
     when 'farm.soft_deleted' then
       p_entity_type <> 'farm'
@@ -457,13 +480,15 @@ begin
       or coalesce(p_details ->> 'delete_reason_digest', '') !~ '^[0-9a-f]{64}$'
     when 'plot.created' then
       p_entity_type <> 'plot'
-      or char_length(coalesce(p_details ->> 'code', '')) not between 1 and 40
-      or char_length(coalesce(p_details ->> 'name', '')) not between 1 and 120
+      or coalesce(p_details ->> 'code_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'name_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'area', '') !~ '^[0-9]+(\.[0-9]{1,3})?$'
     when 'plot.updated' then
       p_entity_type <> 'plot'
-      or char_length(coalesce(p_details ->> 'after_code', '')) not between 1 and 40
-      or char_length(coalesce(p_details ->> 'after_name', '')) not between 1 and 120
+      or coalesce(p_details ->> 'before_code_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'after_code_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'before_name_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'after_name_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'after_area', '') !~ '^[0-9]+(\.[0-9]{1,3})?$'
     when 'plot.soft_deleted' then
       p_entity_type <> 'plot'
@@ -472,7 +497,7 @@ begin
       or coalesce(p_details ->> 'delete_reason_digest', '') !~ '^[0-9a-f]{64}$'
     when 'expense.created' then
       p_entity_type <> 'expense'
-      or char_length(coalesce(p_details ->> 'category', '')) not between 1 and 60
+      or coalesce(p_details ->> 'category_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'amount', '') !~ '^[0-9]+(\.[0-9]{1,2})?$'
       or coalesce(p_details ->> 'expense_date', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
     when 'expense.soft_deleted' then
@@ -567,7 +592,10 @@ begin
     'farmer',
     v_farmer_id,
     'success',
-    jsonb_build_object('full_name', v_name, 'phone_number', v_phone)
+    jsonb_build_object(
+      'full_name_digest', encode(extensions.digest(convert_to(v_name, 'UTF8'), 'sha256'), 'hex'),
+      'phone_number_present', v_phone is not null
+    )
   );
 
   return v_farmer_id;
@@ -580,7 +608,7 @@ returns table (
   farmer_id uuid,
   name text,
   location_label text,
-  total_area numeric,
+  total_area text,
   plot_count integer,
   created_at timestamptz
 )
@@ -604,7 +632,7 @@ begin
     f.farmer_id,
     f.name,
     f.location_label,
-    f.total_area,
+    f.total_area::text,
     count(p.id) filter (where p.deleted_at is null)::integer as plot_count,
     f.created_at
   from public.farm as f
@@ -675,7 +703,7 @@ begin
     'success',
     jsonb_build_object(
       'farmer_id', v_farmer_id,
-      'name', v_name,
+      'name_digest', encode(extensions.digest(convert_to(v_name, 'UTF8'), 'sha256'), 'hex'),
       'total_area', to_char(p_total_area, 'FM9999999990.000')
     )
   );
@@ -731,6 +759,16 @@ begin
     raise exception using errcode = '22023', message = 'total area must be non-negative';
   end if;
 
+  if p_total_area < (
+    select coalesce(sum(p.area), 0.000)
+    from public.plot as p
+    where p.farm_id = p_farm_id
+      and p.workspace_id = v_workspace_id
+      and p.deleted_at is null
+  ) then
+    raise exception using errcode = '22023', message = 'total area cannot be less than active plot area';
+  end if;
+
   update public.farm
   set name = v_name,
       location_label = v_location,
@@ -747,8 +785,8 @@ begin
     p_farm_id,
     'success',
     jsonb_build_object(
-      'before_name', v_farm.name,
-      'after_name', v_name,
+      'before_name_digest', encode(extensions.digest(convert_to(v_farm.name, 'UTF8'), 'sha256'), 'hex'),
+      'after_name_digest', encode(extensions.digest(convert_to(v_name, 'UTF8'), 'sha256'), 'hex'),
       'before_total_area', to_char(v_farm.total_area, 'FM9999999990.000'),
       'after_total_area', to_char(p_total_area, 'FM9999999990.000')
     )
@@ -826,7 +864,7 @@ returns table (
   farm_id uuid,
   code text,
   name text,
-  area numeric,
+  area text,
   created_at timestamptz
 )
 language plpgsql
@@ -849,7 +887,7 @@ begin
     p.farm_id,
     p.code,
     p.name,
-    p.area,
+    p.area::text,
     p.created_at
   from public.plot as p
   join public.farm as f
@@ -884,6 +922,7 @@ declare
   v_workspace_id uuid := public.current_workspace_id();
   v_role public.app_role := public.current_role();
   v_plot_id uuid;
+  v_farm_total_area numeric(14,3);
   v_code text := btrim(p_code);
   v_name text := btrim(p_name);
 begin
@@ -891,8 +930,7 @@ begin
     raise exception using errcode = '42501', message = 'operation is not permitted';
   end if;
 
-  if not exists (
-    select 1
+  select f.total_area into v_farm_total_area
     from public.farm as f
     join public.farmer as fmr
       on fmr.id = f.farmer_id
@@ -902,7 +940,9 @@ begin
     where f.id = p_farm_id
       and f.workspace_id = v_workspace_id
       and f.deleted_at is null
-  ) then
+    for update of f;
+
+  if not found then
     raise exception using errcode = '42501', message = 'farm not found or access denied';
   end if;
 
@@ -916,6 +956,16 @@ begin
 
   if p_area is null or p_area < 0.000 then
     raise exception using errcode = '22023', message = 'plot area must be non-negative';
+  end if;
+
+  if (
+    select coalesce(sum(p.area), 0.000) + p_area
+    from public.plot as p
+    where p.farm_id = p_farm_id
+      and p.workspace_id = v_workspace_id
+      and p.deleted_at is null
+  ) > v_farm_total_area then
+    raise exception using errcode = '22023', message = 'active plot area cannot exceed farm total area';
   end if;
 
   v_plot_id := gen_random_uuid();
@@ -937,8 +987,8 @@ begin
     'success',
     jsonb_build_object(
       'farm_id', p_farm_id,
-      'code', v_code,
-      'name', v_name,
+      'code_digest', encode(extensions.digest(convert_to(v_code, 'UTF8'), 'sha256'), 'hex'),
+      'name_digest', encode(extensions.digest(convert_to(v_name, 'UTF8'), 'sha256'), 'hex'),
       'area', to_char(p_area, 'FM9999999990.000')
     )
   );
@@ -963,6 +1013,7 @@ declare
   v_workspace_id uuid := public.current_workspace_id();
   v_role public.app_role := public.current_role();
   v_plot public.plot%rowtype;
+  v_farm_total_area numeric(14,3);
   v_code text := btrim(p_code);
   v_name text := btrim(p_name);
 begin
@@ -984,7 +1035,7 @@ begin
   where p.id = p_plot_id
     and p.workspace_id = v_workspace_id
     and p.deleted_at is null
-  for update;
+  for update of p, f;
 
   if not found then
     raise exception using errcode = '42501', message = 'plot not found or access denied';
@@ -1000,6 +1051,22 @@ begin
 
   if p_area is null or p_area < 0.000 then
     raise exception using errcode = '22023', message = 'plot area must be non-negative';
+  end if;
+
+  select f.total_area into v_farm_total_area
+  from public.farm as f
+  where f.id = v_plot.farm_id
+    and f.workspace_id = v_workspace_id;
+
+  if (
+    select coalesce(sum(p.area), 0.000) + p_area
+    from public.plot as p
+    where p.farm_id = v_plot.farm_id
+      and p.workspace_id = v_workspace_id
+      and p.deleted_at is null
+      and p.id <> p_plot_id
+  ) > v_farm_total_area then
+    raise exception using errcode = '22023', message = 'active plot area cannot exceed farm total area';
   end if;
 
   update public.plot
@@ -1018,10 +1085,10 @@ begin
     p_plot_id,
     'success',
     jsonb_build_object(
-      'before_code', v_plot.code,
-      'after_code', v_code,
-      'before_name', v_plot.name,
-      'after_name', v_name,
+      'before_code_digest', encode(extensions.digest(convert_to(v_plot.code, 'UTF8'), 'sha256'), 'hex'),
+      'after_code_digest', encode(extensions.digest(convert_to(v_code, 'UTF8'), 'sha256'), 'hex'),
+      'before_name_digest', encode(extensions.digest(convert_to(v_plot.name, 'UTF8'), 'sha256'), 'hex'),
+      'after_name_digest', encode(extensions.digest(convert_to(v_name, 'UTF8'), 'sha256'), 'hex'),
       'before_area', to_char(v_plot.area, 'FM9999999990.000'),
       'after_area', to_char(p_area, 'FM9999999990.000')
     )
@@ -1110,7 +1177,7 @@ returns table (
   plot_id uuid,
   plot_code text,
   category text,
-  amount numeric,
+  amount text,
   expense_date date,
   notes text,
   is_deleted boolean,
@@ -1139,7 +1206,7 @@ begin
     e.plot_id,
     p.code as plot_code,
     e.category,
-    e.amount,
+    e.amount::text,
     e.expense_date,
     e.notes,
     (e.deleted_at is not null) as is_deleted,
@@ -1149,6 +1216,7 @@ begin
   join public.farm as f
     on f.id = e.farm_id
    and f.workspace_id = v_workspace_id
+   and f.deleted_at is null
   join public.farmer as fmr
     on fmr.id = f.farmer_id
    and fmr.profile_id = v_profile_id
@@ -1248,7 +1316,7 @@ begin
     'success',
     jsonb_build_object(
       'farm_id', p_farm_id,
-      'category', v_category,
+      'category_digest', encode(extensions.digest(convert_to(v_category, 'UTF8'), 'sha256'), 'hex'),
       'amount', to_char(p_amount, 'FM9999999990.00'),
       'expense_date', p_expense_date::text
     )
@@ -1339,11 +1407,11 @@ returns table (
   plot_code text,
   sale_date date,
   buyer_name text,
-  quantity numeric,
-  unit_price numeric,
-  gross_amount numeric,
-  deductions numeric,
-  net_amount numeric,
+  quantity text,
+  unit_price text,
+  gross_amount text,
+  deductions text,
+  net_amount text,
   notes text,
   is_deleted boolean,
   delete_reason text,
@@ -1372,11 +1440,11 @@ begin
     p.code as plot_code,
     s.sale_date,
     s.buyer_name,
-    s.quantity,
-    s.unit_price,
-    s.gross_amount,
-    s.deductions,
-    s.net_amount,
+    s.quantity::text,
+    s.unit_price::text,
+    s.gross_amount::text,
+    s.deductions::text,
+    s.net_amount::text,
     s.notes,
     (s.deleted_at is not null) as is_deleted,
     s.delete_reason,
@@ -1385,6 +1453,7 @@ begin
   join public.farm as f
     on f.id = s.farm_id
    and f.workspace_id = v_workspace_id
+   and f.deleted_at is null
   join public.farmer as fmr
     on fmr.id = f.farmer_id
    and fmr.profile_id = v_profile_id
@@ -1588,9 +1657,9 @@ create or replace function public.get_my_cash_ledger_summary(
   p_to_date date default null
 )
 returns table (
-  net_income numeric,
-  expense_total numeric,
-  cash_result numeric,
+  net_income text,
+  expense_total text,
+  cash_result text,
   sale_count integer,
   expense_count integer,
   has_records boolean
@@ -1622,6 +1691,7 @@ begin
   join public.farm as f
     on f.id = s.farm_id
    and f.workspace_id = v_workspace_id
+   and f.deleted_at is null
   join public.farmer as fmr
     on fmr.id = f.farmer_id
    and fmr.profile_id = v_profile_id
@@ -1642,6 +1712,7 @@ begin
   join public.farm as f
     on f.id = e.farm_id
    and f.workspace_id = v_workspace_id
+   and f.deleted_at is null
   join public.farmer as fmr
     on fmr.id = f.farmer_id
    and fmr.profile_id = v_profile_id
@@ -1654,9 +1725,9 @@ begin
     and (p_to_date is null or e.expense_date <= p_to_date);
 
   return query select
-    v_sales_sum,
-    v_expenses_sum,
-    (v_sales_sum - v_expenses_sum),
+    v_sales_sum::text,
+    v_expenses_sum::text,
+    (v_sales_sum - v_expenses_sum)::text,
     v_sales_cnt,
     v_expenses_cnt,
     ((v_sales_cnt + v_expenses_cnt) > 0);

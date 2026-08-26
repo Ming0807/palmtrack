@@ -266,7 +266,7 @@
 .secondaryButton,
 .dangerButton {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -405,8 +405,8 @@
 
 .iconButton {
   display: inline-flex;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--line);
@@ -428,5 +428,66 @@
   .pageHeader {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .tableWrap {
+    overflow: visible;
+  }
+
+  .ledgerTable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .ledgerTable,
+  .ledgerTable tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .ledgerTable tbody {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .ledgerTable tr {
+    display: grid;
+    gap: 2px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .ledgerTable td,
+  .ledgerTable td.numeric {
+    display: grid;
+    grid-template-columns: minmax(88px, 0.45fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 7px 0;
+    border: 0;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ledgerTable td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+
+  .ledgerTable td.actionCell {
+    align-items: center;
   }
 }

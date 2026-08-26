@@ -45,6 +45,12 @@ flowchart TB
 - **File**: object metadata, purpose, owner aggregate, private signed access อายุสั้น และ delete policy
 - **Audit**: append-only event สำหรับ privileged/semantic changes; module ต้นทางส่ง actor, action, subject, reason, before/after ที่ลด PII
 
+### Farm Core + Cash Ledger implementation boundary — 2026-08-26
+
+Production routes `/app/gardens` และ `/app/garden-account` ใช้ server action → validated service → Supabase RPC เท่านั้น Authenticated role ไม่มี direct table privilege; RPC แบบ `security definer` derive profile/workspace/role จาก session แล้ว join ownership ทุกครั้ง ตัวเลข `numeric` ข้าม PostgREST เป็น canonical decimal string เพื่อไม่ผ่าน IEEE-754 `Number` ส่วน database เป็นผู้คำนวณ gross/net และ period aggregate ขั้นสุดท้าย
+
+Slice นี้มี `farmer`, `farm`, `plot`, `expense`, `sale`; ยังไม่มี `activity`, `harvest`, collector baseline mutation, offline ledger draft หรือ multi-tenant selector จึงคง module seam เดิมไว้โดยไม่สร้าง interface ลวง
+
 ห้าม module query table ภายในของอีก module เพื่อเลี่ยง policy; ใช้ typed service/query contract ภายใน modular monolith Transaction ที่คร่อม invariant ต้องอยู่ server-side function/service เดียว
 
 ## Request and data flows

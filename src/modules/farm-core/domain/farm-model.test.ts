@@ -13,6 +13,21 @@ const testFarmId = "11111111-1111-4111-8111-111111111111";
 const testPlotId = "22222222-2222-4222-8222-222222222222";
 
 describe("Farm Model Schemas", () => {
+  it("rejects negative farm and plot areas before the RPC boundary", () => {
+    expect(createFarmSchema.safeParse({
+      name: "สวนทดสอบ",
+      locationLabel: null,
+      totalArea: "-0.001",
+    }).success).toBe(false);
+
+    expect(createPlotSchema.safeParse({
+      farmId: testFarmId,
+      code: "P-01",
+      name: "แปลงทดสอบ",
+      area: "-0.001",
+    }).success).toBe(false);
+  });
+
   it("validates createFarmSchema", () => {
     const valid = createFarmSchema.safeParse({
       name: "สวนปาล์มสมหวัง",

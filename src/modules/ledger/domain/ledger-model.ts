@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { parseDecimal } from "@/modules/farm-core/domain/decimal";
+import {
+  isNonNegativeDecimal,
+  isPositiveDecimal,
+  parseDecimal,
+} from "@/modules/farm-core/domain/decimal";
 import { calculateSaleGross, calculateSaleNet } from "./sale-formula";
 
 export const EXPENSE_CATEGORIES = [
@@ -138,7 +142,7 @@ export const createSaleSchema = z
       .refine(
         (val) => {
           const parsed = parseDecimal(val, 3);
-          return parsed !== null && Number(parsed) > 0;
+          return parsed !== null && isPositiveDecimal(parsed);
         },
         {
           message: "ปริมาณผลผลิตต้องเป็นตัวเลขมากกว่า 0 (ทศนิยมไม่เกิน 3 ตำแหน่ง)",
@@ -151,7 +155,7 @@ export const createSaleSchema = z
       .refine(
         (val) => {
           const parsed = parseDecimal(val, 2);
-          return parsed !== null && Number(parsed) >= 0;
+          return parsed !== null && isNonNegativeDecimal(parsed);
         },
         {
           message: "ราคาต่อหน่วยต้องไม่ติดลบ (ทศนิยมไม่เกิน 2 ตำแหน่ง)",
@@ -165,7 +169,7 @@ export const createSaleSchema = z
       .refine(
         (val) => {
           const parsed = parseDecimal(val, 2);
-          return parsed !== null && Number(parsed) >= 0;
+          return parsed !== null && isNonNegativeDecimal(parsed);
         },
         {
           message: "ค่าหัก ณ ที่จ่ายต้องไม่ติดลบ (ทศนิยมไม่เกิน 2 ตำแหน่ง)",
@@ -184,7 +188,7 @@ export const createSaleSchema = z
     (data) => {
       const gross = calculateSaleGross(data.quantity, data.unitPrice);
       const net = calculateSaleNet(gross, data.deductions);
-      return Number(net) >= 0;
+      return isNonNegativeDecimal(net);
     },
     {
       message: "ค่าหัก ณ ที่จ่ายต้องไม่เกินมูลค่ารวมผลผลิต",

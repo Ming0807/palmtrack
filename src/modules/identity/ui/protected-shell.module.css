@@ -168,17 +168,21 @@
   }
 
   .navigation ul {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    overflow-x: auto;
-    padding: 2px 2px 8px;
-    scrollbar-width: thin;
+    overflow: visible;
+    padding: 2px 0 8px;
   }
 
   .navigationLink {
-    min-width: max-content;
-    grid-template-columns: 20px max-content;
+    min-width: 0;
+    grid-template-columns: 20px minmax(0, 1fr);
     padding: 9px 12px;
+  }
+
+  .navigationLink span {
+    overflow-wrap: anywhere;
   }
 
   .arrow {

@@ -38,15 +38,31 @@ export default async function GardensPage() {
   }
 
   // Load plots for each farm
-  const farmsWithPlots: FarmWithPlots[] = await Promise.all(
+  const plotResults = await Promise.all(
     farmListResult.farms.map(async (farm) => {
       const plotResult = await listPlots({ session, gateway: farmGateway, farmId: farm.id });
       return {
-        ...farm,
-        plots: plotResult.status === "ready" ? plotResult.plots : [],
+        farm,
+        plotResult,
       };
     }),
   );
+
+  const failedPlotResult = plotResults.find(({ plotResult }) => plotResult.status === "error");
+  if (failedPlotResult?.plotResult.status === "error") {
+    return (
+      <FarmCoreView
+        farms={[]}
+        status="error"
+        errorMessage={failedPlotResult.plotResult.message}
+      />
+    );
+  }
+
+  const farmsWithPlots: FarmWithPlots[] = plotResults.map(({ farm, plotResult }) => ({
+    ...farm,
+    plots: plotResult.status === "ready" ? plotResult.plots : [],
+  }));
 
   return <FarmCoreView farms={farmsWithPlots} status="ready" />;
 }

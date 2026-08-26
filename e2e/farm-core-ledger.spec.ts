@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { signInAs } from "./support/local-supabase";
 
 test.describe("Farm Core and Cash Ledger E2E", () => {
-  test("[E2E-04] farmer creates farm, plots, records expenses & sales, soft-deletes and checks dashboard profit 9,000.25", async ({
+  test("[E2E-07/E2E-08/E2E-09/E2E-10/E2E-13] farmer creates farm/plots, records expense/sale, soft-deletes and checks Thai responsive profit 9,000.25", async ({
     page,
   }, testInfo) => {
     test.slow();
@@ -17,6 +17,13 @@ test.describe("Farm Core and Cash Ledger E2E", () => {
     // 2. Navigate to /app/gardens and create a farm
     await page.goto("/app/gardens");
     await expect(page.getByRole("heading", { name: "สวนปาล์มของฉัน" })).toBeVisible();
+
+    if (testInfo.project.name.includes("mobile")) {
+      const navigationList = page.getByRole("navigation").locator("ul");
+      await expect
+        .poll(() => navigationList.evaluate((element) => element.scrollWidth <= element.clientWidth))
+        .toBe(true);
+    }
 
     // Click Add Farm
     const addFarmButton = page.locator('[data-testid="add-farm-button"], [data-testid="add-first-farm-button"]').first();
@@ -38,7 +45,7 @@ test.describe("Farm Core and Cash Ledger E2E", () => {
     await expect(farmCard).toBeVisible();
 
     // 3. Add Plots to the Farm
-    const addPlotButton = farmCard.getByRole("button", { name: "+ เพิ่มแปลงย่อย" });
+    const addPlotButton = farmCard.getByRole("button", { name: "เพิ่มแปลงย่อย" });
     await addPlotButton.click();
 
     const plotModal = page.getByTestId("plot-form-modal");
@@ -63,11 +70,21 @@ test.describe("Farm Core and Cash Ledger E2E", () => {
     await expect(farmCard.getByText("P-02")).toBeVisible();
     await expect(farmCard.getByText("แปลงเชิงเขา")).toBeVisible();
 
+    for (const button of await farmCard.getByRole("button").all()) {
+      const box = await button.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+    }
+
     // Run Axe scan on /app/gardens
     const gardensAxe = await new AxeBuilder({ page })
       .disableRules(["color-contrast"])
       .analyze();
     expect(gardensAxe.violations).toEqual([]);
+    await page.screenshot({
+      path: `docs/assets/farm-core-ledger/${testInfo.project.name}-gardens.png`,
+      fullPage: true,
+    });
 
     // 4. Navigate to /app/garden-account
     await page.goto("/app/garden-account");
@@ -135,6 +152,11 @@ test.describe("Farm Core and Cash Ledger E2E", () => {
     await expect(page.getByTestId("net-income-card")).toContainText("฿12,500.50");
     await expect(page.getByTestId("expense-total-card")).toContainText("฿3,500.25");
     await expect(page.getByTestId("cash-result-card")).toContainText("+฿9,000.25");
+    await expect(page.getByText("20 ส.ค. 2569")).toBeVisible();
+    await page.screenshot({
+      path: `docs/assets/farm-core-ledger/${testInfo.project.name}-garden-account.png`,
+      fullPage: true,
+    });
 
     // 6. Test Soft Delete with Reason
     // Add extra expense of 100.00

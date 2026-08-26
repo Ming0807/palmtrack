@@ -31,4 +31,27 @@ drop table if exists public.plot cascade;
 drop table if exists public.farm cascade;
 drop table if exists public.farmer cascade;
 
+set local role palmtrack_audit_writer;
+
+do $$
+declare
+  v_function_definition text;
+begin
+  select function_definition
+  into v_function_definition
+  from private.migration_202608260005_function_backup
+  where function_identity = 'private.append_audit_event(uuid,uuid,text,text,uuid,text,jsonb)';
+
+  if v_function_definition is null then
+    raise exception 'missing append_audit_event rollback definition';
+  end if;
+
+  execute v_function_definition;
+end;
+$$;
+
+reset role;
+
+drop table private.migration_202608260005_function_backup;
+
 commit;

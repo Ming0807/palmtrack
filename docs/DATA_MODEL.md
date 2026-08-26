@@ -65,6 +65,16 @@ Important mutable records มี `created_at`, `created_by`, `updated_at`, `upda
 | `export_job` | kind, filter digest, requested/completed actor/time, row count, status | `anonymized` default; full PII privileged and audited |
 | `audit_event` | actor, action, subject, reason, before/after digest, occurred_at | append-only, no secret/raw answer dump |
 
+### Implemented farm-ledger subset — migration `202608260005`
+
+| Implemented locally | Deferred from the authoritative V1 model |
+|---|---|
+| farmer-owned `farmer`, `farm`, `plot`, `expense`, `sale`; workspace-scoped FKs; create/update attribution; reasoned soft-delete; hard-delete guard | assigned-collector baseline, `activity`, `harvest`, optional `sale.harvest_id`, restore workflow |
+| Active plot areas รวมกันต้องไม่เกิน `farm.total_area`; ลดพื้นที่สวนต่ำกว่าผลรวม active plots ไม่ได้ | activity/harvest lifecycle และ relation กับ expense/sale |
+| Ledger query ตัด soft-deleted expense/sale และ record ใต้ soft-deleted farm; canonical decimal string ใช้ที่ TypeScript/PostgREST boundary | offline ledger draft และ report สำหรับบทบาทอื่นตาม future approved slice |
+
+Audit ของ slice นี้เก็บ digest สำหรับชื่อ farmer/farm/plot, plot code และ expense category; ไม่เก็บ raw name, phone, location หรือ buyer name ใน `audit_event.details`
+
 ## Status lifecycles
 
 ```mermaid

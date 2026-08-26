@@ -51,6 +51,30 @@ export default async function GardenAccountPage({
     return <ForbiddenState />;
   }
 
+  if (farmListResult.status === "error") {
+    return (
+      <GardenAccountWorkbench
+        summary={{
+          netIncome: "0.00",
+          expenseTotal: "0.00",
+          cashResult: "0.00",
+          saleCount: 0,
+          expenseCount: 0,
+          hasRecords: false,
+        }}
+        expenses={[]}
+        sales={[]}
+        farms={[]}
+        plotsByFarm={{}}
+        selectedFarmId={farmId}
+        fromDate={fromDate}
+        toDate={toDate}
+        status="error"
+        errorMessage={farmListResult.message}
+      />
+    );
+  }
+
   const farms = farmListResult.status === "ready" ? farmListResult.farms : [];
 
   // Load plots by farm for selectors

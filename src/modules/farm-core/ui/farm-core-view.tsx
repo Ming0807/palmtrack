@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 import { formatArea } from "../domain/decimal";
@@ -183,7 +184,10 @@ export function FarmCoreView({ farms, status, errorMessage }: FarmCoreViewProps)
                 <div className={styles.farmTitleGroup}>
                   <h2 className={styles.farmName}>{farm.name}</h2>
                   {farm.locationLabel && (
-                    <span className={styles.farmMeta}>📍 {farm.locationLabel}</span>
+                    <span className={styles.farmMeta}>
+                      <MapPin size={15} strokeWidth={1.8} aria-hidden="true" />
+                      {farm.locationLabel}
+                    </span>
                   )}
                 </div>
                 <div className={styles.farmActions}>
@@ -226,9 +230,9 @@ export function FarmCoreView({ farms, status, errorMessage }: FarmCoreViewProps)
                       className={styles.secondaryButton}
                       onClick={() => handleOpenAddPlot(farm.id)}
                       data-testid={`add-plot-btn-${farm.id}`}
-                      style={{ fontSize: "0.8rem", minHeight: "34px", padding: "4px 10px" }}
                     >
-                      + เพิ่มแปลงย่อย
+                      <Plus size={16} strokeWidth={2} aria-hidden="true" />
+                      เพิ่มแปลงย่อย
                     </button>
                   </div>
 
@@ -241,7 +245,7 @@ export function FarmCoreView({ farms, status, errorMessage }: FarmCoreViewProps)
                             <span className={styles.plotName}>{plot.name}</span>
                             <span className={styles.plotArea}>({formatArea(plot.area)} ไร่)</span>
                           </div>
-                          <div style={{ display: "flex", gap: "6px" }}>
+                          <div className={styles.plotActions}>
                             <button
                               type="button"
                               className={styles.iconButton}
@@ -249,7 +253,7 @@ export function FarmCoreView({ farms, status, errorMessage }: FarmCoreViewProps)
                               aria-label={`แก้ไขแปลง ${plot.code}`}
                               title="แก้ไขแปลง"
                             >
-                              ✏️
+                              <Pencil size={17} strokeWidth={1.8} aria-hidden="true" />
                             </button>
                             <button
                               type="button"
@@ -258,7 +262,7 @@ export function FarmCoreView({ farms, status, errorMessage }: FarmCoreViewProps)
                               aria-label={`ลบแปลง ${plot.code}`}
                               title="ลบแปลง"
                             >
-                              🗑️
+                              <Trash2 size={17} strokeWidth={1.8} aria-hidden="true" />
                             </button>
                           </div>
                         </div>

@@ -28,6 +28,8 @@ V1 มี research workspace เดียวและไม่มี UI จั�
 | FR-16 | dashboard ใช้ shared base cohort: workspace เดียว, selected sampling run (active default; superseded เมื่อเลือก historical), eligible/non-soft-deleted population/sample, not withdrawn และ shared date filter จากนั้นนับ stage แยก `population`, `sampled`, `assigned`, `consent`, `submitted`, `verified`, `export-eligible` ตาม [Research protocol](RESEARCH_PROTOCOL.md); early stages ห้ามใช้ final export predicate |
 | FR-17 | หน้าแรก `/app` ต้องเป็น role-aware product dashboard ที่นำด้วย farm operations, cash/harvest analytics และงานถัดไป แล้ววาง research provenance เป็นส่วนรอง; production ห้ามใช้ fixture/ตัวเลขสังเคราะห์และต้องแสดง `empty/loading/unavailable/not_enabled` อย่างซื่อสัตย์ ขณะที่ `/prototype/dashboard` ต้องติดป้ายข้อมูลสังเคราะห์ชัดเจนและไม่เชื่อมฐานข้อมูล |
 
+สถานะ implementation ณ 2026-08-26: increment Farm Core + Cash Ledger ทำเฉพาะ farmer-owned `farmer → farm → plot`, `expense`, `sale` และ cash report ของ FR-08–FR-11 แล้ว ส่วน assigned-collector baseline ใน FR-08, `activity` ใน FR-09 และ `harvest`/`harvest_id` ใน FR-10 ยังไม่ implement จึงห้ามตีความว่า FR-08–FR-10 complete ทั้ง requirement
+
 ## Non-functional requirements
 
 | ID | Requirement |

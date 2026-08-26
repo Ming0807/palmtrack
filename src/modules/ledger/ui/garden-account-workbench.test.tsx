@@ -109,6 +109,8 @@ describe("GardenAccountWorkbench Component", () => {
 
     expect(screen.getByText("ขายผลผลิต (ลานเทสมบูรณ์)")).toBeDefined();
     expect(screen.getByText("ปุ๋ย 15-15-15")).toBeDefined();
+    expect(screen.getByText("15 ส.ค. 2569")).toBeDefined();
+    expect(screen.getByText("1 ส.ค. 2569")).toBeDefined();
     expect(screen.getByText("+฿10,000.00")).toBeDefined();
     expect(screen.getByText("-฿3,000.25")).toBeDefined();
   });

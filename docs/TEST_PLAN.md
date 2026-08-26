@@ -18,6 +18,13 @@
 - Authenticated local Playwright ผ่าน admin/research_manager positive flows, collector/farmer/evaluator negative route checks, invalid no-write, idempotent double-submit, offline blocking, keyboard focus, axe serious/critical และ 360px overflow พร้อม [mobile/desktop evidence](assets/population-import/README.md)
 - Evidence นี้ใช้ synthetic fixture 3 แถวสำหรับ tracer bullet เท่านั้น ไม่แทน FX-BASE 121-member sampling acceptance และ migration `202608250002` ยังไม่ผ่าน hosted run
 
+### Current Farm Core + Cash Ledger execution boundary — 2026-08-26
+
+- Migration `202608260005` มี pgTAP สำหรับ schema/grant/RPC ownership, cross-farmer/non-farmer deny, canonical formulas, active-only report, plot-area invariant, PII-safe audit, soft/hard delete และ fixture cash result `9,000.25`
+- Rollback ถูก execute จริงบนฐาน local สะอาด แล้ว suite ก่อนหน้า 001–003 ผ่าน 231 assertions หลัง restore shared `private.append_audit_event`
+- TypeScript regression ครอบคลุม canonical decimal string ที่ Supabase gateway ทั้ง input/output และ route query failure ต้อง render error state ไม่ใช่ empty state
+- Scope evidence นี้รับเฉพาะ farmer-owned farm/plot, expense, sale และ cash report; ไม่ปิด acceptance ของ activity, harvest, collector baseline, hosted migration, restore/retention หรือ real-data readiness
+
 ## Acceptance fixtures
 
 `FX-BASE` เป็นข้อมูลสังเคราะห์: workspace `ws-synthetic`; user อย่างละหนึ่งต่อห้าบทบาทและ second collector/farmer สำหรับ cross-owner; population 121 member ที่ใช้ `farmer_code` `SYN-001` ถึง `SYN-121` กระจายในอย่างน้อย 3 strata; `e=0.05`; recorded seed `palmtrack-acceptance-seed-v1`; approved synthetic questionnaire metadata ที่ใช้ question code/type/options แต่ไม่มีคำถามวิจัยจริง; assignment ที่ present notice แล้วมี granted consent จับคู่ response `draft`, `submitted`, `returned`, `verified` อย่างละกรณี และ declined consent ที่ไม่มี baseline/response; withdrawn case เริ่มจาก consent granted แล้ว transition ทั้ง current consent และ response เป็น `withdrawn` จึง **ไม่ถือว่า current consent granted**; verified-correction chain ที่เก็บ prior snapshot; farmer สองราย/farm/plot; active/deleted expense และ sale; private attachments คนละ owner

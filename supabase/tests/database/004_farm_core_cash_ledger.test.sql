@@ -1,6 +1,6 @@
 begin;
 
-select plan(69);
+select plan(75);
 
 -- 1. Schema & Table Structure Tests
 select has_table('public', 'farmer', '[FR-08] farmer table exists');
@@ -115,7 +115,7 @@ select is(
 
 select is(
   (select total_area from public.list_my_farms() limit 1),
-  25.500,
+  '25.500',
   '[UNIT-04] farm area has 3 decimal places'
 );
 
@@ -144,6 +144,42 @@ select is(
   (select count(*) from public.list_my_plots((select id from public.list_my_farms() limit 1))),
   2::bigint,
   '[INT-07] farmer A lists 2 plots for farm'
+);
+
+select throws_ok(
+  $$ select public.create_plot(
+    (select id from public.list_my_farms() limit 1),
+    'P-OVER',
+    'แปลงเกินพื้นที่สวน',
+    0.001
+  ) $$,
+  '22023',
+  null,
+  '[INT-07] active plot area cannot exceed farm total area'
+);
+
+select throws_ok(
+  $$ select public.update_plot(
+    (select id from public.list_my_plots((select id from public.list_my_farms() limit 1)) where code = 'P-01'),
+    'P-01',
+    'แปลงต้นน้ำ',
+    12.001
+  ) $$,
+  '22023',
+  null,
+  '[INT-07] plot update cannot make active plot area exceed farm total area'
+);
+
+select throws_ok(
+  $$ select public.update_farm(
+    (select id from public.list_my_farms() limit 1),
+    'สวนปาล์มสมหวัง',
+    'อ.อ่าวลึก จ.กระบี่',
+    25.499
+  ) $$,
+  '22023',
+  null,
+  '[INT-07] farm area cannot be reduced below active plot area'
 );
 
 -- Record Expenses (Fixture: 3000.25 + 500.00 active, 100.00 deleted)
@@ -249,19 +285,19 @@ select lives_ok(
 -- 5. Finance Reconciliation & Summary Check (Fixture Profit = 9,000.25)
 select is(
   (select net_income from public.get_my_cash_ledger_summary((select id from public.list_my_farms() limit 1), '2026-08-01'::date, '2026-08-31'::date)),
-  12500.50,
+  '12500.50',
   '[REP-01] active sales net sum is exactly 12500.50 (10000.00 + 2500.50)'
 );
 
 select is(
   (select expense_total from public.get_my_cash_ledger_summary((select id from public.list_my_farms() limit 1), '2026-08-01'::date, '2026-08-31'::date)),
-  3500.25,
+  '3500.25',
   '[REP-01] active expenses sum is exactly 3500.25 (3000.25 + 500.00)'
 );
 
 select is(
   (select cash_result from public.get_my_cash_ledger_summary((select id from public.list_my_farms() limit 1), '2026-08-01'::date, '2026-08-31'::date)),
-  9000.25,
+  '9000.25',
   '[REP-01] cash result equals fixture target 9000.25 (12500.50 - 3500.25)'
 );
 
@@ -495,6 +531,20 @@ select throws_ok(
 
 -- 9. Audit Events Trail Check
 reset role;
+select is(
+  (
+    select details
+    from public.audit_event
+    where action_code = 'farmer.profile_created'
+    order by occurred_at desc
+    limit 1
+  ),
+  jsonb_build_object(
+    'full_name_digest', encode(extensions.digest(convert_to('เกษตรกร สมหวัง', 'UTF8'), 'sha256'), 'hex'),
+    'phone_number_present', true
+  ),
+  '[AUD-03] farmer profile audit stores only a name digest and phone presence flag'
+);
 select ok(
   exists (select 1 from public.audit_event where action_code = 'farm.created'),
   '[AUD-03] farm.created audit event exists'
@@ -518,6 +568,32 @@ select ok(
 select ok(
   exists (select 1 from public.audit_event where action_code = 'sale.soft_deleted'),
   '[AUD-03] sale.soft_deleted audit event exists'
+);
+
+create temporary table farm_under_test as
+select entity_id as farm_id
+from public.audit_event
+where action_code = 'farm.created'
+order by occurred_at
+limit 1;
+grant select on table farm_under_test to authenticated;
+
+set local role authenticated;
+set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000804';
+set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000804","role":"authenticated"}';
+
+select lives_ok(
+  $$ select public.soft_delete_farm(
+    (select farm_id from farm_under_test),
+    'ยุติการใช้งานสวนทดสอบ'
+  ) $$,
+  '[AUD-03] farmer can soft-delete own farm with a reason'
+);
+
+select is(
+  (select has_records from public.get_my_cash_ledger_summary(null, null, null)),
+  false,
+  '[REP-01] soft-deleted farm is excluded from the active ledger summary'
 );
 
 rollback;

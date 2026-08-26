@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { parseDecimal } from "./decimal";
+import { isNonNegativeDecimal, parseDecimal } from "./decimal";
+
+function isNonNegative(value: string, precision: number): boolean {
+  const parsed = parseDecimal(value, precision);
+  return parsed !== null && isNonNegativeDecimal(parsed);
+}
 
 export type Farmer = {
   id: string;
@@ -49,7 +54,7 @@ export const createFarmSchema = z.object({
   totalArea: z
     .string()
     .trim()
-    .refine((val) => parseDecimal(val, 3) !== null, {
+    .refine((val) => isNonNegative(val, 3), {
       message: "ขนาดพื้นที่ต้องเป็นตัวเลขทศนิยมไม่เกิน 3 ตำแหน่ง",
     })
     .transform((val) => parseDecimal(val, 3)!),
@@ -89,7 +94,7 @@ export const createPlotSchema = z.object({
   area: z
     .string()
     .trim()
-    .refine((val) => parseDecimal(val, 3) !== null, {
+    .refine((val) => isNonNegative(val, 3), {
       message: "ขนาดพื้นที่แปลงต้องเป็นตัวเลขทศนิยมไม่เกิน 3 ตำแหน่ง",
     })
     .transform((val) => parseDecimal(val, 3)!),
@@ -112,7 +117,7 @@ export const updatePlotSchema = z.object({
   area: z
     .string()
     .trim()
-    .refine((val) => parseDecimal(val, 3) !== null, {
+    .refine((val) => isNonNegative(val, 3), {
       message: "ขนาดพื้นที่แปลงต้องเป็นตัวเลขทศนิยมไม่เกิน 3 ตำแหน่ง",
     })
     .transform((val) => parseDecimal(val, 3)!),

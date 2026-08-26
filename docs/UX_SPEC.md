@@ -34,6 +34,8 @@ Navigation/filter ทุกหน้าเป็น convenience; server authoriz
 
 เลือกสวน/แปลง → เพิ่ม activity/expense/harvest → เพิ่ม sale โดยเลือก farm บังคับ, plot ไม่บังคับ และ harvest ไม่บังคับได้หนึ่งรายการ → เห็น gross/net preview → ดู cash profit/loss ตามช่วงพร้อมยอดขาย/ค่าใช้จ่ายและรายการ drill-down Active/deleted status ต้องชัดและ deletion ขอเหตุผล/สร้าง audit
 
+สถานะ production ณ 2026-08-26: `/app/gardens` รองรับสวน/แปลง และ `/app/garden-account` รองรับ expense/sale/cash report พร้อม empty/loading/error/forbidden, mobile/desktop และ delete reason แล้ว Activity, harvest และ harvest selector ยังไม่แสดงจน backend slice พร้อม Query error ต้องแสดง error state ห้ามลดรูปเป็น empty state
+
 ### Withdrawal
 
 ผู้เข้าร่วมส่ง request ตามช่องทางที่อนุมัติ → manager assign/reassign collector ผู้ดำเนินการโดยไม่แก้ consent → assigned collector ยืนยันตัวตน/คำขอตาม protocol → หาก response อยู่ exactly `draft|submitted|returned|verified` แสดงผลที่จะ lock/exclude → บันทึก required withdrawal reason code → เปลี่ยน current consent/response เป็น withdrawn → แสดง minimal receipt และสถานะ terminal “ถอนแล้ว—ไม่รวมในการเก็บ/วิเคราะห์” โดยไม่แสดง answer
