@@ -239,6 +239,10 @@ select is((select count(*) from public.sampling_run where status = 'active'), 1:
 select is((select count(*) from public.sampling_run where status = 'superseded'), 1::bigint, '[INT-02] activation supersedes the previous active run');
 reset role;
 select is((select count(*) from public.audit_event where action_code = 'sampling.run_superseded'), 1::bigint, '[AUD-01] supersession appends its own audited transition');
+select is((select details ->> 'ordered_result_digest_version' from public.audit_event where action_code = 'sampling.run_activated' and entity_id = (select id from public.sampling_run where status = 'active') order by occurred_at desc limit 1), 'ordered-result-sha256-v1', '[AUD-01] activation audit stores the ordered-result digest contract');
+select is((select details ->> 'ordered_result_hash' from public.audit_event where action_code = 'sampling.run_activated' and entity_id = (select id from public.sampling_run where status = 'active') order by occurred_at desc limit 1), (select ordered_result_hash from public.sampling_run where status = 'active'), '[AUD-01] activation audit stores the affected run result hash');
+select is((select details ->> 'ordered_result_digest_version' from public.audit_event where action_code = 'sampling.run_superseded' and entity_id = (select id from public.sampling_run where status = 'superseded') order by occurred_at desc limit 1), 'ordered-result-sha256-v1', '[AUD-01] supersession audit stores the ordered-result digest contract');
+select is((select details ->> 'ordered_result_hash' from public.audit_event where action_code = 'sampling.run_superseded' and entity_id = (select id from public.sampling_run where status = 'superseded') order by occurred_at desc limit 1), (select ordered_result_hash from public.sampling_run where status = 'superseded'), '[AUD-01] supersession audit stores the prior active result hash');
 select ok(exists (select 1 from public.audit_event where action_code = 'sampling.run_created' and details ->> 'ordered_result_hash' = (select ordered_result_hash from public.sampling_run limit 1)), '[AUD-01] creation audit carries the authoritative ordered result hash');
 set local role authenticated;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000802';
@@ -258,6 +262,9 @@ select lives_ok(
 );
 select throws_ok($$ select * from public.cancel_sampling_run((select id from public.sampling_run where status = 'draft'), 'x') $$, '22023', null, '[INT-02] cancellation requires a meaningful reason');
 select lives_ok($$ select * from public.cancel_sampling_run((select id from public.sampling_run where status = 'draft'), 'synthetic cancellation reason') $$, '[INT-02] draft cancellation stores a reason digest');
+reset role;
+select is((select details ->> 'ordered_result_digest_version' from public.audit_event where action_code = 'sampling.run_cancelled' and entity_id = (select id from public.sampling_run where status = 'cancelled') order by occurred_at desc limit 1), 'ordered-result-sha256-v1', '[AUD-01] cancellation audit stores the ordered-result digest contract');
+select is((select details ->> 'ordered_result_hash' from public.audit_event where action_code = 'sampling.run_cancelled' and entity_id = (select id from public.sampling_run where status = 'cancelled') order by occurred_at desc limit 1), (select ordered_result_hash from public.sampling_run where status = 'cancelled'), '[AUD-01] cancellation audit stores the affected run result hash');
 select ok(
   (select cancellation_reason_digest ~ '^[0-9a-f]{64}$' from public.sampling_run where status = 'cancelled'),
   '[SEC-02] cancellation stores only a lowercase reason digest'
@@ -268,6 +275,11 @@ select ok(
   ),
   '[SEC-02] cancellation reason is not written into evidence'
 );
+
+set local role authenticated;
+set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000802';
+set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000802","role":"authenticated"}';
+set local role palmtrack_transaction_owner;
 
 select lives_ok(
   $$ select * from public.create_population_import(

@@ -10,11 +10,11 @@ import {
 } from "./deterministic-sampling";
 
 const candidates: SamplingCandidate[] = [
-  { memberId: "m-03", farmerCode: "SYN-003", stratumCode: "SOUTH" },
-  { memberId: "m-01", farmerCode: "SYN-001", stratumCode: "NORTH" },
-  { memberId: "m-04", farmerCode: "SYN-004", stratumCode: "SOUTH" },
-  { memberId: "m-02", farmerCode: "SYN-002", stratumCode: "NORTH" },
-  { memberId: "m-05", farmerCode: "SYN-005", stratumCode: "EAST" },
+  { memberId: "33333333-3333-4333-8333-333333333333", farmerCode: "SYN-003", stratumCode: "SOUTH" },
+  { memberId: "11111111-1111-4111-8111-111111111111", farmerCode: "SYN-001", stratumCode: "NORTH" },
+  { memberId: "44444444-4444-4444-8444-444444444444", farmerCode: "SYN-004", stratumCode: "SOUTH" },
+  { memberId: "22222222-2222-4222-8222-222222222222", farmerCode: "SYN-002", stratumCode: "NORTH" },
+  { memberId: "55555555-5555-4555-8555-555555555555", farmerCode: "SYN-005", stratumCode: "EAST" },
 ];
 
 const evidenceInput: SamplingEvidenceInput = {
@@ -48,6 +48,17 @@ describe("calculateSampleSize", () => {
     expect(() => calculateSampleSize(populationSize, marginOfError)).toThrow(
       "invalid sampling bounds",
     );
+  });
+});
+
+describe("sampling candidate identifiers", () => {
+  it("requires lowercase canonical UUID member identifiers", async () => {
+    await expect(buildSamplingEvidence({
+      populationSize: 1,
+      marginOfError: 0.5,
+      seedText: "canonical-member-id",
+      candidates: [{ memberId: "m-01", farmerCode: "SYN-001", stratumCode: "NORTH" }],
+    })).rejects.toThrow("candidate member id must be a canonical lowercase UUID");
   });
 });
 
@@ -181,12 +192,15 @@ describe("deterministic sampling evidence", () => {
       marginOfError: 0.5,
       seedText: "synthetic-seed",
       candidates: [
-        { memberId: "bmp", farmerCode: "\uE000", stratumCode: "A" },
-        { memberId: "astral", farmerCode: "\u{1F600}", stratumCode: "B" },
+        { memberId: "66666666-6666-4666-8666-666666666666", farmerCode: "\uE000", stratumCode: "A" },
+        { memberId: "77777777-7777-4777-8777-777777777777", farmerCode: "\u{1F600}", stratumCode: "B" },
       ],
     });
 
-    expect(evidence.initialCandidateMemberIds).toEqual(["bmp", "astral"]);
+    expect(evidence.initialCandidateMemberIds).toEqual([
+      "66666666-6666-4666-8666-666666666666",
+      "77777777-7777-4777-8777-777777777777",
+    ]);
   });
 
   it("rejects C1 control characters in canonical candidate codes", async () => {
@@ -195,7 +209,7 @@ describe("deterministic sampling evidence", () => {
         ...evidenceInput,
         candidates: [
           ...candidates.slice(0, 4),
-          { memberId: "m-05", farmerCode: "SYN-\u0080", stratumCode: "EAST" },
+          { memberId: "55555555-5555-4555-8555-555555555555", farmerCode: "SYN-\u0080", stratumCode: "EAST" },
         ],
       }),
     ).rejects.toThrow("control character");
@@ -237,7 +251,13 @@ describe("deterministic sampling evidence", () => {
       seedU32: 0x4a99557e,
       orderedCandidateSetByteStreamHex:
         "0000000753594e2d303031000000054e4f5254480000000753594e2d303032000000054e4f5254480000000753594e2d30303300000005534f5554480000000753594e2d30303400000005534f5554480000000753594e2d3030350000000445415354",
-      initialCandidateMemberIds: ["m-01", "m-02", "m-03", "m-04", "m-05"],
+      initialCandidateMemberIds: [
+        "11111111-1111-4111-8111-111111111111",
+        "22222222-2222-4222-8222-222222222222",
+        "33333333-3333-4333-8333-333333333333",
+        "44444444-4444-4444-8444-444444444444",
+        "55555555-5555-4555-8555-555555555555",
+      ],
       orderedCandidateSetHash: "b6b19714bd434aca66ea0ab05f99b2a83eb1b95eb31a804242febbd33f8adc5e",
       swapTrace: [
         { i: 4, j: 3 },
@@ -245,15 +265,25 @@ describe("deterministic sampling evidence", () => {
         { i: 2, j: 0 },
         { i: 1, j: 0 },
       ],
-      shuffledMemberIds: ["m-02", "m-03", "m-05", "m-01", "m-04"],
-      orderedSelectedMembers: [
-        { memberId: "m-02", stratumCode: "NORTH", selectionOrder: 1 },
-        { memberId: "m-03", stratumCode: "SOUTH", selectionOrder: 2 },
-        { memberId: "m-05", stratumCode: "EAST", selectionOrder: 3 },
+      shuffledMemberIds: [
+        "22222222-2222-4222-8222-222222222222",
+        "33333333-3333-4333-8333-333333333333",
+        "55555555-5555-4555-8555-555555555555",
+        "11111111-1111-4111-8111-111111111111",
+        "44444444-4444-4444-8444-444444444444",
       ],
-      orderedSelectedMemberIds: ["m-02", "m-03", "m-05"],
+      orderedSelectedMembers: [
+        { memberId: "22222222-2222-4222-8222-222222222222", stratumCode: "NORTH", selectionOrder: 1 },
+        { memberId: "33333333-3333-4333-8333-333333333333", stratumCode: "SOUTH", selectionOrder: 2 },
+        { memberId: "55555555-5555-4555-8555-555555555555", stratumCode: "EAST", selectionOrder: 3 },
+      ],
+      orderedSelectedMemberIds: [
+        "22222222-2222-4222-8222-222222222222",
+        "33333333-3333-4333-8333-333333333333",
+        "55555555-5555-4555-8555-555555555555",
+      ],
       orderedResultDigestVersion: "ordered-result-sha256-v1",
-      orderedResultHash: "a51e5c3790b8dc98f453ef6220c1f7e4a43ee91a6946ea8cd11bef8091c1554d",
+      orderedResultHash: "8ec30357127f8236ff24eedd58d451d4b694bfbee4fcfede636737c38064c722",
       allocationRows: [
         { stratumCode: "EAST", eligibleCount: 1, quota: 0.6, floorAllocation: 0, remainder: 0.6, finalAllocation: 1 },
         { stratumCode: "NORTH", eligibleCount: 2, quota: 1.2, floorAllocation: 1, remainder: 0.19999999999999996, finalAllocation: 1 },

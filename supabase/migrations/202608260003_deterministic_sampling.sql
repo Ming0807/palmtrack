@@ -417,13 +417,16 @@ begin
       'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_activated' then array[
-      'before_status', 'after_status', 'candidate_set_hash'
+      'before_status', 'after_status', 'candidate_set_hash',
+      'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_superseded' then array[
-      'before_status', 'after_status', 'candidate_set_hash'
+      'before_status', 'after_status', 'candidate_set_hash',
+      'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_cancelled' then array[
-      'before_status', 'after_status', 'reason_digest'
+      'before_status', 'after_status', 'reason_digest',
+      'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_regenerated' then array[
       'before_status', 'after_status', 'input_digest', 'candidate_set_hash',
@@ -509,16 +512,22 @@ begin
       or coalesce(p_details ->> 'before_status', '') <> 'locked'
       or coalesce(p_details ->> 'after_status', '') <> 'active'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
+      or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_superseded' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') <> 'active'
       or coalesce(p_details ->> 'after_status', '') <> 'superseded'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
+      or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_cancelled' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') not in ('draft', 'locked')
       or coalesce(p_details ->> 'after_status', '') <> 'cancelled'
       or coalesce(p_details ->> 'reason_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
+      or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_regenerated' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') <> 'draft'
@@ -1550,13 +1559,17 @@ begin
   if v_previous.id is not null then
     update public.sampling_run set status = 'superseded', superseded_by = v_actor, superseded_at = statement_timestamp(), updated_at = statement_timestamp() where public.sampling_run.id = v_previous.id;
     perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_superseded', 'sampling_run', v_previous.id, 'success', jsonb_build_object(
-      'before_status', 'active', 'after_status', 'superseded', 'candidate_set_hash', v_previous.ordered_candidate_set_hash
+      'before_status', 'active', 'after_status', 'superseded', 'candidate_set_hash', v_previous.ordered_candidate_set_hash,
+      'ordered_result_digest_version', v_previous.result_evidence ->> 'ordered_result_digest_version',
+      'ordered_result_hash', v_previous.ordered_result_hash
     ));
   end if;
   perform set_config('palmtrack.sampling_transition', 'activate', true);
   update public.sampling_run set status = 'active', activated_by = v_actor, activated_at = statement_timestamp(), updated_at = statement_timestamp() where public.sampling_run.id = v_run.id;
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_activated', 'sampling_run', v_run.id, 'success', jsonb_build_object(
-    'before_status', 'locked', 'after_status', 'active', 'candidate_set_hash', v_run.ordered_candidate_set_hash
+    'before_status', 'locked', 'after_status', 'active', 'candidate_set_hash', v_run.ordered_candidate_set_hash,
+    'ordered_result_digest_version', v_run.result_evidence ->> 'ordered_result_digest_version',
+    'ordered_result_hash', v_run.ordered_result_hash
   ));
   perform set_config('palmtrack.sampling_transition', '', true);
   return query select * from private.sampling_run_result(v_run.id);
@@ -1600,7 +1613,9 @@ begin
   perform set_config('palmtrack.sampling_transition', 'cancel', true);
   update public.sampling_run set status = 'cancelled', cancelled_by = v_actor, cancelled_at = statement_timestamp(), cancellation_reason_digest = v_reason_digest, updated_at = statement_timestamp() where public.sampling_run.id = v_run.id;
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_cancelled', 'sampling_run', v_run.id, 'success', jsonb_build_object(
-    'before_status', v_run.status::text, 'after_status', 'cancelled', 'reason_digest', v_reason_digest
+    'before_status', v_run.status::text, 'after_status', 'cancelled', 'reason_digest', v_reason_digest,
+    'ordered_result_digest_version', v_run.result_evidence ->> 'ordered_result_digest_version',
+    'ordered_result_hash', v_run.ordered_result_hash
   ));
   perform set_config('palmtrack.sampling_transition', '', true);
   return query select * from private.sampling_run_result(v_run.id);

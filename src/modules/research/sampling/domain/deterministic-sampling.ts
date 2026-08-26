@@ -88,6 +88,7 @@ type NormalizedCandidate = {
 };
 
 const textEncoder = new TextEncoder();
+const canonicalUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
 function invalid(message: string): never {
   throw new Error(message);
@@ -125,6 +126,7 @@ function requireFiniteInteger(value: number, message: string): number {
 function candidateMemberId(candidate: SamplingCandidate): string {
   const value = candidate.memberId;
   if (typeof value !== "string" || value.length === 0) invalid("candidate member id is required");
+  if (!canonicalUuidPattern.test(value)) invalid("candidate member id must be a canonical lowercase UUID");
   return value;
 }
 
