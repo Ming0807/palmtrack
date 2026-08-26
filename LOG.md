@@ -694,4 +694,4 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Impact | Sampling migration application and lifecycle assertions were temporarily blocked; no persistent production or real-person data was involved |
 | Reproduction / evidence | `npm run test:db` first failed on absent sampling objects; review `npm run test:db` RED caught accepted forged `N_h` and admin candidate/detail access; clean reset, focused pgTAP, and `npm run lint:db` completed successfully |
 | Resolution / status | `resolved` — enforce exact eligible-member counts per stratum in create/update, restrict candidate/detail RPCs to `research_manager`, and verify 191 pgTAP assertions plus database lint pass |
-| Related commit | `dbb2f74`, `7911c59`, `a4af2e8`, and final boundary-fix commit |
+| Related commit | `dbb2f74`, `7911c59`, `a4af2e8`, `b36babd` |
