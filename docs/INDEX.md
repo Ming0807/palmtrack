@@ -29,6 +29,9 @@
 | [Population import plan](superpowers/plans/2026-08-25-palmtrack-population-import.md) | Approved for execution | admin | แผน TDD สำหรับ domain parser, local SQL/RLS/audit, server action, production UI และ local authenticated evidence |
 | [Population import visual evidence](assets/population-import/README.md) | Verified local evidence | research_manager | ภาพ accepted synthetic snapshot ที่ 360px/desktop พร้อม fixture digest และขอบเขต local-only |
 | [Sampling acceptance visual evidence](assets/sampling/README.md) | Verified local evidence | research_manager | ภาพ authenticated sampling receipt ที่ 360px/desktop พร้อม FX-BASE 121-member fixture, exact `N=121/e=0.05/n=93` v2 receipt, lowercase 64-hex seed/candidate/result digests, first-run supersession, responsive six-field allocation, keyboard skip-link evidence และ role boundary |
+| [Dashboard design](superpowers/specs/2026-08-26-palmtrack-dashboard-workspace-design.md) | Implemented locally | research_manager | farm-first product framing, role-aware information hierarchy, truthful production states และ synthetic prototype boundary |
+| [Dashboard implementation plan](superpowers/plans/2026-08-26-palmtrack-dashboard-workspace.md) | Executed | admin | test-first integration ของ read model, `/app`, prototype, navigation, docs และ visual verification |
+| [Dashboard visual evidence](assets/dashboard/README.md) | Verified local evidence | research_manager | deterministic synthetic dashboard ที่ 360px/desktop พร้อม state, table, overflow และ axe evidence |
 
 ไฟล์ระดับ root: [product context](../PRODUCT.md), [implemented design system](../DESIGN.md), [project overview](../README.md), [contribution instructions](../AGENTS.md) และ [sanitized development error/incident ledger](../LOG.md) (ไม่ใช่ application runtime log)
 

@@ -765,3 +765,45 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Final review constructed a shape-valid forged selection; the new pgTAP regression proves database replay rejects it |
 | Resolution / status | `resolved` — persist canonical margin text through create/retry/regenerate/list receipts, independently replay Yamane/allocation/shuffle/result evidence in PostgreSQL, verify persisted membership at lock, and expand lifecycle audit evidence; final app verification passes 263/263, database assertions pass 231/231, and focused sampling E2E passes 6/6 |
 | Related commit | final sampling security hardening commit |
+
+### DEV-20260826-055 — Dashboard visual-test startup and execution budget
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T14:13:37Z` |
+| Environment | local Next.js dashboard Playwright visual acceptance |
+| Severity | low |
+| Component | Playwright web server and dashboard visual evidence |
+| Error code / sanitized message | `DASHBOARD_E2E_STARTUP_TIMEOUT` / `DASHBOARD_E2E_TEST_TIMEOUT` — the first cold web-server probe exceeded 120 seconds without a browser assertion; after direct startup proved the route returned HTTP 200, the combined axe/screenshot/state journey exceeded the generic 30-second per-test budget by about five seconds |
+| Impact | The initial visual evidence run did not complete; no hosted resource, credential, database mutation or real-person data was involved |
+| Reproduction / evidence | exact Playwright dashboard command timed out at web-server readiness; the same Next command became ready in 8.2 seconds and `/prototype/field` returned 200; the next browser run reached the final loading scenario at 34–35 seconds |
+| Resolution / status | `resolved` — retained the existing server contract after direct reproduction showed no product startup defect, gave this axe/screenshot journey an explicit 60-second test budget, and the focused rerun passed mobile and desktop 2/2 in 1.1 minutes |
+| Related commit | dashboard workspace completion commit |
+
+### DEV-20260826-057 — Full-suite JSDOM worker contention
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T14:45:00Z` |
+| Environment | final local Vitest verification on Windows |
+| Severity | low |
+| Component | existing field/population/sampling UI tests under parallel JSDOM load |
+| Error code / sanitized message | `VITEST_PARALLEL_TIMEOUT_CONTENTION` — three pre-existing UI tests exceeded the five-second test/wait budget during one parallel full-suite run |
+| Impact | That verification run stopped before build; no application write, hosted resource or real-person data was involved |
+| Reproduction / evidence | the three affected files passed 20/20 immediately with one worker; the complete suite then passed 279/279 with `--maxWorkers=1`, followed by a successful production build |
+| Resolution / status | `resolved for verification` — keep product/test timeouts unchanged and constrain worker count only for the evidence run; no flaky-test behavior was hidden by increasing assertions' timeout |
+| Related commit | dashboard workspace completion commit |
+
+### DEV-20260826-056 — Interrupted Next dev route-type generation
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T14:20:00Z` |
+| Environment | full local application verification after Playwright dev-server shutdown |
+| Severity | low |
+| Component | ignored `.next/dev/types` build cache |
+| Error code / sanitized message | `NEXT_DEV_TYPE_CACHE_TRUNCATED` — TypeScript reported `TS1109`, `TS1160`, and `TS1128` because generated `routes.d.ts` and `validator.ts` contained duplicated/truncated output after the dev server was terminated |
+| Impact | The first full verification stopped at typecheck; tracked source files, hosted resources and user data were unaffected |
+| Reproduction / evidence | inspecting the ignored generated files showed a repeated `LayoutProps` block and an unterminated template; `next typegen` refreshed production route types but intentionally left the corrupt dev copies; removing only those two disposable generated files made `npm run typecheck` exit 0 |
+| Resolution / status | `resolved` — remove the two corrupt ignored dev-type files and allow the next dev session to regenerate them; no source or configuration workaround was added |
+| Related commit | dashboard workspace completion commit |

@@ -38,6 +38,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | UNIT-06 | period profit uses active sale net minus active expense and fixture result equals 9,000.25 |
 | UNIT-07 | Gregorian/UTC persistence formats to Thai พ.ศ./Asia-Bangkok and round-trips DST-independent Bangkok time |
 | UNIT-08 | `sha256-mulberry32-fy-v1` test vector proves NFC→UTF-8→SHA-256→big-endian seed, Mulberry32 outputs, Fisher–Yates `(i,j)`, candidate hash and final order match across implementations |
+| UNIT-09 | dashboard model keeps money as canonical decimal strings, filters research support by role, does not call research gateways for farmer/collector, and renders truthful loading/not-enabled states without fabricated production values |
 
 ## RLS and authorization tests
 
@@ -90,6 +91,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | E2E-14 | one workspace/run/cohort-date filter produces base and seven stage counts: population eligible; sampled member; valid assignment; granted consent; submitted-or-verified; verified; export-eligible; early stages remain without final export predicate, active is default, superseded requires explicit history, withdrawal removes member from all stages/export |
 | E2E-15 | admin imports the same valid population fixture successfully through the authorized audited path |
 | E2E-16 | authorized attachment list/read/download receipts audit actor/time/action/entity/object ID; collector/farmer authorized delete adds reason/before-after result; collector post-submit and cross-owner access/delete are denied |
+| E2E-17 | synthetic dashboard proves farm-first heading order, visible synthetic label, role/scenario controls, table equivalent, loading without fabricated totals, no 360px overflow and no serious/critical axe finding |
 
 ## Specialized tests
 

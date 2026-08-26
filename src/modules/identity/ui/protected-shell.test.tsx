@@ -1,9 +1,23 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({ pathname: "/app" }));
+
+vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname }));
 
 import { ProtectedShell } from "./protected-shell";
 
 describe("authorized protected shell", () => {
+  beforeEach(() => {
+    mocks.pathname = "/app";
+  });
+
+  it("uses the browser pathname to mark the real dashboard active", () => {
+    render(<ProtectedShell role="farmer"><h1>ภาพรวม</h1></ProtectedShell>);
+    expect(screen.getByRole("link", { name: "ภาพรวม" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "สวนของฉัน" })).not.toHaveAttribute("aria-current");
+  });
+
   it("renders a semantic header and exact role navigation", () => {
     render(
       <ProtectedShell role="farmer" currentPath="/app/gardens">
@@ -32,6 +46,10 @@ describe("authorized protected shell", () => {
       "page",
     );
     expect(screen.getByRole("link", { name: "ตั้งค่าระบบ" })).not.toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "ภาพรวม" })).not.toHaveAttribute(
       "aria-current",
       "page",
     );

@@ -1,6 +1,6 @@
 # PalmTrack design system
 
-Status: **Implemented for the synthetic UX/UI prototype**
+Status: **Implemented for the field prototype and role-aware product dashboard**
 
 This document records the visual and interaction system that exists in code. Product requirements, research rules, security controls, and data semantics remain authoritative in [the documentation index](docs/INDEX.md).
 
@@ -11,6 +11,8 @@ PalmTrack should feel like a calm, auditable field instrument rather than a gene
 - a **queue-first field worksheet** for choosing the next assignment quickly;
 - an **evidence route** inside one assignment so protected workflow order remains visible;
 - **receipt-like numeric discipline** for codes, counts, dates, and future ledger values.
+
+The product is farm operations and data analytics first. Research provenance remains visible where authorized, but must never dominate the information hierarchy of the product home.
 
 Direction A is the recommended collector home. Opening `SSK-024` moves to Direction C at `/prototype/field/SSK-024?variant=C`. Direction B remains available for comparison through the local prototype switcher.
 
@@ -50,6 +52,14 @@ Core controls use Lucide SVG icons with consistent stroke weight. Browser select
 - Completed, waiting, locked, returned, and terminal meanings combine icon, shape, and text.
 - Notice/consent always appears before baseline.
 - Baseline shows `รออนุมัติเครื่องมือวิจัย`; no question, answer field, response form, or response persistence exists.
+
+### Product dashboard — operational ledger
+
+- `/app` starts every role at `ภาพรวม`; operational metrics, cash/harvest trend and next work precede research evidence.
+- Four metrics share one ruled ledger strip instead of becoming a card wall. Money is received as canonical decimal strings and formatted only at the presentation boundary.
+- Missing production backends render explicit `not_enabled`/`unavailable` copy and no fabricated value or active-looking dead action.
+- The synthetic `/prototype/dashboard` exposes five roles and five deterministic states with a persistent synthetic-data notice.
+- The bar chart is a quick visual comparison; an accessible table is the numeric source for users who cannot or do not want to interpret the chart.
 
 ## Interaction and state
 

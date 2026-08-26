@@ -6,13 +6,17 @@ UI ภาษาไทยเป็นหลัก, mobile-first และออ�
 
 | Role | Primary navigation |
 |---|---|
-| `admin` | ภาพรวมระบบ, ผู้ใช้/บทบาท/workspace/reference config, audit, population import, PII export, การกู้คืน |
-| `research_manager` | ภาพรวมวิจัย, ประชากร, การสุ่ม, งานภาคสนาม, ตรวจคำตอบ, export |
-| `field_collector` | งานของฉัน, consent/withdrawal, farmer/farm baseline, แบบฟอร์มที่กำลังกรอก, ประวัติส่ง |
-| `farmer` | สวนของฉัน, แปลง, กิจกรรม, ค่าใช้จ่าย, เก็บเกี่ยว, ขาย, กำไร/ขาดทุน |
-| `evaluator_readonly` | ภาพรวม anonymized, methodology/evidence, รายงานอ่านอย่างเดียว |
+| `admin` | ภาพรวม, ผู้ใช้/บทบาท/workspace/reference config, audit, population import, PII export, การกู้คืน |
+| `research_manager` | ภาพรวม, งานวิจัย, ประชากร, การสุ่ม, งานภาคสนาม, ตรวจคำตอบ, export |
+| `field_collector` | ภาพรวม, งานของฉัน, consent/withdrawal, farmer/farm baseline, แบบฟอร์มที่กำลังกรอก, ประวัติส่ง |
+| `farmer` | ภาพรวม, สวนของฉัน, แปลง, กิจกรรม, ค่าใช้จ่าย, เก็บเกี่ยว, ขาย, กำไร/ขาดทุน |
+| `evaluator_readonly` | ภาพรวม, ผลรวม anonymized, methodology/evidence, รายงานอ่านอย่างเดียว |
 
 Navigation/filter ทุกหน้าเป็น convenience; server authorization เป็นตัวตัดสินสิทธิ์
+
+### Product dashboard
+
+หน้า `/app` ใช้ลำดับคงที่: สรุปการดำเนินงานสวน → แนวโน้มการเงิน/ผลผลิต → งานที่ควรทำต่อของบทบาท → หลักฐานสนับสนุนงานวิจัย ส่วนวิจัยต้องมีน้ำหนักภาพต่ำกว่างานสวน Farmer/collector ไม่เห็น research link ที่ไม่ได้รับสิทธิ์ และ action ของโมดูลที่ยังไม่มี backend แสดง `รอเปิดใช้งาน` แบบไม่กดได้แทนลิงก์ลวง Production provider ห้าม import fixture; cash/harvest แสดง `not_enabled` จนมี farm-ledger aggregate จริง ส่วน prototype ต้องระบุ `ข้อมูลสังเคราะห์`, สลับห้าบทบาทและสถานะ `typical|empty|loading|partial|unavailable` ได้ด้วย URL ที่ทำซ้ำได้ Chart มีตารางข้อความเทียบเท่าเสมอ
 
 ## Primary flows
 

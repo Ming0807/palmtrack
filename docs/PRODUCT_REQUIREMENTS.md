@@ -2,7 +2,7 @@
 
 ## เป้าหมายและผู้ใช้
 
-PalmTrack ช่วยทีมวิจัยนักศึกษาเก็บข้อมูลตัวอย่างที่ให้ความยินยอมอย่างตรวจสอบย้อนกลับได้ และช่วยเกษตรกรบันทึกกระแสเงินสดสวนปาล์ม โดยไม่ใช้ข้อมูลจริงก่อนระบบผ่านการยอมรับ กลุ่มผู้ใช้คือ `admin`, `research_manager`, `field_collector`, `farmer`, `evaluator_readonly` ตามสิทธิ์ใน [Security and PDPA](SECURITY_PDPA.md)
+PalmTrack ช่วยเกษตรกรและทีมดูแลบริหารสวนปาล์ม บันทึกกระแสเงินสด/ผลผลิต และวิเคราะห์ข้อมูลการดำเนินงาน โดยรองรับการเก็บข้อมูลวิจัยที่ให้ความยินยอมและตรวจสอบย้อนกลับได้เป็นความสามารถเสริม ระบบไม่ใช้ข้อมูลจริงก่อนผ่านการยอมรับ กลุ่มผู้ใช้คือ `admin`, `research_manager`, `field_collector`, `farmer`, `evaluator_readonly` ตามสิทธิ์ใน [Security and PDPA](SECURITY_PDPA.md)
 
 V1 มี research workspace เดียวและไม่มี UI จัดการ tenant แม้ root aggregate จะมี `workspace_id` สำหรับ migration ในอนาคต
 
@@ -26,6 +26,7 @@ V1 มี research workspace เดียวและไม่มี UI จั�
 | FR-14 | ระบบจัดเก็บไฟล์ใน private storage และอนุญาต upload/list/read/download/delete attachment ตาม ownership, assignment/farm purpose และ object-level policy; ทุก list/read/download/delete ต้อง audit object ID และ authorized delete ต้องมี reason, soft-delete metadata/delete object ตาม retention |
 | FR-15 | UI แสดงภาษาไทย วันที่ พ.ศ. และเวลา Asia/Bangkok แต่ persistence เก็บ Gregorian date และ UTC timestamp |
 | FR-16 | dashboard ใช้ shared base cohort: workspace เดียว, selected sampling run (active default; superseded เมื่อเลือก historical), eligible/non-soft-deleted population/sample, not withdrawn และ shared date filter จากนั้นนับ stage แยก `population`, `sampled`, `assigned`, `consent`, `submitted`, `verified`, `export-eligible` ตาม [Research protocol](RESEARCH_PROTOCOL.md); early stages ห้ามใช้ final export predicate |
+| FR-17 | หน้าแรก `/app` ต้องเป็น role-aware product dashboard ที่นำด้วย farm operations, cash/harvest analytics และงานถัดไป แล้ววาง research provenance เป็นส่วนรอง; production ห้ามใช้ fixture/ตัวเลขสังเคราะห์และต้องแสดง `empty/loading/unavailable/not_enabled` อย่างซื่อสัตย์ ขณะที่ `/prototype/dashboard` ต้องติดป้ายข้อมูลสังเคราะห์ชัดเจนและไม่เชื่อมฐานข้อมูล |
 
 ## Non-functional requirements
 

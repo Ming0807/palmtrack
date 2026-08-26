@@ -27,6 +27,10 @@ Safety Skeleton increment เริ่ม implementation planning หลัง p
 
 สถานะ increment 2 เมื่อ 2026-08-26: tracer bullet **population import** และ local **sampling acceptance** เสร็จตั้งแต่ parser → RPC/RLS/audit → server action → Thai responsive UI → authenticated E2E; final verification ผ่าน lint, typecheck, 263 unit/component tests, production build, database lint, 231 pgTAP assertions และ 22 local-auth E2E tests มี [population visual evidence](assets/population-import/README.md) และ [sampling acceptance evidence](assets/sampling/README.md) Sampling evidence ครอบคลุม FX-BASE 121 ราย, Yamane `e=0.05/n=93`, canonical decimal input, largest remainder แบบหกฟิลด์บน mobile, seeded shuffle, independent database replay ก่อน lock, first/second draft → locked → active พร้อม supersession, exact v2 receipt reload, lowercase 64-hex digest evidence, sampling axe scan, keyboard skip-link และ role negatives/aggregate-only ส่วน hosted migrations `202608250002`–`202608260004` และ restore/privacy gates ยัง pending จึงยังไม่ถือว่า V1 พร้อมข้อมูลจริง
 
+สถานะ product shell เมื่อ 2026-08-26: `/app` เปลี่ยนจาก Safety Skeleton เป็น dashboard ตามบทบาทที่นำด้วย farm operations/data analytics และวาง research provenance เป็นส่วนรอง Production แสดง farm-ledger `not_enabled` อย่างซื่อสัตย์จน increment 5 มี backend จริง ส่วน `/prototype/dashboard` ใช้ fixture สังเคราะห์สำหรับ `typical|empty|loading|partial|unavailable` พร้อม [mobile/desktop evidence](assets/dashboard/README.md) งานถัดไปจึงควรเดิน increment 5 แบบ vertical slice เพื่อแทนสถานะดังกล่าวด้วย farm/plot และ cash-ledger aggregate จริง โดยไม่รอ questionnaire gate
+
+FR-16 staged research funnel ยังไม่ implement ใน product shell รอบนี้ เพราะ assignment/consent/response aggregate ยังไม่มี backend ที่เชื่อถือได้ งานดังกล่าวอยู่ใน increment 3, 4 และ 6 ตามลำดับและห้ามแทนด้วย fixture บน production dashboard
+
 แต่ละ increment ต้องมี requirement/test IDs, migration rollback, no-real-data review และ evidence ก่อนเริ่ม increment ต่อไป Slice ควรส่ง UI→server→RLS→audit→test ครบ ไม่สร้าง layer ทั้งก้อนล่วงหน้า
 
 ## V1.1 candidates

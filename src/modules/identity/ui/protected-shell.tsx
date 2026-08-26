@@ -1,7 +1,10 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import {
   getRoleNavigation,
@@ -18,11 +21,14 @@ export type ProtectedShellProps = {
 };
 
 function isCurrentPath(href: string, currentPath: string): boolean {
+  if (href === "/app") return currentPath === "/app";
   return currentPath === href || currentPath.startsWith(`${href}/`);
 }
 
-export function ProtectedShell({ role, currentPath = "", children }: ProtectedShellProps) {
+export function ProtectedShell({ role, currentPath, children }: ProtectedShellProps) {
   const navigation = getRoleNavigation(role);
+  const detectedPath = usePathname();
+  const activePath = currentPath ?? detectedPath;
 
   return (
     <div className={styles.shell}>
@@ -46,7 +52,7 @@ export function ProtectedShell({ role, currentPath = "", children }: ProtectedSh
           <p className={styles.navigationLabel}>ไปยัง</p>
           <ul>
             {navigation.map(({ label, href, icon: Icon }) => {
-              const current = isCurrentPath(href, currentPath);
+              const current = isCurrentPath(href, activePath);
               return (
                 <li key={href}>
                   <Link
