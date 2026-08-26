@@ -5,7 +5,7 @@ import { getRoleNavigation } from "./role-navigation";
 describe("protected role navigation", () => {
   it.each([
     ["admin", ["นำเข้าประชากร", "ตั้งค่าระบบ", "ตรวจสอบเหตุการณ์"]],
-    ["research_manager", ["งานวิจัย", "ประชากร", "รายงาน"]],
+    ["research_manager", ["งานวิจัย", "ประชากร", "การสุ่ม", "รายงาน"]],
     ["field_collector", ["งานของฉัน"]],
     ["farmer", ["สวนของฉัน", "บัญชีสวน"]],
     ["evaluator_readonly", ["ภาพรวมประเมิน"]],
@@ -37,6 +37,13 @@ describe("protected role navigation", () => {
     }
     for (const role of ["field_collector", "farmer", "evaluator_readonly"] as const) {
       expect(getRoleNavigation(role).some((item) => item.href === "/app/research/population")).toBe(false);
+    }
+  });
+
+  it("exposes sampling only to research managers", () => {
+    expect(getRoleNavigation("research_manager").some((item) => item.href === "/app/research/sampling")).toBe(true);
+    for (const role of ["admin", "field_collector", "farmer", "evaluator_readonly"] as const) {
+      expect(getRoleNavigation(role).some((item) => item.href === "/app/research/sampling")).toBe(false);
     }
   });
 });

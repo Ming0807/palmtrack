@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Settings2,
   Sprout,
+  Shuffle,
   WalletCards,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ export const ROLE_NAVIGATION = {
   research_manager: [
     { label: "งานวิจัย", href: "/app/research", icon: LayoutDashboard },
     { label: "ประชากร", href: "/app/research/population", icon: DatabaseZap },
+    { label: "การสุ่ม", href: "/app/research/sampling", icon: Shuffle },
     { label: "รายงาน", href: "/app/reports", icon: FileChartColumn },
   ],
   field_collector: [
