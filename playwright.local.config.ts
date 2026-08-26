@@ -5,7 +5,12 @@ const publicKey = process.env.PALMTRACK_E2E_LOCAL_ANON_KEY ?? "";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: ["**/population-import.spec.ts", "**/sampling.spec.ts", "**/farm-core-ledger.spec.ts"],
+  testMatch: [
+    "**/population-import.spec.ts",
+    "**/sampling.spec.ts",
+    "**/farm-core-ledger.spec.ts",
+    "**/fallback-states.spec.ts",
+  ],
   timeout: 180_000,
   fullyParallel: false,
   workers: 1,

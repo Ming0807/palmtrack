@@ -1,0 +1,152 @@
+.fallbackContainer {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(35, 59, 104, 0.11), transparent 32%),
+    var(--paper);
+}
+
+.fallbackCard {
+  display: grid;
+  width: min(100%, 540px);
+  place-items: center;
+  gap: 16px;
+  padding: clamp(24px, 5vw, 40px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.iconWrap {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--indigo-soft);
+  color: var(--indigo);
+}
+
+.iconWrapError {
+  background: var(--rust-soft);
+  color: var(--rust);
+}
+
+.iconWrapWarning {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.title {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Bai Jamjuree", "Noto Sans Thai Variable", sans-serif;
+  font-size: clamp(1.4rem, 3.5vw, 1.85rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.description {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.primaryButton {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: 1px solid var(--indigo);
+  border-radius: 12px;
+  background: var(--indigo);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.primaryButton:hover {
+  background: var(--indigo-deep);
+}
+
+.secondaryButton {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.secondaryButton:hover {
+  background: var(--paper-deep);
+}
+
+.spinner {
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+@media (max-width: 480px) {
+  .fallbackContainer {
+    padding: 16px;
+  }
+
+  .fallbackCard {
+    padding: 24px 16px;
+    gap: 14px;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}

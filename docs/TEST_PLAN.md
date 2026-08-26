@@ -46,6 +46,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | UNIT-07 | Gregorian/UTC persistence formats to Thai พ.ศ./Asia-Bangkok and round-trips DST-independent Bangkok time |
 | UNIT-08 | `sha256-mulberry32-fy-v1` test vector proves NFC→UTF-8→SHA-256→big-endian seed, Mulberry32 outputs, Fisher–Yates `(i,j)`, candidate hash and final order match across implementations |
 | UNIT-09 | dashboard model keeps money as canonical decimal strings, filters research support by role, does not call research gateways for farmer/collector, and renders truthful loading/not-enabled states without fabricated production values |
+| UNIT-10 | global fallback states (loading, error, not-found) render sanitized Thai copy, provide screen reader status/alert roles, retry action calling reset(), working navigation link, and do not leak error messages or secrets |
 
 ## RLS and authorization tests
 

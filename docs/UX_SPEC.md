@@ -44,6 +44,11 @@ Navigation/filter ทุกหน้าเป็น convenience; server authoriz
 
 ทุกหน้าข้อมูลมี `loading`, `empty`, `ready`, `validation_error`, `forbidden`, `not_found`, `conflict/stale`, `offline`, `service_unavailable` และ `success` ที่แยกชัด Empty state บอกเหตุผล/next action ที่ผู้ใช้มีสิทธิ์ Forbidden ไม่บอกว่าข้อมูลเป้าหมายมีอยู่หรือไม่ Conflict ห้ามทับข้อมูลและให้ refresh/review Service unavailable รักษา input ที่ไม่ sensitive เท่าที่ปลอดภัย
 
+Global application fallback states ใน Next.js (`loading.tsx`, `error.tsx`, `not-found.tsx`) ใช้ UI ภาษาไทยตาม PalmTrack design system:
+- `loading.tsx`: มี `role="status"` และ `aria-live="polite"` ประกาศต่อ assistive technology และรองรับ `prefers-reduced-motion`
+- `error.tsx`: เป็น Client Component พร้อมปุ่มลองใหม่อีกครั้งที่เรียก `reset()` และลิงก์กลับหน้าหลัก โดยไม่แสดง stack trace, message ภายใน, UUID, environment หรือ secret
+- `not-found.tsx`: แสดงรหัส 404 และคำอธิบายภาษาไทย พร้อมลิงก์กลับหน้าหลัก (`/app`) ใช้งานได้จริงและปลอดภัยจาก overflow ที่ 360px
+
 Form ใช้ inline error เชื่อม label และมี error summary; ปุ่ม submit ป้องกันกดซ้ำแต่ idempotency อยู่ server Confirmation จำเป็นสำหรับ lock sample, withdrawal, full-PII export, delete/restore และ verified correction Success สำคัญแสดง reference ID/time และ next state
 
 ## Validation and warnings

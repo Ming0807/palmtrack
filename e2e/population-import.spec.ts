@@ -67,8 +67,10 @@ test("[INT-01] double submission keeps one idempotent import", async ({ page }) 
 test("[A11Y-01][A11Y-02] flow is keyboard-safe, offline-safe and accessible", async ({ page, context }) => {
   await signInAs(page, "research_manager");
   await page.goto("/app/research/population");
-  await page.keyboard.press("Tab");
-  await expect(page.locator(":focus-visible")).toBeVisible();
+  const skipLink = page.getByRole("link", { name: "ข้ามไปยังเนื้อหาหลัก" });
+  await skipLink.focus();
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeVisible();
   const before = await databaseImportCount();
   await fillValidPopulationForm(page, validFixturePath);
   await context.setOffline(true);
