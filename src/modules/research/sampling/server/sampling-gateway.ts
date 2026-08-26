@@ -110,7 +110,7 @@ function normalizedDecimal(value: string): string | null {
   const integerPart = match[2];
   const fractionPart = match[3] ?? "";
   const exponent = Number(match[4] ?? "0");
-  const digits = `${integerPart}${fractionPart}`.replace(/^0+/u, "") || "0";
+  const digits = `${integerPart}${fractionPart}`;
   const decimalPosition = integerPart.length + exponent;
   let expanded: string;
   if (decimalPosition <= 0) {
