@@ -13,16 +13,13 @@
   border-radius: 10px;
   background: var(--indigo-deep);
   color: white;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
+  clip-path: inset(50%);
+  white-space: nowrap;
   transform: translateY(-180%);
 }
 
 .skipLink:focus-visible {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
+  clip-path: none;
   transform: translateY(0);
 }
 

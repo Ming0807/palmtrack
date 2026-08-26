@@ -63,7 +63,7 @@ export function ProtectedShell({ role, currentPath = "", children }: ProtectedSh
             })}
           </ul>
         </nav>
-        <main className={styles.main} id="main-content">
+        <main className={styles.main} id="main-content" tabIndex={-1}>
           {children}
         </main>
       </div>

@@ -39,4 +39,15 @@ describe("authorized protected shell", () => {
       expect(link).not.toHaveAttribute("tabindex", "-1");
     }
   });
+
+  it("keeps the skip link in the keyboard order with a focusable main target", () => {
+    render(
+      <ProtectedShell role="research_manager" currentPath="/app/research/sampling">
+        <h1>การสุ่มตัวอย่าง</h1>
+      </ProtectedShell>,
+    );
+
+    expect(screen.getByRole("link", { name: "ข้ามไปยังเนื้อหาหลัก" })).toHaveAttribute("href", "#main-content");
+    expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
+  });
 });

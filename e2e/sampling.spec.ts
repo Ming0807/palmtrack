@@ -21,6 +21,8 @@ test.describe("sampling acceptance", () => {
     await expect(page.getByText("93 ราย", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("region", { name: "ผลคำนวณเบื้องต้น" }).getByRole("region", { name: "ตารางการจัดสรรตามชั้นพื้นที่" }).locator("tbody tr")).toHaveCount(3);
 
+    const firstIdempotencyKey = await page.locator('input[name="idempotencyKey"]').inputValue();
+    expect(firstIdempotencyKey).toMatch(/^[0-9a-f-]{36}$/iu);
     await page.getByRole("button", { name: "บันทึกฉบับร่าง" }).click();
     await expect(page.getByText("บันทึกฉบับร่างแล้ว · รอการล็อก")).toBeVisible();
     const draftReceipt = page.getByTestId("sampling-run-receipt").filter({ has: page.locator('[data-status="draft"]') }).last();
@@ -44,8 +46,10 @@ test.describe("sampling acceptance", () => {
     await expect(page.getByText("เปิดใช้งานสำเร็จ · run นี้เป็นชุดปัจจุบัน")).toBeVisible();
     await expect(createdReceipt.locator('[data-status="active"]')).toBeVisible();
 
-    const evaluatorContext = await page.context().browser()!.newContext({ viewport: page.viewportSize() });
+    const evaluatorContext = await page.context().browser()!.newContext({ baseURL: testInfo.project.use.baseURL as string, viewport: page.viewportSize() });
     const evaluatorPage = await evaluatorContext.newPage();
+    await evaluatorPage.goto("/sign-in");
+    await expect(evaluatorPage.getByRole("heading", { name: "เข้าสู่ระบบเพื่อเริ่มงาน" })).toBeVisible();
     await signInAs(evaluatorPage, "evaluator_readonly");
     await evaluatorPage.goto("/app/research/sampling");
     await expect(evaluatorPage.getByRole("heading", { name: "สร้างการสุ่มตัวอย่าง" })).toBeVisible();
@@ -60,35 +64,76 @@ test.describe("sampling acceptance", () => {
     await evaluatorContext.close();
 
     await page.reload();
+    await page.getByLabel(/seed สำหรับการสุ่ม/u).fill("palmtrack-acceptance-seed-v2");
+    await page.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }).click();
+    await expect(page.getByRole("heading", { name: "ผลคำนวณเบื้องต้น" })).toBeVisible();
+    const secondIdempotencyKey = await page.locator('input[name="idempotencyKey"]').inputValue();
+    expect(secondIdempotencyKey).toMatch(/^[0-9a-f-]{36}$/iu);
+    expect(secondIdempotencyKey).not.toBe(firstIdempotencyKey);
+    await page.getByRole("button", { name: "บันทึกฉบับร่าง" }).click();
+    await expect(page.getByText("บันทึกฉบับร่างแล้ว · รอการล็อก")).toBeVisible();
+    const secondDraftReceipt = page.getByTestId("sampling-run-receipt").filter({ has: page.locator('[data-status="draft"]') }).last();
+    const secondRunId = await secondDraftReceipt.getAttribute("data-run-id");
+    expect(secondRunId).toMatch(/^[0-9a-f-]{36}$/iu);
+    expect(secondRunId).not.toBe(createdRunId);
+    const secondReceipt = page.locator(`[data-testid="sampling-run-receipt"][data-run-id="${secondRunId}"]`);
+    await secondReceipt.getByRole("button", { name: "ล็อกหลักฐาน" }).click();
+    const secondLockDialog = page.getByRole("dialog", { name: "ยืนยันการล็อกหลักฐาน" });
+    await secondLockDialog.getByRole("button", { name: "ล็อกหลักฐาน" }).click();
+    await expect(secondReceipt.locator('[data-status="locked"]')).toBeVisible();
+    await secondReceipt.getByRole("button", { name: "เปิดใช้งาน" }).click();
+    const secondActivateDialog = page.getByRole("dialog", { name: "ยืนยันการเปิดใช้งาน" });
+    await secondActivateDialog.getByRole("button", { name: "เปิดใช้งาน" }).click();
+    await expect(secondReceipt.locator('[data-status="active"]')).toBeVisible();
+    await expect(createdReceipt.locator('[data-status="superseded"]')).toBeVisible();
+
+    await page.reload();
     const reloadedReceipt = page.locator(`[data-testid="sampling-run-receipt"][data-run-id="${createdRunId}"]`);
-    await expect(reloadedReceipt.locator('[data-status="active"]')).toBeVisible();
+    const reloadedSecondReceipt = page.locator(`[data-testid="sampling-run-receipt"][data-run-id="${secondRunId}"]`);
+    await expect(reloadedReceipt.locator('[data-status="superseded"]')).toBeVisible();
+    await expect(reloadedSecondReceipt.locator('[data-status="active"]')).toBeVisible();
     await expect(reloadedReceipt).toContainText("121 ราย");
     await expect(reloadedReceipt).toContainText("0.05");
     await expect(reloadedReceipt).toContainText("93 ราย");
-    await expect(reloadedReceipt).toContainText("palmtrack-acceptance-seed-v1");
-    await expect(reloadedReceipt).toContainText("sha256-mulberry32-fy-v1");
-    await expect(reloadedReceipt).toContainText("ordered result hash");
-    await expect(reloadedReceipt.getByRole("heading", { name: "หลักฐานที่บันทึกไว้" })).toBeVisible();
+    await expect(reloadedSecondReceipt).toContainText("121 ราย");
+    await expect(reloadedSecondReceipt).toContainText("0.05");
+    await expect(reloadedSecondReceipt).toContainText("93 ราย");
+    await expect(reloadedSecondReceipt).toContainText("palmtrack-acceptance-seed-v2");
+    await expect(reloadedSecondReceipt).toContainText("sha256-mulberry32-fy-v1");
+    await expect(reloadedSecondReceipt).toContainText("ordered result hash");
+    await expect(reloadedSecondReceipt.getByRole("heading", { name: "หลักฐานที่บันทึกไว้" })).toBeVisible();
+    const concreteDigests = await reloadedSecondReceipt.locator("code[title]").evaluateAll((codes) => codes.map((code) => code.getAttribute("title")));
+    expect(concreteDigests.length).toBeGreaterThanOrEqual(3);
+    expect(concreteDigests.every((digest) => /^[0-9a-f]{64}$/u.test(digest ?? ""))).toBe(true);
     await expect(page.getByText("ข้อมูลสังเคราะห์เท่านั้น")).toBeVisible();
     await expect(page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).resolves.toBe(true);
 
-    const mainHeading = page.getByRole("heading", { name: "สร้างการสุ่มตัวอย่าง" });
-    await mainHeading.focus();
-    await expect(mainHeading).toBeFocused();
     const skipLink = page.locator('a[href="#main-content"]');
-    const skipLinkBox = await skipLink.evaluate((element) => {
+    const unfocusedSkipLink = await skipLink.evaluate((element) => {
       const rect = element.getBoundingClientRect();
       const style = getComputedStyle(element);
-      return { bottom: rect.bottom, transform: style.transform, visibility: style.visibility, opacity: style.opacity, pointerEvents: style.pointerEvents };
+      return { bottom: rect.bottom, transform: style.transform, visibility: style.visibility, display: style.display };
     });
-    expect(skipLinkBox.bottom).toBeLessThanOrEqual(0);
-    expect(skipLinkBox.transform).not.toBe("none");
-    expect(skipLinkBox.visibility).toBe("hidden");
-    expect(skipLinkBox.opacity).toBe("0");
-    expect(skipLinkBox.pointerEvents).toBe("none");
+    expect(unfocusedSkipLink.bottom).toBeLessThanOrEqual(0);
+    expect(unfocusedSkipLink.transform).not.toBe("none");
+    expect(unfocusedSkipLink.visibility).toBe("visible");
+    expect(unfocusedSkipLink.display).not.toBe("none");
+    await page.evaluate(() => { window.scrollTo(0, 0); (document.activeElement as HTMLElement | null)?.blur(); });
+    await page.keyboard.press("Tab");
+    await expect(skipLink).toBeFocused();
+    await expect(skipLink).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#main-content")).toBeFocused();
+    await page.locator("#main-content").evaluate((element) => element.blur());
+    await expect(skipLink).not.toBeFocused();
 
     if (testInfo.project.name === "mobile") {
       const allocationRegion = page.getByRole("region", { name: "ตารางการจัดสรรตามชั้นพื้นที่" }).last();
+      const allocationCaption = allocationRegion.locator("caption");
+      const captionGeometry = await allocationCaption.evaluate((element) => ({ width: element.getBoundingClientRect().width, text: element.textContent }));
+      const allocationRegionWidth = await allocationRegion.evaluate((element) => element.getBoundingClientRect().width);
+      expect(captionGeometry.text).toContain("การจัดสรรตามชั้นพื้นที่ · รวม 93 ราย");
+      expect(captionGeometry.width).toBeGreaterThanOrEqual(allocationRegionWidth - 2);
       const firstAllocationRow = allocationRegion.locator("tbody tr").first();
       await expect(firstAllocationRow.locator('[data-label="เศษเหลือ"]')).toBeVisible();
       await expect(firstAllocationRow.locator('[data-label="จัดสรรจริง"]')).toBeVisible();

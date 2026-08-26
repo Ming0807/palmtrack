@@ -48,6 +48,7 @@
 .evidenceTable, .selectedTable { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
 .evidenceTable { margin-top: 23px; }
 .evidenceTable caption, .selectedTable caption { margin-bottom: 9px; color: var(--muted); font-size: .77rem; text-align: left; }
+.tableCaption { box-sizing: border-box; max-width: 100%; overflow-wrap: anywhere; white-space: normal; }
 .evidenceTable th, .evidenceTable td, .selectedTable th, .selectedTable td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
 .evidenceTable th:first-child, .evidenceTable td:first-child, .selectedTable th:first-child, .selectedTable td:first-child { text-align: left; }
 .evidenceTable thead th, .selectedTable thead th { border-bottom: 1px solid var(--line-strong); color: var(--muted); font-size: .73rem; font-weight: 700; }
@@ -138,6 +139,7 @@
   .receiptGrid { grid-template-columns: 1fr; }
   .tableWrap { overflow-x: visible; }
   .evidenceTable { display: block; width: 100%; }
+  .tableCaption { display: block; width: 100%; }
   .evidenceTable thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .evidenceTable tbody, .evidenceTable tfoot { display: block; }
   .evidenceTable tbody tr, .evidenceTable tfoot tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 7px 0; border-bottom: 1px solid var(--line); }

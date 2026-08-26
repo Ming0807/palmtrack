@@ -103,7 +103,7 @@ function EvidencePreview({ evidence, context = "preview", title, titleId = "samp
       </dl>
       <div className={styles.tableWrap} role="region" aria-label="ตารางการจัดสรรตามชั้นพื้นที่" tabIndex={0}>
         <table className={styles.evidenceTable}>
-          <caption>การจัดสรรตามชั้นพื้นที่ · รวม {number(evidence.targetN, 0)} ราย</caption>
+          <caption className={styles.tableCaption}>การจัดสรรตามชั้นพื้นที่ · รวม {number(evidence.targetN, 0)} ราย</caption>
           <thead><tr><th scope="col">ชั้นพื้นที่</th><th scope="col">N<sub>h</sub></th><th scope="col">quota</th><th scope="col">floor</th><th scope="col">เศษเหลือ</th><th scope="col">จัดสรรจริง</th></tr></thead>
           <tbody>{evidence.allocationRows.map((row) => <tr key={row.stratumCode}><th scope="row" data-label="ชั้นพื้นที่">{row.stratumCode}</th><td data-label="N_h">{number(row.eligibleCount, 0)}</td><td data-label="quota">{number(row.quota)}</td><td data-label="floor">{number(row.floorAllocation, 0)}</td><td data-label="เศษเหลือ">{number(row.remainder)}</td><td data-label="จัดสรรจริง" className={styles.emphasis}>{number(row.finalAllocation, 0)}</td></tr>)}</tbody>
           <tfoot><tr><th scope="row" data-label="ชั้นพื้นที่">รวม</th><td data-label="N_h">{number(evidence.populationSize, 0)}</td><td data-label="quota / floor / เศษเหลือ" colSpan={3}>—</td><td data-label="จัดสรรจริง">{number(evidence.targetN, 0)}</td></tr></tfoot>

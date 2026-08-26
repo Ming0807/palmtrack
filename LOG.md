@@ -723,3 +723,17 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | evaluator grep after one local reset failed before a manager lifecycle; post-reload full-page captures showed the fixed link although heading focus had moved |
 | Resolution / status | `resolved` — scope lifecycle and evaluator checks to the created run within one manager test, add a fresh evaluator context, and hide skip links with visibility/opacity/pointer guards; focused local sampling rerun passed 6/6 |
 | Related commit | follow-up Task 6 acceptance review commit |
+
+### DEV-20260826-052 — Sampling keyboard access and supersession evidence boundary
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T06:20:00Z` |
+| Environment | Supabase local authenticated sampling E2E review rerun |
+| Severity | low |
+| Component | protected-shell skip link and sampling supersession evidence scope |
+| Error code / sanitized message | `SKIP_LINK_KEYBOARD_INACCESSIBLE` / `SUPERSESSION_RECEIPT_SCOPE` — `visibility:hidden` removed the skip link from keyboard order, and the first superseded receipt's collapsed details were mistaken for the active receipt's open evidence |
+| Impact | Keyboard acceptance was not valid and the first review assertion could not prove the active receipt's persisted evidence; no hosted database or real-person data was involved |
+| Reproduction / evidence | Tab from a fresh sampling page skipped the hidden link; after a second activation, the first receipt was correctly superseded but had no open persisted-evidence heading |
+| Resolution / status | `resolved` — keep the link focusable with off-canvas transform/clip, focus `main` on Enter, create/lock/activate a second v2 run, and scope exact digest assertions to the second active receipt; focused local sampling rerun passed 6/6 |
+| Related commit | follow-up Task 6 acceptance review commit |

@@ -173,6 +173,8 @@ describe("SamplingWorkbench", () => {
       .getByRole("region", { name: "ตารางการจัดสรรตามชั้นพื้นที่" })
       .querySelector("table");
     expect(allocationTable).not.toBeNull();
+    expect(within(allocationTable!).getByRole("caption")).toHaveClass(/tableCaption/iu);
+    expect(within(allocationTable!).getByRole("caption")).toHaveTextContent("การจัดสรรตามชั้นพื้นที่ · รวม 93 ราย");
     const firstRowLabels = Array.from(allocationTable!.querySelectorAll("tbody tr:first-child [data-label]"), (cell) => cell.getAttribute("data-label"));
     expect(firstRowLabels).toEqual(["ชั้นพื้นที่", "N_h", "quota", "floor", "เศษเหลือ", "จัดสรรจริง"]);
     expect(allocationTable!.querySelector('tfoot [data-label="จัดสรรจริง"]')).toHaveTextContent("93");
