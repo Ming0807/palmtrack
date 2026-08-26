@@ -2,7 +2,6 @@
 
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
 
 import styles from "./fallback-states.module.css";
 
@@ -11,12 +10,7 @@ interface GlobalErrorProps {
   reset: () => void;
 }
 
-export default function ErrorBoundaryFallback({ error, reset }: GlobalErrorProps) {
-  useEffect(() => {
-    // Log sanitized error to client console for debugging without exposing to UI
-    console.error("PalmTrack runtime caught exception in boundary:", error);
-  }, [error]);
-
+export default function ErrorBoundaryFallback({ reset }: GlobalErrorProps) {
   return (
     <main className={styles.fallbackContainer}>
       <div

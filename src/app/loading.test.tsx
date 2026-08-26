@@ -13,7 +13,7 @@ describe("Global Loading Fallback Component", () => {
 
     expect(screen.getByRole("heading", { name: "กำลังโหลดข้อมูล..." })).toBeDefined();
     expect(
-      screen.getByText("ระบบกำลังเตรียมข้อมูลและจัดโครงสร้างหน้าจอ โปรดรอสักครู่"),
+      screen.getByText("ระบบกำลังเตรียมข้อมูล โปรดรอสักครู่"),
     ).toBeDefined();
   });
 });

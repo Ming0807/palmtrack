@@ -7,6 +7,7 @@ describe("Global Error Fallback Component", () => {
   it("renders sanitized Thai error state with alert role without leaking error message or stack trace", () => {
     const error = new Error("FATAL_SECRET_DATABASE_CONNECTION_ERROR_0x992384918239");
     const reset = vi.fn();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(<ErrorFallback error={error} reset={reset} />);
 
@@ -22,6 +23,9 @@ describe("Global Error Fallback Component", () => {
     // MUST NOT leak secret error message
     expect(screen.queryByText(/FATAL_SECRET_DATABASE_CONNECTION_ERROR/u)).toBeNull();
     expect(screen.queryByText(/0x992384918239/u)).toBeNull();
+    expect(consoleError.mock.calls.flat().join(" ")).not.toContain(
+      "FATAL_SECRET_DATABASE_CONNECTION_ERROR",
+    );
 
     // Try again button triggers reset
     const retryButton = screen.getByRole("button", { name: "ลองใหม่อีกครั้ง" });
@@ -31,5 +35,6 @@ describe("Global Error Fallback Component", () => {
     // Return to home link exists
     const homeLink = screen.getByRole("link", { name: "กลับหน้าหลัก" });
     expect(homeLink.getAttribute("href")).toBe("/app");
+    consoleError.mockRestore();
   });
 });

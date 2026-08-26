@@ -46,7 +46,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | UNIT-07 | Gregorian/UTC persistence formats to Thai พ.ศ./Asia-Bangkok and round-trips DST-independent Bangkok time |
 | UNIT-08 | `sha256-mulberry32-fy-v1` test vector proves NFC→UTF-8→SHA-256→big-endian seed, Mulberry32 outputs, Fisher–Yates `(i,j)`, candidate hash and final order match across implementations |
 | UNIT-09 | dashboard model keeps money as canonical decimal strings, filters research support by role, does not call research gateways for farmer/collector, and renders truthful loading/not-enabled states without fabricated production values |
-| UNIT-10 | global fallback states (loading, error, not-found) render sanitized Thai copy, provide screen reader status/alert roles, retry action calling reset(), working navigation link, and do not leak error messages or secrets |
+| UNIT-10 | global fallback states (loading, error, not-found) render sanitized Thai copy, provide screen reader status/alert roles, retry action calling reset(), working navigation link, and do not leak raw error messages or secrets through DOM/client console |
 
 ## RLS and authorization tests
 
@@ -100,6 +100,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | E2E-15 | admin imports the same valid population fixture successfully through the authorized audited path |
 | E2E-16 | authorized attachment list/read/download receipts audit actor/time/action/entity/object ID; collector/farmer authorized delete adds reason/before-after result; collector post-submit and cross-owner access/delete are denied |
 | E2E-17 | synthetic dashboard proves farm-first heading order, visible synthetic label, role/scenario controls, table equivalent, loading without fabricated totals, no 360px overflow and no serious/critical axe finding |
+| E2E-18 | global not-found fallback renders Thai 404 recovery, reaches the home link by keyboard Tab, has no 360px horizontal overflow and passes a complete axe scan including color contrast |
 
 ## Specialized tests
 

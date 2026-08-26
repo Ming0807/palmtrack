@@ -67,8 +67,14 @@ test("[INT-01] double submission keeps one idempotent import", async ({ page }) 
 test("[A11Y-01][A11Y-02] flow is keyboard-safe, offline-safe and accessible", async ({ page, context }) => {
   await signInAs(page, "research_manager");
   await page.goto("/app/research/population");
+  await expect(page.getByLabel("ไฟล์ประชากร CSV")).toBeEnabled();
   const skipLink = page.getByRole("link", { name: "ข้ามไปยังเนื้อหาหลัก" });
-  await skipLink.focus();
+  // Authenticated navigation can leave focus on the control used before the route change.
+  // Reset only the test precondition; the skip link must still be reached by a real Tab press.
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  });
+  await page.keyboard.press("Tab");
   await expect(skipLink).toBeFocused();
   await expect(skipLink).toBeVisible();
   const before = await databaseImportCount();

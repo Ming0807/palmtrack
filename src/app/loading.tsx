@@ -15,7 +15,7 @@ export default function Loading() {
         </div>
         <h1 className={styles.title}>กำลังโหลดข้อมูล...</h1>
         <p className={styles.description}>
-          ระบบกำลังเตรียมข้อมูลและจัดโครงสร้างหน้าจอ โปรดรอสักครู่
+          ระบบกำลังเตรียมข้อมูล โปรดรอสักครู่
         </p>
       </div>
     </main>

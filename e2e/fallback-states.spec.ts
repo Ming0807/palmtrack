@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 test.describe("Global Application Fallback States", () => {
-  test("[FALLBACK-01] not-found page renders Thai copy, accessible link, 360px overflow safety, and clean axe scan", async ({
+  test("[E2E-18] not-found page renders Thai copy, accessible link, 360px overflow safety, and complete axe scan", async ({
     page,
   }) => {
     // Navigate to a non-existent route
@@ -32,9 +32,7 @@ test.describe("Global Application Fallback States", () => {
     expect(hasHorizontalOverflow).toBe(false);
 
     // 5. Run Axe accessibility scan
-    const axeResults = await new AxeBuilder({ page })
-      .disableRules(["color-contrast"])
-      .analyze();
+    const axeResults = await new AxeBuilder({ page }).analyze();
     expect(axeResults.violations).toEqual([]);
   });
 });

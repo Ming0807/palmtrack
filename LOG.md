@@ -877,3 +877,31 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Both mobile and desktop journeys reported pass before teardown; final runner result was `2 passed (2.2m)` with exit code 0 |
 | Resolution / status | `observed, non-blocking` — retained the passing focused evidence and did not repeat the expensive journey; investigate only if teardown begins returning non-zero or leaves processes alive |
 | Related commit | Farm Core + Cash Ledger review-fix commit |
+
+### DEV-20260826-064 — Global error fallback logged the raw client Error object
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T17:32:00Z` |
+| Environment | local review of commit `1ec5bbd` |
+| Severity | high |
+| Component | `src/app/error.tsx` |
+| Error code / sanitized message | `FALLBACK_RAW_ERROR_CONSOLE_LEAK` — the sanitized DOM was paired with `console.error(..., error)` in the browser |
+| Impact | A client-side exception could expose its raw message, stack or provider detail through DevTools even though the visible fallback hid it; only a synthetic sentinel was used during reproduction |
+| Reproduction / evidence | The regression test joined captured console arguments and observed the synthetic secret sentinel before the fix |
+| Resolution / status | `resolved locally` — removed raw client logging and extended `UNIT-10` to assert the sentinel is absent from both DOM and client console |
+| Related commit | global fallback review-fix commit |
+
+### DEV-20260826-065 — Fallback evidence run collided with a review server and exposed a keyboard timing race
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T17:36:00Z` |
+| Environment | local Playwright review on Windows |
+| Severity | low |
+| Component | Playwright-managed Next.js server and population accessibility journey |
+| Error code / sanitized message | `E2E_REVIEW_SERVER_COLLISION` then `SKIP_LINK_NON_NEUTRAL_FOCUS_ORIGIN` |
+| Impact | The first run could not start because a review-only Next server remained active; after stopping that exact PID, authenticated navigation could leave a nondeterministic active element so one Tab did not always begin at the document's skip link |
+| Reproduction / evidence | Runner refused `reuseExistingServer: false`; subsequent runs alternated the same skip-link assertion failure between mobile and desktop while the other viewport passed |
+| Resolution / status | `resolved locally` — stopped only the verified review server, waits for the enabled route control, resets the test's active-element precondition without focusing the target, then proves the skip link with a real Tab press |
+| Related commit | global fallback review-fix commit |
