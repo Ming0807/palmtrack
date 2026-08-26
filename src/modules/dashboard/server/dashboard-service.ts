@@ -1,13 +1,17 @@
 import {
   buildDashboardHeading,
   buildLedgerNotEnabledMetrics,
+  buildLedgerUnavailableMetrics,
+  buildOperationalMetricsFromLedger,
   buildWorkQueue,
   type DashboardReadModel,
+  type OperationalMetric,
   type ResearchLink,
   type ResearchSummaryState,
 } from "@/modules/dashboard/domain/dashboard-model";
 import type { Role } from "@/modules/identity/domain/roles";
 import type { IdentitySession } from "@/modules/identity/server/session";
+import type { LedgerGateway } from "@/modules/ledger/server/ledger-gateway";
 import type { PopulationGateway } from "@/modules/research/population/server/population-gateway";
 import { listPopulationImports } from "@/modules/research/population/server/population-service";
 import type { SamplingGateway } from "@/modules/research/sampling/server/sampling-gateway";
@@ -22,6 +26,7 @@ import { listSamplingRuns } from "@/modules/research/sampling/server/sampling-se
 export type DashboardGateways = {
   populationGateway: PopulationGateway;
   samplingGateway: SamplingGateway;
+  ledgerGateway?: LedgerGateway;
 };
 
 type AuthorizedSession = Extract<IdentitySession, { status: "authorized" }>;
@@ -55,6 +60,28 @@ function researchLinks(role: Role): ResearchLink[] {
       ? ([{ label: "เปิดงานสุ่มตัวอย่าง", href: "/app/research/sampling" }] satisfies ResearchLink[])
       : []),
   ];
+}
+
+async function loadOperationalMetrics(
+  input: BuildDashboardModelInput,
+): Promise<OperationalMetric[]> {
+  const { session, ledgerGateway } = input;
+  const role = session.profile.role;
+
+  if (role !== "farmer") {
+    return buildLedgerNotEnabledMetrics();
+  }
+
+  if (!ledgerGateway) {
+    return buildOperationalMetricsFromLedger(null);
+  }
+
+  try {
+    const summary = await ledgerGateway.getSummary();
+    return buildOperationalMetricsFromLedger(summary);
+  } catch {
+    return buildLedgerUnavailableMetrics();
+  }
 }
 
 async function loadResearchSummary(
@@ -133,7 +160,7 @@ export async function buildDashboardModel(
     role: input.session.profile.role,
     heading: buildDashboardHeading(),
     dataAsOf: formatThaiAsOf(input.now ?? new Date()),
-    operational: buildLedgerNotEnabledMetrics(),
+    operational: await loadOperationalMetrics(input),
     analytics: {
       status: "not_enabled",
       message:
@@ -143,4 +170,5 @@ export async function buildDashboardModel(
     research: await loadResearchSummary(input),
   };
 }
+
 import "server-only";

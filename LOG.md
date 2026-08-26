@@ -794,16 +794,30 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Resolution / status | `resolved for verification` — keep product/test timeouts unchanged and constrain worker count only for the evidence run; no flaky-test behavior was hidden by increasing assertions' timeout |
 | Related commit | dashboard workspace completion commit |
 
-### DEV-20260826-056 — Interrupted Next dev route-type generation
+### DEV-20260826-058 — BigInt literal syntax compiler target mismatch
 
 | Field | Value |
 |---|---|
-| UTC timestamp | `2026-08-26T14:20:00Z` |
-| Environment | full local application verification after Playwright dev-server shutdown |
+| UTC timestamp | `2026-08-26T15:15:00Z` |
+| Environment | local TypeScript typecheck during farm-core domain implementation |
 | Severity | low |
-| Component | ignored `.next/dev/types` build cache |
-| Error code / sanitized message | `NEXT_DEV_TYPE_CACHE_TRUNCATED` — TypeScript reported `TS1109`, `TS1160`, and `TS1128` because generated `routes.d.ts` and `validator.ts` contained duplicated/truncated output after the dev server was terminated |
-| Impact | The first full verification stopped at typecheck; tracked source files, hosted resources and user data were unaffected |
-| Reproduction / evidence | inspecting the ignored generated files showed a repeated `LayoutProps` block and an unterminated template; `next typegen` refreshed production route types but intentionally left the corrupt dev copies; removing only those two disposable generated files made `npm run typecheck` exit 0 |
-| Resolution / status | `resolved` — remove the two corrupt ignored dev-type files and allow the next dev session to regenerate them; no source or configuration workaround was added |
-| Related commit | dashboard workspace completion commit |
+| Component | `src/modules/farm-core/domain/decimal.ts` |
+| Error code / sanitized message | `TS2737` — BigInt literals are not available when targeting lower than ES2020 |
+| Impact | Typecheck failed during initial TDD development of canonical decimal arithmetic; no runtime defect or data loss occurred |
+| Reproduction / evidence | Using `0n`, `10n`, `100n` literals in `decimal.ts` triggered TS2737 compiler errors under repository's tsconfig target |
+| Resolution / status | `resolved` — refactored all BigInt literals to constructor calls e.g. `BigInt(0)`, `BigInt(10)`, `BigInt(100)` while maintaining 100% exact BigInt scaled integer arithmetic |
+| Related commit | farm core and cash ledger foundation commit |
+
+### DEV-20260826-059 — Next.js dev server action cold-compilation latency
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T15:55:00Z` |
+| Environment | local Playwright authenticated E2E test run on Windows |
+| Severity | low |
+| Component | Playwright E2E suite (`e2e/farm-core-ledger.spec.ts`) |
+| Error code / sanitized message | `PLAYWRIGHT_ACTION_MODAL_TIMEOUT` — modal close assertion timed out at default 5,000ms while Next.js dev server on Windows cold-compiled newly invoked server actions |
+| Impact | E2E test stopped at first plot creation assertion before server action response completed; no product bug, no database defect |
+| Reproduction / evidence | Modal snapshot in error context showed button state disabled with "กำลังบันทึก..."; subsequent standalone action invocation resolved cleanly |
+| Resolution / status | `resolved` — marked the comprehensive farmer journey with `test.slow()` and provided `{ timeout: 15_000 }` on server action modal transition expectations |
+| Related commit | farm core and cash ledger foundation commit |

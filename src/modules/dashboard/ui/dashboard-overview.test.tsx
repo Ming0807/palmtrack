@@ -34,7 +34,7 @@ describe("DashboardOverview", () => {
 
   it("keeps pending reasons visible and announces unavailable states", () => {
     render(<DashboardOverview model={buildPrototypeDashboardModel("farmer", "unavailable")} synthetic />);
-    expect(screen.getAllByText("โมดูลบัญชีสวนยังไม่เปิดใช้งาน").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("โมดูลการเก็บเกี่ยวยังไม่เปิดใช้งาน").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
   });
 });

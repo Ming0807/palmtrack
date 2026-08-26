@@ -12,6 +12,7 @@ import {
   ForbiddenState,
   UnconfiguredState,
 } from "@/modules/identity/ui";
+import { createSupabaseLedgerGateway } from "@/modules/ledger/server/ledger-gateway";
 import { createSupabasePopulationGateway } from "@/modules/research/population/server/population-gateway";
 import { createSupabaseSamplingGateway } from "@/modules/research/sampling/server/sampling-gateway";
 
@@ -34,6 +35,7 @@ export default async function ApplicationHomePage() {
     session,
     populationGateway: createSupabasePopulationGateway(clientResult.client),
     samplingGateway: createSupabaseSamplingGateway(clientResult.client),
+    ledgerGateway: createSupabaseLedgerGateway(clientResult.client),
   });
 
   return (

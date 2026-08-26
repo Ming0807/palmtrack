@@ -1,4 +1,6 @@
 import type { Role } from "@/modules/identity/domain/roles";
+import { formatMoney } from "@/modules/farm-core/domain/decimal";
+import type { CashLedgerSummary } from "@/modules/ledger/domain/ledger-model";
 
 /**
  * Presentation-only dashboard read model. Production data is supplied by the
@@ -114,7 +116,76 @@ function ledgerMetrics(
   ).map(([key, label]) => fill(key, label));
 }
 
-/** Truthful production defaults: no farm-ledger backend exists in V1 yet. */
+/** Operational metrics builder when real ledger aggregate data is available for farmer. */
+export function buildOperationalMetricsFromLedger(
+  summary: CashLedgerSummary | null,
+): OperationalMetric[] {
+  if (!summary || !summary.hasRecords) {
+    return [
+      {
+        status: "empty",
+        key: "net_income",
+        label: OPERATIONAL_LABELS.net_income,
+        message: "ยังไม่มีรายการขายผลผลิต",
+      },
+      {
+        status: "empty",
+        key: "expense_total",
+        label: OPERATIONAL_LABELS.expense_total,
+        message: "ยังไม่มีรายการบันทึกค่าใช้จ่าย",
+      },
+      {
+        status: "empty",
+        key: "cash_result",
+        label: OPERATIONAL_LABELS.cash_result,
+        message: "ยังไม่มีรายการบันทึกรับ-จ่าย",
+      },
+      {
+        status: "not_enabled",
+        key: "harvest_volume",
+        label: OPERATIONAL_LABELS.harvest_volume,
+        message: "ยังไม่มีการบันทึกการเก็บเกี่ยวในระบบ",
+      },
+    ];
+  }
+
+  const isProfit = Number(summary.cashResult) >= 0;
+
+  return [
+    {
+      status: "available",
+      key: "net_income",
+      label: OPERATIONAL_LABELS.net_income,
+      value: `฿${formatMoney(summary.netIncome)}`,
+      caption: `จาก ${summary.saleCount} รายการขาย`,
+      tone: "neutral",
+    },
+    {
+      status: "available",
+      key: "expense_total",
+      label: OPERATIONAL_LABELS.expense_total,
+      value: `฿${formatMoney(summary.expenseTotal)}`,
+      caption: `จาก ${summary.expenseCount} รายการจ่าย`,
+      tone: "neutral",
+    },
+    {
+      status: "available",
+      key: "cash_result",
+      label: OPERATIONAL_LABELS.cash_result,
+      value: `${isProfit ? "+" : ""}฿${formatMoney(summary.cashResult)}`,
+      caption: isProfit ? "กำไรสุทธิในรอบนี้" : "ขาดทุนสุทธิในรอบนี้",
+      tone: isProfit ? "positive" : "negative",
+    },
+    {
+      status: "not_enabled",
+      key: "harvest_volume",
+      label: OPERATIONAL_LABELS.harvest_volume,
+      message: "ยังไม่มีการบันทึกการเก็บเกี่ยวในระบบ",
+    },
+  ];
+}
+
+/** Non-farmer or unconfigured ledger state. */
 export function buildLedgerNotEnabledMetrics(): OperationalMetric[] {
   return ledgerMetrics((key, label) => ({
     status: "not_enabled",
@@ -122,7 +193,7 @@ export function buildLedgerNotEnabledMetrics(): OperationalMetric[] {
     label,
     message:
       key === "net_income" || key === "expense_total" || key === "cash_result"
-        ? "โมดูลบัญชีสวนยังไม่เปิดใช้งาน ตัวเลขจะแสดงหลังระบบบันทึกรายรับ-รายจ่ายเปิดตามแผนถัดไป"
+        ? "ส่วนนี้แสดงเฉพาะข้อมูลสวนของบัญชีเกษตรกร"
         : "ยังไม่มีการบันทึกการเก็บเกี่ยวในระบบ",
   }));
 }
@@ -141,22 +212,22 @@ const WORK_QUEUE_BY_ROLE: Record<Role, readonly Omit<WorkQueueItem, "id">[]> = {
     {
       title: "เพิ่มค่าใช้จ่าย",
       detail: "บันทึกรายจ่ายของสวน เช่น ปุ๋ย แรงงาน และค่าขนส่ง",
-      action: { kind: "pending", label: "รอเปิดใช้งาน", reason: "โมดูลบัญชีสวนยังไม่เปิดใช้งาน" },
+      action: { kind: "link", label: "เปิดสมุดบัญชี", href: "/app/garden-account" },
     },
     {
       title: "บันทึกการเก็บเกี่ยว",
       detail: "บันทึกจำนวนช่อ/ตันที่เก็บได้ในแต่ละรอบ",
-      action: { kind: "pending", label: "รอเปิดใช้งาน", reason: "โมดูลบัญชีสวนยังไม่เปิดใช้งาน" },
+      action: { kind: "pending", label: "รอเปิดใช้งาน", reason: "โมดูลการเก็บเกี่ยวยังไม่เปิดใช้งาน" },
     },
     {
       title: "บันทึกการขาย",
       detail: "บันทึกรายรับจากการขายผลผลิตเพื่อคิดกำไรเงินสด",
-      action: { kind: "pending", label: "รอเปิดใช้งาน", reason: "โมดูลบัญชีสวนยังไม่เปิดใช้งาน" },
+      action: { kind: "link", label: "เปิดสมุดบัญชี", href: "/app/garden-account" },
     },
     {
       title: "จัดการข้อมูลสวน",
       detail: "ดูแลข้อมูลสวนและแปลงของตนเอง",
-      action: { kind: "pending", label: "รอเปิดใช้งาน", reason: "โมดูลข้อมูลสวนยังไม่เปิดใช้งาน" },
+      action: { kind: "link", label: "เปิดจัดการสวน", href: "/app/gardens" },
     },
   ],
   field_collector: [
