@@ -252,6 +252,8 @@ describe("deterministic sampling evidence", () => {
         { memberId: "m-05", stratumCode: "EAST", selectionOrder: 3 },
       ],
       orderedSelectedMemberIds: ["m-02", "m-03", "m-05"],
+      orderedResultDigestVersion: "ordered-result-sha256-v1",
+      orderedResultHash: "a51e5c3790b8dc98f453ef6220c1f7e4a43ee91a6946ea8cd11bef8091c1554d",
       allocationRows: [
         { stratumCode: "EAST", eligibleCount: 1, quota: 0.6, floorAllocation: 0, remainder: 0.6, finalAllocation: 1 },
         { stratumCode: "NORTH", eligibleCount: 2, quota: 1.2, floorAllocation: 1, remainder: 0.19999999999999996, finalAllocation: 1 },
@@ -266,5 +268,31 @@ describe("deterministic sampling evidence", () => {
     const tampered = { ...evidence, seedU32: evidence.seedU32 + 1 };
 
     await expect(replaySamplingEvidence(evidenceInput, tampered)).resolves.toBe(false);
+  });
+
+  it("records the ordered-result digest with the v1 length-prefixed canonical stream", async () => {
+    const vector = await buildSamplingEvidence({
+      populationSize: 2,
+      marginOfError: 0.5,
+      seedText: "ordered-result-vector",
+      candidates: [
+        { memberId: "22222222-2222-4222-8222-222222222222", farmerCode: "SYN-002", stratumCode: "SOUTH" },
+        { memberId: "11111111-1111-4111-8111-111111111111", farmerCode: "SYN-001", stratumCode: "NORTH" },
+      ],
+      targetN: 2,
+    });
+
+    expect(vector.orderedResultDigestVersion).toBe("ordered-result-sha256-v1");
+    expect(vector.orderedResultHash).toBe("77dc36582ce46286d8bda82c044f31705649359244c5c682acf19ccda14153c8");
+    expect(await replaySamplingEvidence({
+      populationSize: 2,
+      marginOfError: 0.5,
+      seedText: "ordered-result-vector",
+      candidates: [
+        { memberId: "22222222-2222-4222-8222-222222222222", farmerCode: "SYN-002", stratumCode: "SOUTH" },
+        { memberId: "11111111-1111-4111-8111-111111111111", farmerCode: "SYN-001", stratumCode: "NORTH" },
+      ],
+      targetN: 2,
+    }, { ...vector, orderedResultHash: "0".repeat(64) })).toBe(false);
   });
 });

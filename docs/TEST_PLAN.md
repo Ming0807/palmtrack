@@ -59,7 +59,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | ID | Assertion |
 |---|---|
 | INT-01 | successful population import/accept works independently for both admin and research_manager; duplicate/invalid strata fails atomically and accepted snapshot digest/count is immutable |
-| INT-02 | sampling `draft→locked→active`, activation superseding prior active, and draft/locked cancellation follow exact lifecycle; lock freezes evidence, exactly one active/workspace holds after sampling starts, cancelled is unselectable, replay matches and every semantic transition audits |
+| INT-02 | sampling `draft→locked→active`, activation superseding prior active, and draft/locked cancellation follow exact lifecycle; lock freezes evidence, exactly one active/workspace holds after sampling starts, cancelled is unselectable, replay matches ordered-result hash contract and every semantic transition audits |
 | INT-03 | assignment/reassignment updates current assignment and appends AUD-05 actor/time/action/entity/before-after and required reassign/cancel reason atomically |
 | INT-04 | assignment→notice→granted/declined ordering holds; decline stores minimal audit and creates no baseline/response; collector-only withdrawal from draft/submitted/returned/verified is terminal/immediately excluded; unauthorized transitions fail |
 | INT-05 | collector edits content only in granted/valid `draft`; idempotent `draft→submitted` revalidates auth/assignment/consent/version; returned/submitted/verified content mutation denied |
@@ -112,7 +112,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 
 | ID | Assertion |
 |---|---|
-| AUD-01 | sampling draft/lock/activate/supersede/cancel records actor UUID, UTC timestamp, workspace/run action/entity, reason where required, before/after status and input/candidate/result digests without raw PII |
+| AUD-01 | sampling draft/lock/activate/supersede/cancel records actor UUID, UTC timestamp, workspace/run action/entity, reason where required, before/after status, candidate hash and authoritative ordered-result hash without raw PII |
 | AUD-02 | every anonymized and full-PII export records actor UUID, UTC timestamp, action/entity, `export_mode`, filter digest, selected `sampling_run_id`, row count and result without exported rows; full PII additionally requires approval reference and reason/purpose; denied attempts record result safely |
 | AUD-03 | farm/plot/activity/expense/harvest/sale soft-delete records actor UUID, UTC timestamp, action/entity, required reason, before/after active/deleted status and report digest; direct hard delete is denied |
 | AUD-04 | authorized/denied attachment list/read/download/delete records actor UUID, UTC timestamp, action/entity, object metadata ID and result; deletion additionally requires reason and before/after metadata/object status; audit excludes signed URL/path leakage |

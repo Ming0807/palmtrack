@@ -30,6 +30,7 @@ create table public.sampling_run (
   seed_u32 bigint not null check (seed_u32 between 0 and 4294967295),
   algorithm_version text not null check (algorithm_version = 'sha256-mulberry32-fy-v1'),
   ordered_candidate_set_hash text not null check (ordered_candidate_set_hash ~ '^[0-9a-f]{64}$'),
+  ordered_result_hash text not null check (ordered_result_hash ~ '^[0-9a-f]{64}$'),
   allocation_evidence jsonb not null check (jsonb_typeof(allocation_evidence) = 'array'),
   result_evidence jsonb not null check (jsonb_typeof(result_evidence) = 'object'),
   status public.sampling_run_status not null default 'draft',
@@ -270,14 +271,14 @@ begin
       'margin_of_error', 'unrounded_result', 'target_n', 'formula_version',
       'stratum_definition_version', 'seed_text', 'seed_normalized',
       'seed_normalized_utf8_hex', 'seed_digest_hex', 'seed_u32',
-      'algorithm_version', 'ordered_candidate_set_hash', 'allocation_evidence',
+      'algorithm_version', 'ordered_candidate_set_hash', 'ordered_result_hash', 'allocation_evidence',
       'result_evidence', 'updated_at'
     ]::text[])
       = (to_jsonb(old) - array[
         'margin_of_error', 'unrounded_result', 'target_n', 'formula_version',
         'stratum_definition_version', 'seed_text', 'seed_normalized',
         'seed_normalized_utf8_hex', 'seed_digest_hex', 'seed_u32',
-        'algorithm_version', 'ordered_candidate_set_hash', 'allocation_evidence',
+        'algorithm_version', 'ordered_candidate_set_hash', 'ordered_result_hash', 'allocation_evidence',
         'result_evidence', 'updated_at'
       ]::text[])
   then
@@ -408,11 +409,12 @@ begin
     ]::text[]
     when 'sampling.run_created' then array[
       'before_status', 'after_status', 'population_size', 'target_n',
-      'input_digest', 'candidate_set_hash', 'algorithm_version'
+      'input_digest', 'candidate_set_hash', 'algorithm_version',
+      'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_locked' then array[
       'before_status', 'after_status', 'input_digest', 'candidate_set_hash',
-      'result_digest'
+      'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     when 'sampling.run_activated' then array[
       'before_status', 'after_status', 'candidate_set_hash'
@@ -425,7 +427,7 @@ begin
     ]::text[]
     when 'sampling.run_regenerated' then array[
       'before_status', 'after_status', 'input_digest', 'candidate_set_hash',
-      'result_digest'
+      'ordered_result_digest_version', 'ordered_result_hash'
     ]::text[]
     else null
   end;
@@ -492,13 +494,16 @@ begin
       or coalesce(p_details ->> 'input_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'algorithm_version', '') <> 'sha256-mulberry32-fy-v1'
+      or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
+      or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_locked' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') <> 'draft'
       or coalesce(p_details ->> 'after_status', '') <> 'locked'
       or coalesce(p_details ->> 'input_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
-      or coalesce(p_details ->> 'result_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
+      or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     when 'sampling.run_activated' then
       p_entity_type <> 'sampling_run'
       or coalesce(p_details ->> 'before_status', '') <> 'locked'
@@ -520,7 +525,8 @@ begin
       or coalesce(p_details ->> 'after_status', '') <> 'draft'
       or coalesce(p_details ->> 'input_digest', '') !~ '^[0-9a-f]{64}$'
       or coalesce(p_details ->> 'candidate_set_hash', '') !~ '^[0-9a-f]{64}$'
-      or coalesce(p_details ->> 'result_digest', '') !~ '^[0-9a-f]{64}$'
+      or coalesce(p_details ->> 'ordered_result_digest_version', '') <> 'ordered-result-sha256-v1'
+      or coalesce(p_details ->> 'ordered_result_hash', '') !~ '^[0-9a-f]{64}$'
     else true
   end) then
     raise exception using errcode = '22023', message = 'audit detail values are invalid';
@@ -538,6 +544,39 @@ $$;
 
 reset role;
 
+create or replace function private.ordered_result_hash(p_selected_members jsonb)
+returns text
+language sql
+immutable
+set search_path = pg_catalog, public, extensions
+as $$
+  select encode(extensions.digest(
+    decode(coalesce((select string_agg(
+      encode(
+        pg_catalog.int4send(octet_length(convert_to(selected.member_id::text, 'UTF8'))) ||
+        convert_to(selected.member_id::text, 'UTF8') ||
+        pg_catalog.int4send(octet_length(convert_to(selected.stratum_code, 'UTF8'))) ||
+        convert_to(selected.stratum_code, 'UTF8') ||
+        decode(
+          lpad(pg_catalog.to_hex((selected.selection_order / 16777216)::bigint), 2, '0') ||
+          lpad(pg_catalog.to_hex(((selected.selection_order / 65536)::bigint % 256)), 2, '0') ||
+          lpad(pg_catalog.to_hex(((selected.selection_order / 256)::bigint % 256)), 2, '0') ||
+          lpad(pg_catalog.to_hex((selected.selection_order::bigint % 256)), 2, '0'),
+          'hex'
+        ),
+        'hex'
+      ), '' order by selected.selection_order)
+      from jsonb_to_recordset(p_selected_members) as selected(member_id uuid, stratum_code text, selection_order bigint)), ''), 'hex'),
+    'sha256'), 'hex');
+$$;
+
+revoke all on function private.ordered_result_hash(jsonb)
+  from public, anon, authenticated, service_role,
+    palmtrack_audit_writer, palmtrack_recovery_executor;
+grant execute on function private.ordered_result_hash(jsonb)
+  to palmtrack_transaction_owner;
+alter function private.ordered_result_hash(jsonb) owner to palmtrack_transaction_owner;
+
 create or replace function private.validate_sampling_evidence_shape(
   p_allocation_evidence jsonb,
   p_result_evidence jsonb
@@ -554,7 +593,7 @@ begin
     raise exception using errcode = '22023', message = 'sampling evidence shape is invalid';
   end if;
 
-  if (select count(*) from jsonb_object_keys(p_result_evidence)) <> 17
+  if (select count(*) from jsonb_object_keys(p_result_evidence)) <> 19
     or exists (
       select 1 from jsonb_object_keys(p_result_evidence) as key
       where key <> all(array[
@@ -562,7 +601,8 @@ begin
         'rounding_rule', 'target_n', 'seed_normalized', 'seed_normalized_utf8_hex',
         'seed_digest_hex', 'seed_u32', 'ordered_candidate_set_byte_stream_hex',
         'ordered_candidate_set_hash', 'initial_candidate_member_ids', 'swap_trace',
-        'shuffled_member_ids', 'ordered_selected_members', 'ordered_selected_member_ids'
+        'shuffled_member_ids', 'ordered_selected_members', 'ordered_selected_member_ids',
+        'ordered_result_digest_version', 'ordered_result_hash'
       ]::text[])
     ) then
     raise exception using errcode = '22023', message = 'result evidence keys are not allowlisted';
@@ -580,7 +620,8 @@ begin
 
   foreach v_key in array array[
     'formula_version', 'rounding_rule', 'seed_normalized', 'seed_normalized_utf8_hex',
-    'seed_digest_hex', 'ordered_candidate_set_byte_stream_hex', 'ordered_candidate_set_hash'
+    'seed_digest_hex', 'ordered_candidate_set_byte_stream_hex', 'ordered_candidate_set_hash',
+    'ordered_result_digest_version', 'ordered_result_hash'
   ] loop
     if jsonb_typeof(p_result_evidence -> v_key) is distinct from 'string' then
       raise exception using errcode = '22023', message = 'result evidence text field is invalid';
@@ -650,7 +691,7 @@ begin
       or jsonb_typeof(item -> 'stratum_code') is distinct from 'string'
       or jsonb_typeof(item -> 'selection_order') is distinct from 'number'
       or (item ->> 'selection_order')::numeric <> trunc((item ->> 'selection_order')::numeric)
-      or (item ->> 'selection_order')::numeric not between -9223372036854775808::numeric and 9223372036854775807::numeric
+      or (item ->> 'selection_order')::numeric not between 1 and 4294967295
   ) then
     raise exception using errcode = '22023', message = 'selected member evidence is invalid';
   end if;
@@ -718,6 +759,15 @@ begin
       is distinct from p_result_evidence -> 'ordered_selected_member_ids' then
     raise exception using errcode = '22023', message = 'selected member identifiers are inconsistent';
   end if;
+
+  if p_result_evidence ->> 'ordered_result_digest_version' is distinct from 'ordered-result-sha256-v1'
+    or p_result_evidence ->> 'ordered_result_hash' !~ '^[0-9a-f]{64}$' then
+    raise exception using errcode = '22023', message = 'ordered result digest evidence is invalid';
+  end if;
+
+  if p_result_evidence ->> 'ordered_result_hash' is distinct from private.ordered_result_hash(p_result_evidence -> 'ordered_selected_members') then
+    raise exception using errcode = '22023', message = 'ordered result digest does not match selected evidence';
+  end if;
 end;
 $$;
 
@@ -735,7 +785,7 @@ returns table (
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
-  ordered_candidate_set_hash text, status public.sampling_run_status,
+  ordered_candidate_set_hash text, ordered_result_hash text, status public.sampling_run_status,
   created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
@@ -750,7 +800,7 @@ as $$
     run.margin_of_error, run.unrounded_result, run.rounding_rule, run.target_n,
     run.formula_version, run.stratum_definition_version, run.seed_text, run.seed_normalized, run.seed_normalized_utf8_hex,
     run.seed_digest_hex, run.seed_u32, run.algorithm_version,
-    run.ordered_candidate_set_hash, run.status, run.created_at, run.updated_at, run.locked_at,
+    run.ordered_candidate_set_hash, run.ordered_result_hash, run.status, run.created_at, run.updated_at, run.locked_at,
     run.activated_at, run.superseded_at, run.cancelled_at, run.cancellation_reason_digest,
     coalesce((select jsonb_agg(to_jsonb(allocation) - 'id' - 'sampling_run_id' - 'workspace_id' order by allocation.stratum_code) from public.sampling_allocation allocation where allocation.sampling_run_id = run.id), '[]'::jsonb),
     run.result_evidence
@@ -780,7 +830,7 @@ returns table (
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
-  ordered_candidate_set_hash text, status public.sampling_run_status,
+  ordered_candidate_set_hash text, ordered_result_hash text, status public.sampling_run_status,
   created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
@@ -1068,13 +1118,13 @@ begin
     workspace_id, version, population_import_id, population_size, margin_of_error,
     unrounded_result, rounding_rule, target_n, formula_version, seed_text,
     seed_normalized, seed_normalized_utf8_hex, seed_digest_hex, seed_u32,
-    algorithm_version, stratum_definition_version, ordered_candidate_set_hash, allocation_evidence, result_evidence,
+    algorithm_version, stratum_definition_version, ordered_candidate_set_hash, ordered_result_hash, allocation_evidence, result_evidence,
     idempotency_key, created_by
   ) values (
     v_workspace_id, v_run.version, v_import.id, v_n, p_margin_of_error,
     v_unrounded, 'ceil', p_target_n, 'yamane-v1', p_seed_text,
     v_seed_normalized, v_seed_utf8_hex, v_seed_digest_hex, v_seed_u32,
-    p_algorithm_version, p_stratum_definition_version, p_ordered_candidate_set_hash, p_allocation_evidence, p_result_evidence,
+    p_algorithm_version, p_stratum_definition_version, p_ordered_candidate_set_hash, p_result_evidence ->> 'ordered_result_hash', p_allocation_evidence, p_result_evidence,
     p_idempotency_key, v_actor_profile_id
   ) returning * into v_run;
 
@@ -1089,7 +1139,9 @@ begin
   perform private.append_audit_event(v_workspace_id, v_actor_profile_id, 'sampling.run_created', 'sampling_run', v_run.id, 'success', jsonb_build_object(
     'before_status', 'none', 'after_status', 'draft', 'population_size', v_n,
     'target_n', p_target_n, 'input_digest', v_input_digest, 'candidate_set_hash', p_ordered_candidate_set_hash,
-    'algorithm_version', p_algorithm_version
+    'algorithm_version', p_algorithm_version,
+    'ordered_result_digest_version', p_result_evidence ->> 'ordered_result_digest_version',
+    'ordered_result_hash', p_result_evidence ->> 'ordered_result_hash'
   ));
   perform set_config('palmtrack.sampling_transition', '', true);
   return query select * from private.sampling_run_result(v_run.id);
@@ -1113,7 +1165,7 @@ returns table (
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
-  ordered_candidate_set_hash text, status public.sampling_run_status,
+  ordered_candidate_set_hash text, ordered_result_hash text, status public.sampling_run_status,
   created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
@@ -1361,6 +1413,7 @@ begin
       seed_u32 = v_seed_u32,
       algorithm_version = p_algorithm_version,
       ordered_candidate_set_hash = p_ordered_candidate_set_hash,
+      ordered_result_hash = p_result_evidence ->> 'ordered_result_hash',
       allocation_evidence = p_allocation_evidence,
       result_evidence = p_result_evidence,
       updated_at = statement_timestamp()
@@ -1376,7 +1429,8 @@ begin
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_regenerated', 'sampling_run', v_run.id, 'success', jsonb_build_object(
     'before_status', 'draft', 'after_status', 'draft',
     'input_digest', v_import.input_digest, 'candidate_set_hash', p_ordered_candidate_set_hash,
-    'result_digest', encode(extensions.digest(convert_to(p_result_evidence::text, 'UTF8'), 'sha256'), 'hex')
+    'ordered_result_digest_version', p_result_evidence ->> 'ordered_result_digest_version',
+    'ordered_result_hash', p_result_evidence ->> 'ordered_result_hash'
   ));
   perform set_config('palmtrack.sampling_transition', '', true);
   return query select * from private.sampling_run_result(v_run.id);
@@ -1394,7 +1448,7 @@ returns table (
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
-  ordered_candidate_set_hash text, status public.sampling_run_status,
+  ordered_candidate_set_hash text, ordered_result_hash text, status public.sampling_run_status,
   created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
@@ -1416,7 +1470,7 @@ returns table (
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
-  ordered_candidate_set_hash text, status public.sampling_run_status,
+  ordered_candidate_set_hash text, ordered_result_hash text, status public.sampling_run_status,
   created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
@@ -1447,7 +1501,8 @@ begin
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_locked', 'sampling_run', v_run.id, 'success', jsonb_build_object(
     'before_status', 'draft', 'after_status', 'locked', 'input_digest', (select population_import.input_digest from public.population_import as population_import where population_import.id = v_run.population_import_id),
     'candidate_set_hash', v_run.ordered_candidate_set_hash,
-    'result_digest', encode(extensions.digest(convert_to(v_run.result_evidence::text, 'UTF8'), 'sha256'), 'hex')
+    'ordered_result_digest_version', v_run.result_evidence ->> 'ordered_result_digest_version',
+    'ordered_result_hash', v_run.ordered_result_hash
   ));
   perform set_config('palmtrack.sampling_transition', '', true);
   return query select * from private.sampling_run_result(v_run.id);
@@ -1463,7 +1518,7 @@ returns table (
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
-  ordered_candidate_set_hash text, status public.sampling_run_status,
+  ordered_candidate_set_hash text, ordered_result_hash text, status public.sampling_run_status,
   created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
@@ -1514,7 +1569,7 @@ returns table (
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
-  ordered_candidate_set_hash text, status public.sampling_run_status,
+  ordered_candidate_set_hash text, ordered_result_hash text, status public.sampling_run_status,
   created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
@@ -1557,8 +1612,9 @@ returns table (
   id uuid, version bigint, population_size bigint,
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, algorithm_version text,
+  ordered_result_hash text,
   status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, allocation_evidence jsonb
 )
 language plpgsql stable security definer
@@ -1575,7 +1631,8 @@ begin
   select run.id, run.version, run.population_size,
     run.margin_of_error, run.unrounded_result, run.rounding_rule, run.target_n,
     run.formula_version, run.stratum_definition_version, run.algorithm_version,
-    run.status, run.created_at, run.locked_at, run.activated_at,
+    run.ordered_result_hash,
+    run.status, run.created_at, run.updated_at, run.locked_at, run.activated_at,
     run.superseded_at, run.cancelled_at,
     coalesce((select jsonb_agg(to_jsonb(allocation) - 'id' - 'sampling_run_id' - 'workspace_id' order by allocation.stratum_code)
       from public.sampling_allocation allocation where allocation.sampling_run_id = run.id), '[]'::jsonb)
@@ -1661,7 +1718,7 @@ returns table (
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
-  ordered_candidate_set_hash text, status public.sampling_run_status,
+  ordered_candidate_set_hash text, ordered_result_hash text, status public.sampling_run_status,
   created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb

@@ -10,6 +10,7 @@ select enum_has_labels(
   '[INT-02] sampling status enum has exact lifecycle labels'
 );
 select has_table('public', 'sampling_run', '[INT-02] sampling run table exists');
+select has_column('public', 'sampling_run', 'ordered_result_hash', '[INT-02] sampling run stores the authoritative ordered result hash');
 select has_table('public', 'sampling_allocation', '[INT-02] allocation table exists');
 select has_table('public', 'sample_member', '[INT-02] sample member table exists');
 select has_function(
@@ -178,7 +179,12 @@ select lives_ok(
       'ordered_selected_member_ids', jsonb_build_array(
         (select id from public.population_member where farmer_code = 'SYN-102'),
         (select id from public.population_member where farmer_code = 'SYN-105')
-      )
+      ),
+      'ordered_result_digest_version', 'ordered-result-sha256-v1',
+      'ordered_result_hash', private.ordered_result_hash(jsonb_build_array(
+        jsonb_build_object('member_id', (select id from public.population_member where farmer_code = 'SYN-102'), 'stratum_code', 'SOUTH', 'selection_order', 1),
+        jsonb_build_object('member_id', (select id from public.population_member where farmer_code = 'SYN-105'), 'stratum_code', 'EAST', 'selection_order', 2)
+      ))
     ),
     '00000000-0000-0000-0000-000000000902'::uuid
   ) $$,
@@ -188,9 +194,13 @@ select is((select count(*) from public.sampling_run), 1::bigint, '[INT-02] draft
 select is((select status::text from public.sampling_run), 'draft', '[INT-02] new run starts draft');
 select is((select population_size from public.sampling_run), 4::bigint, '[INT-02] N stores eligible population exactly');
 select is((select target_n from public.sampling_run), 2::bigint, '[INT-02] target stores exact numeric result');
+select is((select ordered_result_hash from public.sampling_run), (select result_evidence ->> 'ordered_result_hash' from public.sampling_run), '[INT-02] ordered result hash column matches result evidence');
+select is((select count(*) from jsonb_object_keys((select result_evidence from public.sampling_run))), 19::bigint, '[INT-02] result evidence has an exact allowlisted shape');
+select is((select result_evidence ->> 'ordered_result_digest_version' from public.sampling_run), 'ordered-result-sha256-v1', '[INT-02] ordered result digest contract is explicit');
 select is((select count(*) from public.sampling_allocation), 3::bigint, '[INT-02] allocation has one row per stratum');
 select is((select count(*) from public.sample_member), 2::bigint, '[INT-02] member evidence totals target');
 select is((select count(*) from public.sample_member where selection_order in (1, 2)), 2::bigint, '[INT-02] member selection orders are globally unique');
+select is((select ordered_result_hash from public.list_sampling_runs() limit 1), (select ordered_result_hash from public.sampling_run limit 1), '[INT-02] summary projection exposes the ordered result hash');
 select ok(not ((select to_jsonb(row) from public.list_sampling_runs() as row limit 1) ?| array['workspace_id', 'contact', 'phone']), '[SEC-02] run projection omits workspace and contact data');
 select is((select count(*) from public.create_sampling_draft(
   (select id from public.population_import where source_label = 'FX-SAMPLING'), 'sample-seed', 0.5,
@@ -229,6 +239,7 @@ select is((select count(*) from public.sampling_run where status = 'active'), 1:
 select is((select count(*) from public.sampling_run where status = 'superseded'), 1::bigint, '[INT-02] activation supersedes the previous active run');
 reset role;
 select is((select count(*) from public.audit_event where action_code = 'sampling.run_superseded'), 1::bigint, '[AUD-01] supersession appends its own audited transition');
+select ok(exists (select 1 from public.audit_event where action_code = 'sampling.run_created' and details ->> 'ordered_result_hash' = (select ordered_result_hash from public.sampling_run limit 1)), '[AUD-01] creation audit carries the authoritative ordered result hash');
 set local role authenticated;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000802';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000802","role":"authenticated"}';
@@ -494,6 +505,11 @@ select is(
   (select updated_at from public.get_sampling_run_evidence((select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid))),
   (select updated_at from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
   '[INT-02] detailed evidence exposes the current optimistic lock token'
+);
+select is(
+  (select ordered_result_hash from public.get_sampling_run_evidence((select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid))),
+  (select ordered_result_hash from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+  '[INT-02] detailed evidence exposes the authoritative ordered result hash'
 );
 select throws_ok($$ select * from public.get_sampling_candidates((select id from public.sampling_run where status = 'cancelled' limit 1)) $$, '42501', null, '[SEC-02] cancelled runs cannot provide selectable candidate projections');
 reset role;

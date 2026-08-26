@@ -148,7 +148,11 @@ export async function loadSamplingRunEvidence(
   if (runs.length === 0) return { status: "ready", runs: [] };
   if (!deps.gateway.getEvidence) return { status: "service_unavailable" };
   try {
-    return { status: "ready", runs: await Promise.all(runs.map((run) => deps.gateway.getEvidence!(run.id))) };
+    // listRuns is version-descending; detailed evidence is intentionally
+    // bounded so a manager opening the workbench cannot trigger an unbounded
+    // fan-out. Older receipts remain useful through their summary row.
+    const latestRuns = runs.slice(0, 10);
+    return { status: "ready", runs: await Promise.all(latestRuns.map((run) => deps.gateway.getEvidence!(run.id))) };
   } catch (error) {
     return failure(error) as SamplingReceiptListState;
   }
@@ -244,6 +248,7 @@ function matchesTopLevelEvidence(
     run.seedU32 === evidence.seedU32 &&
     run.algorithmVersion === evidence.algorithmVersion &&
     run.orderedCandidateSetHash === evidence.orderedCandidateSetHash &&
+    run.orderedResultHash === evidence.orderedResultHash &&
     JSON.stringify(run.allocationEvidence) === JSON.stringify(evidence.allocationRows)
   );
 }

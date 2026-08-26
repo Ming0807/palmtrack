@@ -12,6 +12,7 @@ drop function if exists public.lock_sampling_run(uuid, timestamptz);
 drop function if exists public.create_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid);
 drop function if exists private.sampling_run_result(uuid);
 drop function if exists private.validate_sampling_evidence_shape(jsonb, jsonb);
+drop function if exists private.ordered_result_hash(jsonb);
 
 drop trigger if exists sampling_draft_update_truncate_guard on public.sampling_draft_update;
 drop trigger if exists sampling_draft_update_delete_guard on public.sampling_draft_update;

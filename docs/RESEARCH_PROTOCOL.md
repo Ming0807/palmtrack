@@ -24,7 +24,7 @@
 
 `n = 121 / (1 + 121 × 0.05^2) = 121 / 1.3025 ≈ 92.8983` ดังนั้นปัดขึ้นเป็น **93**
 
-Sampling run บันทึก `N`, `e`, unrounded result, rounding rule, `target_n`, formula version, population snapshot ID/digest, stratum definition version, deterministic-selection evidence, actor และ UTC timestamp
+Sampling run บันทึก `N`, `e`, unrounded result, rounding rule, `target_n`, formula version, population snapshot ID/digest, stratum definition version, deterministic-selection evidence, ordered-result digest contract/hash, actor และ UTC timestamp
 
 ## Proportional stratification: largest remainder
 
@@ -78,14 +78,16 @@ for candidate in shuffled:
 assert length(results) == target_n
 ```
 
-Sampling run ต้องเก็บ `seed_text`, `seed_normalized`, `seed_digest_hex` (lowercase), `seed_u32`, identifier `sha256-mulberry32-fy-v1`, `ordered_candidate_set_hash` (lowercase hex), allocation evidence และ ordered results Test vector ของ implementation ต้องระบุ seed text ที่ทดสอบ NFC equivalence, normalized UTF-8 hex, digest hex, first-four-byte `seed_u32`, canonical candidate byte-stream/hash, initial candidate order, every `(i,j)`, shuffled order, allocation และ final ordered results Test fixture ใช้ข้อมูลสังเคราะห์ที่ review แล้ว; เอกสารนี้ไม่แต่ง field data
+7. หลังเลือกผลลัพธ์ ให้เรียง `ordered_selected_members` ตาม `selection_order` แล้วสร้าง canonical ordered-result stream ของแต่ละแถวเป็น `uint32BE(length(UTF8(member_id))) || UTF8(member_id) || uint32BE(length(UTF8(stratum_code))) || UTF8(stratum_code) || uint32BE(selection_order)` จากนั้นคำนวณ SHA-256 lowercase hex เป็น `ordered_result_hash` ภายใต้ evidence contract แยก `ordered-result-sha256-v1`; field นี้เป็นหลักฐานตรวจสอบผลลัพธ์และไม่เปลี่ยน selection algorithm เดิม
+
+Sampling run ต้องเก็บ `seed_text`, `seed_normalized`, `seed_digest_hex` (lowercase), `seed_u32`, identifier `sha256-mulberry32-fy-v1`, `ordered_candidate_set_hash` (lowercase hex), `ordered_result_digest_version`/`ordered_result_hash`, allocation evidence และ ordered results Test vector ของ implementation ต้องระบุ seed text ที่ทดสอบ NFC equivalence, normalized UTF-8 hex, digest hex, first-four-byte `seed_u32`, canonical candidate byte-stream/hash, initial candidate order, every `(i,j)`, shuffled order, allocation, final ordered results และ ordered-result hash ตาม byte contract Test fixture ใช้ข้อมูลสังเคราะห์ที่ review แล้ว; เอกสารนี้ไม่แต่ง field data
 
 ## Sampling-run lifecycle and version lock
 
 `sampling_run.status` มีค่าเท่านั้น `draft | locked | active | superseded | cancelled`:
 
 - `draft`: ผู้จัดการแก้ input/seed/allocation และ regenerate candidate/result evidence ได้
-- `draft → locked`: replay algorithm แล้วผลตรงกัน จากนั้น freeze population input, N/e, seed fields/digest, algorithm, ordered candidate-set hash, allocation และ results ทั้งหมด
+- `draft → locked`: replay algorithm แล้วผลตรงกัน จากนั้น freeze population input, N/e, seed fields/digest, algorithm, ordered candidate-set hash, ordered-result digest contract/hash, allocation และ results ทั้งหมด
 - `locked → active`: transaction เดียว activate run และเปลี่ยน active run เดิมของ workspace เป็น `superseded`; database constraint บังคับ active ได้ exactly one เมื่อ workspace เริ่ม sampling
 - `locked → cancelled` หรือ `draft → cancelled`: ต้องมี reason/audit; cancelled เป็น terminal และไม่ selectable
 - `active → superseded`: เกิดจาก activation ของ locked run ใหม่เท่านั้น; superseded immutable และใช้ได้เฉพาะ historical analysis ที่ผู้ใช้เลือก version อย่างชัดเจน

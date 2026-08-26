@@ -75,6 +75,7 @@ function run(evidence: SamplingEvidence): SamplingRun {
     seedU32: evidence.seedU32,
     algorithmVersion: evidence.algorithmVersion,
     orderedCandidateSetHash: evidence.orderedCandidateSetHash,
+    orderedResultHash: evidence.orderedResultHash,
     status: "draft",
     createdAt: "2026-08-26T01:00:00.000Z",
     updatedAt: "2026-08-26T01:00:01.000Z",
@@ -152,6 +153,27 @@ describe("sampling service", () => {
     const admin = await setup("admin");
     await expect(loadSamplingRunEvidence([admin.receipt], admin)).resolves.toEqual({ status: "ready", runs: [] });
     expect(admin.gateway.getEvidence!).not.toHaveBeenCalled();
+  });
+
+  it("bounds persisted evidence detail loads to the latest ten runs", async () => {
+    const manager = await setup("research_manager");
+    const runs = Array.from({ length: 12 }, (_, index) => ({
+      ...manager.receipt,
+      id: `22222222-2222-4222-8222-${String(index + 1).padStart(12, "0")}`,
+      version: 12 - index,
+    }));
+    vi.mocked(manager.gateway.getEvidence!).mockImplementation(async (id) => ({
+      ...manager.receipt,
+      id,
+    }));
+
+    const result = await loadSamplingRunEvidence(runs, manager);
+
+    expect(result.status).toBe("ready");
+    expect(result.status === "ready" ? result.runs : []).toHaveLength(10);
+    expect(manager.gateway.getEvidence).toHaveBeenCalledTimes(10);
+    expect(manager.gateway.getEvidence).toHaveBeenNthCalledWith(1, runs[0].id);
+    expect(manager.gateway.getEvidence).toHaveBeenNthCalledWith(10, runs[9].id);
   });
 
   it.each(["admin", "field_collector", "farmer", "evaluator_readonly"] as const)(

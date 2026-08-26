@@ -61,6 +61,7 @@ function runRow(evidence: Awaited<ReturnType<typeof fixture>>) {
     seed_u32: evidence.seedU32,
     algorithm_version: evidence.algorithmVersion,
     ordered_candidate_set_hash: evidence.orderedCandidateSetHash,
+    ordered_result_hash: evidence.orderedResultHash,
     status: "draft",
     created_at: "2026-08-26T01:00:00.000Z",
     updated_at: "2026-08-26T01:00:01.000Z",
@@ -99,6 +100,8 @@ function runRow(evidence: Awaited<ReturnType<typeof fixture>>) {
         selection_order: member.selectionOrder,
       })),
       ordered_selected_member_ids: evidence.orderedSelectedMemberIds,
+      ordered_result_digest_version: evidence.orderedResultDigestVersion,
+      ordered_result_hash: evidence.orderedResultHash,
     },
   };
 }
@@ -218,6 +221,20 @@ describe("Supabase sampling gateway", () => {
     const malformed = clientFor({ ...runRow(await fixture()), id: "not-a-uuid" });
     await expect(
       createSupabaseSamplingGateway(malformed as never).lock(runId, "2026-08-26T01:00:01.000Z"),
+    ).rejects.toEqual(new SamplingGatewayError("UNAVAILABLE"));
+  });
+
+  it("rejects result evidence with an unallowlisted key", async () => {
+    const row = runRow(await fixture());
+    const malformedRow = {
+      ...row,
+      result_evidence: { ...row.result_evidence, accidental_detail: "must not persist" },
+    };
+    await expect(
+      createSupabaseSamplingGateway(clientFor(malformedRow) as never).lock(
+        runId,
+        "2026-08-26T01:00:01.000Z",
+      ),
     ).rejects.toEqual(new SamplingGatewayError("UNAVAILABLE"));
   });
 

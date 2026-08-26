@@ -20,7 +20,7 @@ Navigation/filter ทุกหน้าเป็น convenience; server authoriz
 
 นำเข้าประชากร → ดู validation summary/ดาวน์โหลด error แบบจำกัด PII → ยืนยัน eligible snapshot → สร้าง workspace sampling run draft → กรอก N/e/seed → preview Yamane/allocation/algorithm evidence → replay check → lock → activate (supersede active เดิม) → assign collector → monitor funnel → review submitted response → verify หรือ return พร้อม reason → export anonymized ค่า default สำหรับ verified correction ผู้จัดการเลือก “ส่งกลับเพื่อแก้ไข” จาก verified, กรอก correction reason และเห็น snapshot เดิมแบบ read-only; ไม่มี control แก้ answer/capture consent/farm ledger
 
-หน้าสุ่มต้องแสดงสูตร, input, unrounded/rounded n, ตาราง `N_h/quota/floor/remainder/final`, seed digest, `sha256-mulberry32-fy-v1`, ordered candidate-set hash และ result digest ปุ่ม Lock ต้องมี confirmation ว่าแก้ไม่ได้ หน้ารายงานใช้ active run โดย default และ historical mode ต้องให้เลือก superseded version พร้อม label ชัด; cancelled เลือกไม่ได้
+หน้าสุ่มต้องแสดงสูตร, input, unrounded/rounded n, ตาราง `N_h/quota/floor/remainder/final`, seed digest, `sha256-mulberry32-fy-v1`, ordered candidate-set hash และ ordered result hash ตาม contract `ordered-result-sha256-v1` ปุ่ม Lock ต้องมี confirmation ว่าแก้ไม่ได้ ใบเสร็จที่บันทึกแล้วแสดง algorithm, seed digest, candidate-set hash, ordered-result hash และผลลัพธ์เรียงลำดับ โดยแยกข้อความ “ผลคำนวณเบื้องต้น” สำหรับ preview ออกจากหลักฐานที่บันทึกแล้ว หน้ารายงานใช้ active run โดย default และ historical mode ต้องให้เลือก superseded version พร้อม label ชัด; cancelled เลือกไม่ได้
 
 ### Field collector
 

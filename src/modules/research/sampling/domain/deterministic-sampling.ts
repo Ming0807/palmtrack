@@ -7,6 +7,7 @@
 
 export const SAMPLING_ALGORITHM_VERSION = "sha256-mulberry32-fy-v1" as const;
 export const SAMPLE_SIZE_FORMULA_VERSION = "yamane-v1" as const;
+export const ORDERED_RESULT_DIGEST_VERSION = "ordered-result-sha256-v1" as const;
 
 export type SamplingCandidate = {
   memberId: string;
@@ -76,6 +77,8 @@ export type SamplingEvidence = {
   allocationRows: AllocationRow[];
   orderedSelectedMembers: SelectedMember[];
   orderedSelectedMemberIds: string[];
+  orderedResultDigestVersion: typeof ORDERED_RESULT_DIGEST_VERSION;
+  orderedResultHash: string;
 };
 
 type NormalizedCandidate = {
@@ -210,10 +213,31 @@ function normalizeStrata(
 }
 
 function toUint32BigEndian(value: number): Uint8Array {
+  if (!Number.isSafeInteger(value) || value < 0 || value > 0xffffffff) {
+    invalid("canonical uint32 value is outside the supported range");
+  }
   const bytes = new Uint8Array(4);
   const view = new DataView(bytes.buffer);
   view.setUint32(0, value >>> 0, false);
   return bytes;
+}
+
+function canonicalOrderedResultBytes(members: readonly SelectedMember[]): Uint8Array {
+  return concatBytes(
+    [...members]
+      .sort((left, right) => left.selectionOrder - right.selectionOrder)
+      .map((member) => {
+        const memberId = utf8(member.memberId);
+        const stratumCode = utf8(member.stratumCode);
+        return concatBytes([
+          toUint32BigEndian(memberId.length),
+          memberId,
+          toUint32BigEndian(stratumCode.length),
+          stratumCode,
+          toUint32BigEndian(member.selectionOrder),
+        ]);
+      }),
+  );
 }
 
 function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
@@ -400,6 +424,8 @@ function evidenceComparable(evidence: SamplingEvidence): unknown {
     allocationRows: evidence.allocationRows,
     orderedSelectedMembers: evidence.orderedSelectedMembers,
     orderedSelectedMemberIds: evidence.orderedSelectedMemberIds,
+    orderedResultDigestVersion: evidence.orderedResultDigestVersion,
+    orderedResultHash: evidence.orderedResultHash,
   };
 }
 
@@ -476,6 +502,8 @@ export async function buildSamplingEvidence(
   }
   if (orderedSelectedMembers.length !== targetN) invalid("unable to select target");
 
+  const orderedResultHash = bytesToHex(await sha256(canonicalOrderedResultBytes(orderedSelectedMembers)));
+
   return {
     algorithmVersion: SAMPLING_ALGORITHM_VERSION,
     formulaVersion: SAMPLE_SIZE_FORMULA_VERSION,
@@ -498,6 +526,8 @@ export async function buildSamplingEvidence(
     allocationRows,
     orderedSelectedMembers,
     orderedSelectedMemberIds: orderedSelectedMembers.map((member) => member.memberId),
+    orderedResultDigestVersion: ORDERED_RESULT_DIGEST_VERSION,
+    orderedResultHash,
   };
 }
 

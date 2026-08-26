@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { ORDERED_RESULT_DIGEST_VERSION } from "@/modules/research/sampling/domain/deterministic-sampling";
 import type {
   AllocationRow,
   SamplingCandidate,
@@ -40,6 +41,7 @@ export type SamplingRun = {
   seedU32: number;
   algorithmVersion: "sha256-mulberry32-fy-v1";
   orderedCandidateSetHash: string;
+  orderedResultHash: string;
   status: SamplingRunStatus;
   createdAt: string;
   updatedAt: string;
@@ -66,8 +68,10 @@ export type SamplingRunSummary = Pick<
   | "formulaVersion"
   | "stratumDefinitionVersion"
   | "algorithmVersion"
+  | "orderedResultHash"
   | "status"
   | "createdAt"
+  | "updatedAt"
   | "lockedAt"
   | "activatedAt"
   | "supersededAt"
@@ -190,7 +194,9 @@ const resultEvidenceSchema = z.object({
   shuffled_member_ids: z.array(uuid),
   ordered_selected_members: z.array(selectedMemberSchema),
   ordered_selected_member_ids: z.array(uuid),
-});
+  ordered_result_digest_version: z.literal(ORDERED_RESULT_DIGEST_VERSION),
+  ordered_result_hash: hash,
+}).strict();
 
 const fullRunRowSchema = z.object({
   id: uuid,
@@ -210,6 +216,7 @@ const fullRunRowSchema = z.object({
   seed_u32: integer,
   algorithm_version: z.literal("sha256-mulberry32-fy-v1"),
   ordered_candidate_set_hash: hash,
+  ordered_result_hash: hash,
   status,
   created_at: timestamp,
   updated_at: timestamp,
@@ -233,8 +240,10 @@ const listRunRowSchema = z.object({
   formula_version: z.literal("yamane-v1"),
   stratum_definition_version: z.string().min(1),
   algorithm_version: z.literal("sha256-mulberry32-fy-v1"),
+  ordered_result_hash: hash,
   status,
   created_at: timestamp,
+  updated_at: timestamp,
   locked_at: timestamp.nullable(),
   activated_at: timestamp.nullable(),
   superseded_at: timestamp.nullable(),
@@ -313,6 +322,8 @@ function mapResultEvidence(
       selectionOrder: member.selection_order,
     })),
     orderedSelectedMemberIds: row.ordered_selected_member_ids,
+    orderedResultDigestVersion: row.ordered_result_digest_version,
+    orderedResultHash: row.ordered_result_hash,
   };
 }
 
@@ -338,6 +349,7 @@ function mapFullRun(row: unknown): SamplingRun {
     seedU32: value.seed_u32,
     algorithmVersion: value.algorithm_version,
     orderedCandidateSetHash: value.ordered_candidate_set_hash,
+    orderedResultHash: value.ordered_result_hash,
     status: value.status,
     createdAt: value.created_at,
     updatedAt: value.updated_at,
@@ -368,11 +380,13 @@ function mapListRun(row: unknown): SamplingRunSummary {
     algorithmVersion: value.algorithm_version,
     status: value.status,
     createdAt: value.created_at,
+    updatedAt: value.updated_at,
     lockedAt: value.locked_at,
     activatedAt: value.activated_at,
     supersededAt: value.superseded_at,
     cancelledAt: value.cancelled_at,
     allocationEvidence: value.allocation_evidence.map(mapAllocation),
+    orderedResultHash: value.ordered_result_hash,
   };
 }
 
@@ -420,6 +434,8 @@ function resultPayload(evidence: SamplingEvidence) {
       selection_order: member.selectionOrder,
     })),
     ordered_selected_member_ids: evidence.orderedSelectedMemberIds,
+    ordered_result_digest_version: evidence.orderedResultDigestVersion,
+    ordered_result_hash: evidence.orderedResultHash,
   };
 }
 
