@@ -736,7 +736,7 @@ returns table (
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
   ordered_candidate_set_hash text, status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
 )
@@ -750,7 +750,7 @@ as $$
     run.margin_of_error, run.unrounded_result, run.rounding_rule, run.target_n,
     run.formula_version, run.stratum_definition_version, run.seed_text, run.seed_normalized, run.seed_normalized_utf8_hex,
     run.seed_digest_hex, run.seed_u32, run.algorithm_version,
-    run.ordered_candidate_set_hash, run.status, run.created_at, run.locked_at,
+    run.ordered_candidate_set_hash, run.status, run.created_at, run.updated_at, run.locked_at,
     run.activated_at, run.superseded_at, run.cancelled_at, run.cancellation_reason_digest,
     coalesce((select jsonb_agg(to_jsonb(allocation) - 'id' - 'sampling_run_id' - 'workspace_id' order by allocation.stratum_code) from public.sampling_allocation allocation where allocation.sampling_run_id = run.id), '[]'::jsonb),
     run.result_evidence
@@ -781,7 +781,7 @@ returns table (
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
   ordered_candidate_set_hash text, status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
 )
@@ -1114,7 +1114,7 @@ returns table (
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
   ordered_candidate_set_hash text, status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
 )
@@ -1395,7 +1395,7 @@ returns table (
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
   ordered_candidate_set_hash text, status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
 )
@@ -1410,14 +1410,14 @@ as $$
   );
 $$;
 
-create or replace function public.lock_sampling_run(p_run_id uuid)
+create or replace function public.lock_sampling_run(p_run_id uuid, p_expected_updated_at timestamptz)
 returns table (
   id uuid, version bigint, population_import_id uuid, population_size bigint,
   margin_of_error numeric, unrounded_result numeric, rounding_rule text, target_n bigint,
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
   ordered_candidate_set_hash text, status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
 )
@@ -1439,6 +1439,9 @@ begin
   if not found or v_run.status is distinct from 'draft' then
     raise exception using errcode = '42501', message = 'sampling run transition is not permitted';
   end if;
+  if p_expected_updated_at is null or v_run.updated_at is distinct from p_expected_updated_at then
+    raise exception using errcode = '40001', message = 'sampling run changed since evidence read';
+  end if;
   perform set_config('palmtrack.sampling_transition', 'lock', true);
   update public.sampling_run set status = 'locked', locked_by = v_actor, locked_at = statement_timestamp(), updated_at = statement_timestamp() where public.sampling_run.id = v_run.id;
   perform private.append_audit_event(v_workspace, v_actor, 'sampling.run_locked', 'sampling_run', v_run.id, 'success', jsonb_build_object(
@@ -1451,6 +1454,9 @@ begin
 end;
 $$;
 
+comment on function public.lock_sampling_run(uuid, timestamptz) is
+  'Locks a draft only when the expected updated_at matches the row locked in this transaction.';
+
 create or replace function public.activate_sampling_run(p_run_id uuid)
 returns table (
   id uuid, version bigint, population_import_id uuid, population_size bigint,
@@ -1458,7 +1464,7 @@ returns table (
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
   ordered_candidate_set_hash text, status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
 )
@@ -1509,7 +1515,7 @@ returns table (
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
   ordered_candidate_set_hash text, status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
 )
@@ -1656,7 +1662,7 @@ returns table (
   formula_version text, stratum_definition_version text, seed_text text, seed_normalized text, seed_normalized_utf8_hex text,
   seed_digest_hex text, seed_u32 bigint, algorithm_version text,
   ordered_candidate_set_hash text, status public.sampling_run_status,
-  created_at timestamptz, locked_at timestamptz, activated_at timestamptz,
+  created_at timestamptz, updated_at timestamptz, locked_at timestamptz, activated_at timestamptz,
   superseded_at timestamptz, cancelled_at timestamptz, cancellation_reason_digest text,
   allocation_evidence jsonb, result_evidence jsonb
 )
@@ -1679,7 +1685,7 @@ $$;
 
 revoke all on function
   public.create_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid),
-  public.lock_sampling_run(uuid), public.activate_sampling_run(uuid),
+  public.lock_sampling_run(uuid, timestamptz), public.activate_sampling_run(uuid),
   public.cancel_sampling_run(uuid, text), public.list_sampling_runs(),
   public.get_sampling_candidates(uuid), public.get_sampling_population_candidates(uuid), public.get_sampling_run_evidence(uuid),
   public.update_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid),
@@ -1688,7 +1694,7 @@ revoke all on function
     palmtrack_audit_writer, palmtrack_recovery_executor;
 grant execute on function
   public.create_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid),
-  public.lock_sampling_run(uuid), public.activate_sampling_run(uuid),
+  public.lock_sampling_run(uuid, timestamptz), public.activate_sampling_run(uuid),
   public.cancel_sampling_run(uuid, text), public.list_sampling_runs(),
   public.get_sampling_candidates(uuid), public.get_sampling_population_candidates(uuid), public.get_sampling_run_evidence(uuid),
   public.update_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid),
@@ -1696,7 +1702,7 @@ grant execute on function
   to authenticated;
 
 alter function public.create_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid) owner to palmtrack_transaction_owner;
-alter function public.lock_sampling_run(uuid) owner to palmtrack_transaction_owner;
+alter function public.lock_sampling_run(uuid, timestamptz) owner to palmtrack_transaction_owner;
 alter function public.activate_sampling_run(uuid) owner to palmtrack_transaction_owner;
 alter function public.cancel_sampling_run(uuid, text) owner to palmtrack_transaction_owner;
 alter function public.list_sampling_runs() owner to palmtrack_transaction_owner;

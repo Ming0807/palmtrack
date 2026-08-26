@@ -167,7 +167,7 @@ export async function lockSamplingRun(
       ...persistedEvidence,
     });
     if (!replayed) return { status: "replay_mismatch" };
-    return { status: "ready", run: await deps.gateway.lock(runId) };
+    return { status: "ready", run: await deps.gateway.lock(runId, persisted.updatedAt) };
   } catch (error) {
     return failure(error) as SamplingRunState;
   }

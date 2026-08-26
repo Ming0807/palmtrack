@@ -8,7 +8,7 @@ drop function if exists public.update_sampling_draft(uuid, text, numeric, text, 
 drop function if exists public.list_sampling_runs();
 drop function if exists public.cancel_sampling_run(uuid, text);
 drop function if exists public.activate_sampling_run(uuid);
-drop function if exists public.lock_sampling_run(uuid);
+drop function if exists public.lock_sampling_run(uuid, timestamptz);
 drop function if exists public.create_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid);
 drop function if exists private.sampling_run_result(uuid);
 drop function if exists private.validate_sampling_evidence_shape(jsonb, jsonb);

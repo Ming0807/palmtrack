@@ -42,6 +42,7 @@ export type SamplingRun = {
   orderedCandidateSetHash: string;
   status: SamplingRunStatus;
   createdAt: string;
+  updatedAt: string;
   lockedAt: string | null;
   activatedAt: string | null;
   supersededAt: string | null;
@@ -82,7 +83,7 @@ export interface SamplingGateway {
   getEvidence?(runId: string): Promise<SamplingRun>;
   createDraft(input: SamplingDraftCommand): Promise<SamplingRun>;
   listRuns(): Promise<SamplingRunSummary[]>;
-  lock(runId: string): Promise<SamplingRun>;
+  lock(runId: string, expectedUpdatedAt: string): Promise<SamplingRun>;
   activate(runId: string): Promise<SamplingRun>;
   cancel(runId: string, reason: string): Promise<SamplingRun>;
 }
@@ -101,13 +102,48 @@ const canonicalDecimalPattern = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/u;
 const canonicalIntegerPattern = /^-?(?:0|[1-9]\d*)$/u;
 const safeFiniteNumeric = (value: number): boolean =>
   Number.isFinite(value) && (!Number.isInteger(value) || Number.isSafeInteger(value));
+
+function normalizedDecimal(value: string): string | null {
+  const match = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/u.exec(value);
+  if (!match) return null;
+  const sign = match[1] === "-" ? "-" : "";
+  const integerPart = match[2];
+  const fractionPart = match[3] ?? "";
+  const exponent = Number(match[4] ?? "0");
+  const digits = `${integerPart}${fractionPart}`.replace(/^0+/u, "") || "0";
+  const decimalPosition = integerPart.length + exponent;
+  let expanded: string;
+  if (decimalPosition <= 0) {
+    expanded = `0.${"0".repeat(-decimalPosition)}${digits}`;
+  } else if (decimalPosition >= digits.length) {
+    expanded = `${digits}${"0".repeat(decimalPosition - digits.length)}`;
+  } else {
+    expanded = `${digits.slice(0, decimalPosition)}.${digits.slice(decimalPosition)}`;
+  }
+  const [whole, fraction = ""] = expanded.split(".");
+  const canonicalWhole = whole.replace(/^0+(?=\d)/u, "");
+  const canonicalFraction = fraction.replace(/0+$/u, "");
+  if (canonicalWhole === "0" && canonicalFraction.length === 0) return "0";
+  return canonicalFraction.length === 0
+    ? `${sign}${canonicalWhole}`
+    : `${sign}${canonicalWhole}.${canonicalFraction}`;
+}
+
+const roundTripSafeDecimal = (value: string): boolean => {
+  const numericValue = Number(value);
+  return (
+    safeFiniteNumeric(numericValue) &&
+    normalizedDecimal(value) === normalizedDecimal(numericValue.toString())
+  );
+};
+
 const numeric = z
   .union([
     z.number().refine(safeFiniteNumeric),
     z
       .string()
       .regex(canonicalDecimalPattern)
-      .refine((value) => safeFiniteNumeric(Number(value))),
+      .refine(roundTripSafeDecimal),
   ])
   .transform((value) => (typeof value === "string" ? Number(value) : value));
 const integer = z
@@ -176,6 +212,7 @@ const fullRunRowSchema = z.object({
   ordered_candidate_set_hash: hash,
   status,
   created_at: timestamp,
+  updated_at: timestamp,
   locked_at: timestamp.nullable(),
   activated_at: timestamp.nullable(),
   superseded_at: timestamp.nullable(),
@@ -303,6 +340,7 @@ function mapFullRun(row: unknown): SamplingRun {
     orderedCandidateSetHash: value.ordered_candidate_set_hash,
     status: value.status,
     createdAt: value.created_at,
+    updatedAt: value.updated_at,
     lockedAt: value.locked_at,
     activatedAt: value.activated_at,
     supersededAt: value.superseded_at,
@@ -450,8 +488,13 @@ export function createSupabaseSamplingGateway(client: RpcClient): SamplingGatewa
       if (!parsed.success) return malformed();
       return parsed.data.map(mapListRun);
     },
-    async lock(runId) {
-      return mapFullRun(await singleRpc(client, "lock_sampling_run", { p_run_id: runId }));
+    async lock(runId, expectedUpdatedAt) {
+      return mapFullRun(
+        await singleRpc(client, "lock_sampling_run", {
+          p_run_id: runId,
+          p_expected_updated_at: expectedUpdatedAt,
+        }),
+      );
     },
     async activate(runId) {
       return mapFullRun(await singleRpc(client, "activate_sampling_run", { p_run_id: runId }));
