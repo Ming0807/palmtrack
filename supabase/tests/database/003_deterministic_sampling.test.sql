@@ -23,6 +23,9 @@ select has_function('public', 'activate_sampling_run', array['uuid'], '[INT-02] 
 select has_function('public', 'cancel_sampling_run', array['uuid', 'text'], '[INT-02] cancel RPC exists');
 select has_function('public', 'list_sampling_runs', array[]::text[], '[INT-02] safe run list RPC exists');
 select has_function('public', 'get_sampling_candidates', array['uuid'], '[INT-02] safe candidate RPC exists');
+select has_function('public', 'get_sampling_run_evidence', array['uuid'], '[INT-02] manager evidence RPC exists');
+select has_function('public', 'update_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], '[INT-02] draft regeneration RPC exists');
+select has_function('public', 'regenerate_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], '[INT-02] draft regeneration alias RPC exists');
 
 select ok(
   (
@@ -42,6 +45,9 @@ select function_privs_are('public', 'activate_sampling_run', array['uuid'], 'aut
 select function_privs_are('public', 'cancel_sampling_run', array['uuid', 'text'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call cancel RPC only');
 select function_privs_are('public', 'list_sampling_runs', array[]::text[], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call list RPC only');
 select function_privs_are('public', 'get_sampling_candidates', array['uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call candidate RPC only');
+select function_privs_are('public', 'get_sampling_run_evidence', array['uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call manager evidence RPC only');
+select function_privs_are('public', 'update_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call draft update RPC only');
+select function_privs_are('public', 'regenerate_sampling_draft', array['uuid', 'text', 'numeric', 'text', 'text', 'bigint', 'text', 'jsonb', 'jsonb', 'uuid'], 'authenticated', array['EXECUTE'], '[RLS-09] authenticated may call draft regeneration alias only');
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at
@@ -67,6 +73,20 @@ cross join (values
   ('00000000-0000-0000-0000-000000000815'::uuid, '00000000-0000-0000-0000-000000000805'::uuid, 'evaluator_readonly')
 ) as fixture(profile_id, auth_user_id, role)
 where workspace.status = 'active';
+
+set local role authenticated;
+set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000801';
+set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000801","role":"authenticated"}';
+select throws_ok(
+  $$ select * from public.create_sampling_draft(
+    '00000000-0000-0000-0000-000000000999'::uuid,
+    'sample-seed', 0.5, 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    '[]'::jsonb, '{}'::jsonb, '00000000-0000-0000-0000-000000000999'::uuid
+  ) $$,
+  '42501', null,
+  '[SEC-02] admin cannot mutate sampling lifecycle'
+);
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000801';
@@ -288,7 +308,107 @@ select throws_ok(
   '[RLS-09] cross-workspace accepted snapshots are denied'
 );
 
+select throws_ok(
+  $$ select * from public.create_sampling_draft(
+    (select id from public.population_import where source_label = 'FX-SAMPLING'),
+    'sample-seed', 0.5, 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where status = 'active' limit 1),
+    (select result_evidence from public.sampling_run where status = 'active' limit 1) || '{"unexpected_key":true}'::jsonb,
+    '00000000-0000-0000-0000-000000000909'::uuid
+  ) $$,
+  '22023', null,
+  '[SEC-02] arbitrary result evidence keys are rejected'
+);
+select throws_ok(
+  $$ select * from public.create_sampling_draft(
+    (select id from public.population_import where source_label = 'FX-SAMPLING'),
+    'sample-seed', 0.5, 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where status = 'active' limit 1),
+    jsonb_set((select result_evidence from public.sampling_run where status = 'active' limit 1), '{population_size}', '4.5'::jsonb),
+    '00000000-0000-0000-0000-000000000910'::uuid
+  ) $$,
+  '22023', null,
+  '[SEC-02] non-integral numeric evidence is rejected before bigint casting'
+);
+select throws_ok(
+  $$ select * from public.create_sampling_draft(
+    (select id from public.population_import where source_label = 'FX-SAMPLING'),
+    'sample-seed', 0.5, 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where status = 'active' limit 1),
+    jsonb_set((select result_evidence from public.sampling_run where status = 'active' limit 1), '{swap_trace,0}', '{"i":3,"j":2,"extra":1}'::jsonb),
+    '00000000-0000-0000-0000-000000000911'::uuid
+  ) $$,
+  '22023', null,
+  '[SEC-02] swap trace object keys are exact'
+);
+select throws_ok(
+  $$ select * from public.create_sampling_draft(
+    (select id from public.population_import where source_label = 'FX-SAMPLING'),
+    'sample-seed', 0.5, 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where status = 'active' limit 1),
+    (select result_evidence from public.sampling_run where status = 'active' limit 1) - 'shuffled_member_ids',
+    '00000000-0000-0000-0000-000000000912'::uuid
+  ) $$,
+  '22023', null,
+  '[SEC-02] required shuffled and swap evidence arrays cannot be omitted'
+);
+
+select lives_ok(
+  $$ select * from public.create_sampling_draft(
+    (select id from public.population_import where source_label = 'FX-SAMPLING'),
+    'sample-seed', 0.5, 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where status = 'active' limit 1),
+    (select result_evidence from public.sampling_run where status = 'active' limit 1),
+    '00000000-0000-0000-0000-000000000913'::uuid
+  ) $$,
+  '[INT-02] draft exists for audited regeneration'
+);
+select lives_ok(
+  $$ select * from public.update_sampling_draft(
+    (select id from public.sampling_run where status = 'draft' limit 1),
+    'sample-seed', 0.5, 'stratum-definition-v2', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where status = 'draft' limit 1),
+    (select result_evidence from public.sampling_run where status = 'draft' limit 1),
+    '00000000-0000-0000-0000-000000000914'::uuid
+  ) $$,
+  '[INT-02] manager regenerates only a draft input/evidence set'
+);
+select is((select stratum_definition_version from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid), 'stratum-definition-v2', '[INT-02] regenerated input persists on the same run');
+select is((select count(*) from public.sampling_run), 4::bigint, '[INT-02] regeneration does not create a duplicate run');
+select lives_ok(
+  $$ select * from public.update_sampling_draft(
+    (select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    'sample-seed', 0.5, 'stratum-definition-v2', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    (select result_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    '00000000-0000-0000-0000-000000000914'::uuid
+  ) $$,
+  '[INT-02] identical regeneration idempotency retry returns the same run'
+);
+select throws_ok(
+  $$ select * from public.update_sampling_draft(
+    (select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    'sample-seed', 0.5, 'stratum-definition-v3', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    (select allocation_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    (select result_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    '00000000-0000-0000-0000-000000000914'::uuid
+  ) $$,
+  '23505', null,
+  '[INT-02] changed regeneration retry conflicts on the same idempotency key'
+);
+select lives_ok($$ select * from public.get_sampling_run_evidence((select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid)) $$, '[INT-02] manager can replay draft evidence through the dedicated detail RPC');
+select throws_ok($$ select * from public.get_sampling_candidates((select id from public.sampling_run where status = 'cancelled' limit 1)) $$, '42501', null, '[SEC-02] cancelled runs cannot provide selectable candidate projections');
 reset role;
+select is((select count(*) from public.audit_event where action_code = 'sampling.run_regenerated'), 1::bigint, '[AUD-01] regeneration appends one allowlisted audit event per change');
+
 set local role authenticated;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000803';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000803","role":"authenticated"}';
@@ -303,10 +423,15 @@ select throws_ok($$ select * from public.list_sampling_runs() $$, '42501', null,
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000805';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000805","role":"authenticated"}';
 select lives_ok($$ select * from public.list_sampling_runs() $$, '[RLS-09] evaluator receives safe run projections');
-select lives_ok($$ select * from public.get_sampling_candidates((select id from public.list_sampling_runs() where status = 'active')) $$, '[RLS-09] evaluator receives safe candidate projections');
+select throws_ok($$ select * from public.get_sampling_candidates((select id from public.list_sampling_runs() where status = 'active')) $$, '42501', null, '[RLS-09] evaluator cannot read member-level candidates');
+select ok(
+  not ((select to_jsonb(row) from public.list_sampling_runs() as row where status = 'active' limit 1)
+    ?| array['population_import_id', 'result_evidence', 'seed_text', 'seed_digest_hex', 'ordered_candidate_set_hash']),
+  '[RLS-09] evaluator summary omits population, seed, result and member evidence identifiers'
+);
 
 reset role;
-select is((select count(*) from public.audit_event where action_code like 'sampling.%'), 9::bigint, '[AUD-01] all lifecycle transitions append allowlisted audits');
+select is((select count(*) from public.audit_event where action_code like 'sampling.%'), 11::bigint, '[AUD-01] all lifecycle transitions append allowlisted audits');
 
 select * from finish();
 rollback;

@@ -1,12 +1,21 @@
 begin;
 
 drop function if exists public.get_sampling_candidates(uuid);
+drop function if exists public.get_sampling_run_evidence(uuid);
+drop function if exists public.regenerate_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid);
+drop function if exists public.update_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid);
 drop function if exists public.list_sampling_runs();
 drop function if exists public.cancel_sampling_run(uuid, text);
 drop function if exists public.activate_sampling_run(uuid);
 drop function if exists public.lock_sampling_run(uuid);
 drop function if exists public.create_sampling_draft(uuid, text, numeric, text, text, bigint, text, jsonb, jsonb, uuid);
 drop function if exists private.sampling_run_result(uuid);
+drop function if exists private.validate_sampling_evidence_shape(jsonb, jsonb);
+
+drop trigger if exists sampling_draft_update_truncate_guard on public.sampling_draft_update;
+drop trigger if exists sampling_draft_update_delete_guard on public.sampling_draft_update;
+drop trigger if exists sampling_draft_update_update_guard on public.sampling_draft_update;
+drop trigger if exists sampling_draft_update_insert_guard on public.sampling_draft_update;
 
 drop trigger if exists sample_member_truncate_guard on public.sample_member;
 drop trigger if exists sample_member_delete_guard on public.sample_member;
@@ -27,6 +36,7 @@ drop function if exists private.reject_sampling_mutation();
 
 drop table if exists public.sample_member;
 drop table if exists public.sampling_allocation;
+drop table if exists public.sampling_draft_update;
 drop table if exists public.sampling_run;
 
 alter table public.population_member
