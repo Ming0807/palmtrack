@@ -695,3 +695,17 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | `npm run test:db` first failed on absent sampling objects; review `npm run test:db` RED caught accepted forged `N_h` and admin candidate/detail access; clean reset, focused pgTAP, and `npm run lint:db` completed successfully |
 | Resolution / status | `resolved` — enforce exact eligible-member counts per stratum in create/update, restrict candidate/detail RPCs to `research_manager`, and verify 191 pgTAP assertions plus database lint pass |
 | Related commit | `dbb2f74`, `7911c59`, `a4af2e8`, `b36babd` |
+
+### DEV-20260826-050 — Synthetic 121-member allocation precision boundary
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-26T04:55:30Z` (entry time; exact earlier failure times were not captured) |
+| Environment | Supabase local authenticated sampling E2E |
+| Severity | medium |
+| Component | deterministic sampling allocation evidence boundary |
+| Error code / sanitized message | `SAMPLING_ALLOCATION_FLOAT_TOLERANCE` — local `create_sampling_draft` rejected a valid 121-member synthetic preview because JavaScript quota/remainder values differed from PostgreSQL exact numerics by more than the migration's `1e-15` comparison tolerance |
+| Impact | The first three-stratum fixture distributions could not create a draft; no hosted database or real-person data was involved |
+| Reproduction / evidence | Focused sampling E2E preview reached `N=121`, `n=93`; direct local RPC diagnostics identified the allocation-formula check. A 32/32/57 synthetic stratum distribution keeps both quota and remainder errors below tolerance and the clean 8-test sampling run passes |
+| Resolution / status | `resolved` — use `NORTH=32`, `CENTRAL=32`, `SOUTH=57` in the acceptance fixture; no runtime or migration change was required |
+| Related commit | `test: verify sampling workflow end to end` |

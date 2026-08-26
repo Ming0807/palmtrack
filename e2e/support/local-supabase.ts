@@ -16,6 +16,7 @@ type Credential = { email: string; password: string };
 type CredentialMap = Record<LocalE2ERole, Credential>;
 
 export const validFixturePath = path.resolve("e2e/fixtures/population-valid.csv");
+export const samplingFixturePath = path.resolve("e2e/fixtures/population-acceptance-121.csv");
 export const duplicateFixturePath = path.resolve(
   "e2e/fixtures/population-invalid-duplicate.csv",
 );

@@ -48,7 +48,7 @@ Evidence นี้เป็น progress ของ increment ไม่ใช่ V
 
 | Requirement | Implemented evidence in this increment | Status boundary |
 |---|---|---|
-| FR-02 | strict synthetic CSV parser/canonical digest; atomic create/list/accept RPCs; immutable accepted snapshot; source authorization, eligibility rule, counts and actor timestamps; Thai `/app/research/population` flow | unit, server, 98 local pgTAP assertions and authenticated local E2E pass; 121-member sampling/Yamane/allocation remain pending and migration `202608250002` is not hosted |
+| FR-02 | strict synthetic CSV parser/canonical digest; atomic create/list/accept RPCs; immutable accepted snapshot; source authorization, eligibility rule, counts and actor timestamps; Thai `/app/research/population` flow | unit, server, 98 local pgTAP assertions and authenticated local E2E pass; the 121-member acceptance fixture is also accepted in focused sampling E2E; migration `202608250002` is not hosted |
 | NFR-01 | application role gate plus database RPC role gate; no direct API table privileges; RLS forced; collector/farmer/evaluator and anonymous denial | exact local negative matrix passes; hosted evidence remains at Safety Skeleton migration 001 |
 | NFR-03 | create and accept audit events contain allowlisted provenance/count/status fields with stable profile actors; accepted record cannot be edited or deleted | local pgTAP checks exact before/after evidence and mutation guards; hosted 002 audit evidence pending |
 | NFR-05 | Thai minimal-premium evidence sheet at 360px and desktop with synthetic-only boundary and no horizontal overflow | [bounded screenshots](assets/population-import/README.md) and authenticated browser run pass |
@@ -57,3 +57,15 @@ Evidence นี้เป็น progress ของ increment ไม่ใช่ V
 | NFR-09 | ordered migration, 98 assertions, schema lint, reviewed compensating rollback and sanitized incident ledger | local implementation evidence complete; deploy/restore/hosted migration evidence remains pending |
 
 Evidence นี้เป็น tracer-bullet progress ไม่ใช่ FR-02/V1 acceptance sign-off และไม่อนุญาตข้อมูลจริง
+
+## Sampling acceptance evidence status — 2026-08-26
+
+| Requirement | Implemented evidence in this increment | Status boundary |
+|---|---|---|
+| FR-03 | synthetic `FX-BASE` fixture with 121 eligible members across `NORTH`, `CENTRAL`, `SOUTH`; authenticated manager preview shows Yamane `N=121/e=0.05/n=93`, largest-remainder rows, normalized seed, algorithm and digest evidence; manager completes draft → locked → active and reloads the persisted receipt | focused local `e2e/sampling.spec.ts` passes in mobile and desktop projects; this task does not claim hosted migration or full unit/database/build verification |
+| NFR-01 | collector and farmer receive non-enumerating forbidden state; evaluator receives summary/aggregate receipt only and no mutation form or transition controls | focused local role negatives pass; this is not the complete V1 RLS negative matrix |
+| NFR-04 | persisted sampling receipt includes seed, candidate/result digest and ordered stratum evidence for the active run | focused E2E confirms the visible receipt after reload; deterministic unit/database evidence remains separately bounded |
+| NFR-05 | Thai authenticated sampling page captured at 360×800 and 1365×900 with visible synthetic-only boundary | [sampling screenshots](assets/sampling/README.md) and focused local browser run pass; field usability sign-off remains pending |
+| NFR-06 | manager confirmation dialogs receive focus, the primary journey completes, and both configured viewports have no horizontal overflow | focused local assertions pass; no axe scan was added to this sampling-only run |
+
+หลักฐานนี้เป็น local synthetic acceptance evidence ของ sampling slice ไม่ใช่ V1 acceptance sign-off และไม่อนุญาตให้สรุป hosted migration, real-data readiness หรือ unexecuted full-suite checks
