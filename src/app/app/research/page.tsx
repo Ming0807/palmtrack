@@ -26,7 +26,7 @@ export default async function ResearchPage() {
       <div className={styles.notice}>
         <DatabaseZap size={24} aria-hidden="true" />
         <h2>การสุ่มตัวอย่าง</h2>
-        <p>ดู sampling run และหลักฐานการคำนวณของพื้นที่ทำงาน</p>
+        <p>ดูรายการ sampling run ของพื้นที่ทำงาน</p>
         <Link href="/app/research/sampling">เปิดงานสุ่มตัวอย่าง <ArrowRight size={17} aria-hidden="true" /></Link>
       </div>
     </section>
