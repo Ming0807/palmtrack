@@ -17,6 +17,7 @@ import {
   createSamplingDraft,
   listSamplingRuns,
   lockSamplingRun,
+  loadSamplingRunEvidence,
   previewSampling,
 } from "@/modules/research/sampling/server/sampling-service";
 
@@ -139,6 +140,19 @@ describe("sampling service", () => {
       await expect(listSamplingRuns(deps)).resolves.toMatchObject({ status: "ready" });
     },
   );
+
+  it("loads detailed receipts per run only for a research manager", async () => {
+    const manager = await setup("research_manager");
+    await expect(loadSamplingRunEvidence([manager.receipt], manager)).resolves.toMatchObject({
+      status: "ready",
+      runs: [{ id: runId, seedDigestHex: manager.evidence.seedDigestHex }],
+    });
+    expect(manager.gateway.getEvidence!).toHaveBeenCalledWith(runId);
+
+    const admin = await setup("admin");
+    await expect(loadSamplingRunEvidence([admin.receipt], admin)).resolves.toEqual({ status: "ready", runs: [] });
+    expect(admin.gateway.getEvidence!).not.toHaveBeenCalled();
+  });
 
   it.each(["admin", "field_collector", "farmer", "evaluator_readonly"] as const)(
     "forbids %s from mutation before gateway access",

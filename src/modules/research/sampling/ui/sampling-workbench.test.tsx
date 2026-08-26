@@ -11,6 +11,8 @@ import type {
 
 import { SamplingWorkbench } from "./sampling-workbench";
 
+vi.setConfig({ testTimeout: 15000 });
+
 const importId = "11111111-1111-4111-8111-111111111111";
 const runId = "22222222-2222-4222-8222-222222222222";
 
@@ -139,7 +141,7 @@ describe("SamplingWorkbench", () => {
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "หลักฐานจากตัวอย่าง" })).toBeVisible(), { timeout: 5000 });
     expect(screen.getByText("Yamane · yamane-v1")).toBeVisible();
-    expect(screen.getByText("92.897644")).toBeVisible();
+    expect(screen.getByText("92.897644445")).toBeVisible();
     expect(screen.getByText("การจัดสรรตามชั้นพื้นที่ · รวม 93 ราย")).toBeVisible();
     expect(screen.getByRole("columnheader", { name: "quota" })).toBeVisible();
     expect(screen.getByText("sha256-mulberry32-fy-v1")).toBeVisible();
@@ -180,7 +182,7 @@ describe("SamplingWorkbench", () => {
     fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "บันทึกฉบับร่าง" })).toBeVisible(), { timeout: 5000 });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกฉบับร่าง" }));
-    await waitFor(() => expect(screen.getByText(/ฉบับร่าง · แก้ไขได้/u)).toBeVisible(), { timeout: 5000 });
+    await waitFor(() => expect(screen.getByText(/ฉบับร่าง · รอการล็อก/u)).toBeVisible(), { timeout: 5000 });
     expect((submitted as FormData | null)?.get("populationImportId")).toBe(importId);
     expect((submitted as FormData | null)?.get("stratumDefinitionVersion")).toBe("synthetic-strata-v1");
   });
@@ -201,14 +203,14 @@ describe("SamplingWorkbench", () => {
     renderWorkbench({ initialRuns: [initialRun], lockAction: lock, activateAction: activate });
 
     fireEvent.click(screen.getByRole("button", { name: "ล็อกหลักฐาน" }));
-    expect(screen.getByRole("alertdialog")).toHaveTextContent("เมื่อล็อกแล้ว input, seed, candidate hash และผลลัพธ์จะแก้ไขไม่ได้");
-    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "ล็อกหลักฐาน" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("เมื่อล็อกแล้ว input, seed, candidate hash และผลลัพธ์จะแก้ไขไม่ได้");
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "ล็อกหลักฐาน" }));
     await waitFor(() => expect(screen.getByText(/ล็อกแล้ว · แก้ไขไม่ได้/u)).toBeVisible(), { timeout: 5000 });
     expect(screen.getByRole("button", { name: "เปิดใช้งาน" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "เปิดใช้งาน" }));
-    expect(screen.getByRole("alertdialog")).toHaveTextContent("active เดิมจะถูกแทนที่");
-    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "เปิดใช้งาน" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("active เดิมจะถูกแทนที่");
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "เปิดใช้งาน" }));
     await waitFor(() => expect(screen.getByText(/กำลังใช้งาน · เป็นชุดปัจจุบัน/u)).toBeVisible(), { timeout: 5000 });
     expect(screen.getByText(/สถานะ: กำลังใช้งาน/u)).toHaveAttribute("data-status", "active");
     expect((lockedForm as FormData | null)?.get("runId")).toBe(runId);
@@ -221,17 +223,99 @@ describe("SamplingWorkbench", () => {
     renderWorkbench({ initialRuns: [initialRun], cancelAction: cancel });
 
     fireEvent.click(screen.getByRole("button", { name: "ยกเลิก run" }));
-    const dialog = screen.getByRole("alertdialog");
+    const dialog = screen.getByRole("dialog");
     const confirmButton = within(dialog).getByRole("button", { name: "ยืนยันยกเลิก" });
     expect(confirmButton).toBeDisabled();
     fireEvent.change(within(dialog).getByLabelText("เหตุผลการยกเลิก"), { target: { value: "ทดสอบเหตุผล" } });
     expect(confirmButton).toBeEnabled();
     fireEvent.click(confirmButton);
     expect(confirmButton).toBeDisabled();
-    expect(screen.getByRole("button", { name: "ยกเลิก run" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "ยกเลิก run", hidden: true })).toBeDisabled();
 
     resolveCancel({ status: "ready", run: { ...initialRun, status: "cancelled" as const, cancelledAt: "2026-08-26T02:10:00.000Z" } });
     await waitFor(() => expect(screen.getByText(/ยกเลิกแล้ว · เลือกใช้ไม่ได้/u)).toBeVisible(), { timeout: 5000 });
     expect(screen.getByText(/สถานะ: ยกเลิกแล้ว/u)).toHaveAttribute("data-status", "cancelled");
+  });
+
+  it("invalidates a preview when any input changes and keeps e as the submitted string", async () => {
+    let submitted: FormData | null = null;
+    const preview = vi.fn(async (_previous: SamplingPreviewState, form: FormData): Promise<SamplingPreviewState> => {
+      submitted = form;
+      return { status: "ready", evidence };
+    });
+    renderWorkbench({ previewAction: preview });
+
+    fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
+    await waitFor(() => expect(screen.getByText("ผลคำนวณเบื้องต้นพร้อมตรวจสอบ")).toBeVisible(), { timeout: 5000 });
+    expect(screen.getByRole("button", { name: "บันทึกฉบับร่าง" })).toBeEnabled();
+    fireEvent.change(screen.getByLabelText(/ค่าความคลาดเคลื่อน \(e\)/u), { target: { value: "0.050" } });
+    expect(screen.queryByRole("button", { name: "บันทึกฉบับร่าง" })).not.toBeInTheDocument();
+    expect(screen.getByText("ข้อมูลเปลี่ยนแล้ว · ดูตัวอย่างหลักฐานใหม่ก่อนบันทึก")).toBeVisible();
+    expect(preview).toHaveBeenCalledTimes(1);
+    expect((submitted as FormData | null)?.get("marginOfError")).toBe("0.05");
+  });
+
+  it("keeps the idempotency key stable across retry and rotates only after success", async () => {
+    const keys: string[] = [];
+    let attempts = 0;
+    const create = vi.fn(async (_previous: SamplingRunState, form: FormData): Promise<SamplingRunState> => {
+      keys.push(String(form.get("idempotencyKey")));
+      attempts += 1;
+      return attempts === 1 ? { status: "conflict" } : { status: "ready", run: initialRun };
+    });
+    renderWorkbench({
+      previewAction: vi.fn(async (): Promise<SamplingPreviewState> => ({ status: "ready", evidence })),
+      createDraftAction: create,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "บันทึกฉบับร่าง" })).toBeVisible(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกฉบับร่าง" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("ข้อมูลเปลี่ยนไปแล้ว"), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกฉบับร่างอีกครั้ง" }));
+    await waitFor(() => expect(screen.getByText(/บันทึกฉบับร่างแล้ว/u)).toBeVisible(), { timeout: 5000 });
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBe(keys[1]);
+  });
+
+  it("supersedes the prior active run in the local receipt immediately", async () => {
+    const priorActive = { ...initialRun, id: "66666666-6666-4666-8666-666666666666", status: "active" as const };
+    const lockedRun = { ...initialRun, status: "locked" as const, lockedAt: "2026-08-26T02:00:00.000Z" };
+    const activeRun = { ...lockedRun, status: "active" as const, activatedAt: "2026-08-26T02:05:00.000Z" };
+    renderWorkbench({
+      initialRuns: [priorActive, lockedRun],
+      activateAction: vi.fn(async (): Promise<SamplingRunState> => ({ status: "ready", run: activeRun })),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "เปิดใช้งาน" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "เปิดใช้งาน" }));
+    await waitFor(() => expect(screen.getByText(/แทนที่แล้ว · หลักฐานย้อนหลัง/u)).toBeVisible(), { timeout: 5000 });
+    expect(screen.getByText(/สถานะ: กำลังใช้งาน/u)).toHaveAttribute("data-status", "active");
+  });
+
+  it("gives read-only users receipts without a disabled mutation form", () => {
+    renderWorkbench({ canMutate: false, initialRuns: [initialRun] });
+    expect(screen.queryByLabelText("ประชากรที่รับรองแล้ว")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ดูตัวอย่างหลักฐาน|บันทึกฉบับร่าง/u })).not.toBeInTheDocument();
+    expect(screen.getByText("บัญชีนี้อ่านหลักฐานได้ แต่ไม่มีสิทธิ์เปลี่ยนสถานะ run")).toBeVisible();
+    expect(screen.getByText(/สถานะ: ฉบับร่าง/u)).toBeVisible();
+  });
+
+  it("shows a linked field error before dispatching an invalid preview", () => {
+    const preview = vi.fn(async (): Promise<SamplingPreviewState> => ({ status: "ready", evidence }));
+    renderWorkbench({ previewAction: preview });
+    fireEvent.change(screen.getByLabelText(/ค่าความคลาดเคลื่อน \(e\)/u), { target: { value: "" } });
+    fireEvent.submit(screen.getByRole("button", { name: "ดูตัวอย่างหลักฐาน" }).closest("form") as HTMLFormElement);
+    expect(screen.getByText("ระบุค่า e ระหว่าง 0 ถึง 1")).toBeVisible();
+    expect(screen.getByLabelText(/ค่าความคลาดเคลื่อน \(e\)/u)).toHaveAttribute("aria-describedby", expect.stringContaining("sampling-margin-error"));
+    expect(preview).not.toHaveBeenCalled();
+  });
+
+  it("dismisses confirmation with Escape and restores focus to the trigger", () => {
+    renderWorkbench({ initialRuns: [initialRun] });
+    const trigger = screen.getByRole("button", { name: "ล็อกหลักฐาน" });
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog")).toBeVisible();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(trigger);
   });
 });

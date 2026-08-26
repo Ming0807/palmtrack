@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   listRuns: vi.fn(),
   populationGateway: vi.fn(),
   listImports: vi.fn(),
+  listEvidence: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -39,6 +40,7 @@ vi.mock("@/modules/research/population/server/population-service", () => ({
 }));
 vi.mock("@/modules/research/sampling/server/sampling-service", () => ({
   listSamplingRuns: mocks.listRuns,
+  loadSamplingRunEvidence: mocks.listEvidence,
 }));
 
 import SamplingPage from "@/app/app/research/sampling/page";
@@ -52,6 +54,7 @@ describe("sampling route authorization", () => {
     mocks.listRuns.mockResolvedValue({ status: "ready", runs: [] });
     mocks.populationGateway.mockReturnValue({});
     mocks.listImports.mockResolvedValue({ status: "ready", imports: [] });
+    mocks.listEvidence.mockResolvedValue({ status: "ready", runs: [] });
     mocks.redirect.mockImplementation((path: string) => {
       throw new Error(`redirect:${path}`);
     });
@@ -81,6 +84,18 @@ describe("sampling route authorization", () => {
     });
     const page = await SamplingPage();
     expect(JSON.stringify(page)).toContain("/app/research");
+  });
+
+  it("loads detailed run evidence for the research manager only", async () => {
+    const summary = { id: "run-1", status: "draft" };
+    mocks.resolveSession.mockResolvedValue({
+      status: "authorized",
+      profile: { role: "research_manager", id: "profile-1", workspaceId: "workspace-1" },
+    });
+    mocks.listRuns.mockResolvedValue({ status: "ready", runs: [summary] });
+    mocks.listEvidence.mockResolvedValue({ status: "ready", runs: [{ id: "run-1", seedDigestHex: "digest" }] });
+    await SamplingPage();
+    expect(mocks.listEvidence).toHaveBeenCalledWith([summary], expect.objectContaining({ session: expect.any(Object) }));
   });
 
   it.each([

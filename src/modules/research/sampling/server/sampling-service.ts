@@ -24,6 +24,7 @@ export type SamplingActionState<T extends object = Record<never, never>> =
 export type SamplingPreviewState = SamplingActionState<{ evidence: SamplingEvidence }>;
 export type SamplingRunState = SamplingActionState<{ run: SamplingRun }>;
 export type SamplingListState = SamplingActionState<{ runs: SamplingRunSummary[] }>;
+export type SamplingReceiptListState = SamplingActionState<{ runs: SamplingRun[] }>;
 
 export type SamplingDraftInput = {
   populationImportId: string;
@@ -131,6 +132,25 @@ export async function listSamplingRuns(
     return { status: "ready", runs: await deps.gateway.listRuns() };
   } catch (error) {
     return failure(error) as SamplingListState;
+  }
+}
+
+/**
+ * Loads detailed receipts only for the research-manager workbench. The route
+ * intentionally does not call this for admin/evaluator sessions, so summary
+ * rows remain the only evidence exposed to those roles.
+ */
+export async function loadSamplingRunEvidence(
+  runs: SamplingRunSummary[],
+  deps: Dependencies,
+): Promise<SamplingReceiptListState> {
+  if (!canMutate(deps.session)) return { status: "ready", runs: [] };
+  if (runs.length === 0) return { status: "ready", runs: [] };
+  if (!deps.gateway.getEvidence) return { status: "service_unavailable" };
+  try {
+    return { status: "ready", runs: await Promise.all(runs.map((run) => deps.gateway.getEvidence!(run.id))) };
+  } catch (error) {
+    return failure(error) as SamplingReceiptListState;
   }
 }
 

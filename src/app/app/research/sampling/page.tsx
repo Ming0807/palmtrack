@@ -22,7 +22,8 @@ import { createSupabasePopulationGateway } from "@/modules/research/population/s
 import type { PopulationReceipt } from "@/modules/research/population/server/population-gateway";
 import { listPopulationImports } from "@/modules/research/population/server/population-service";
 import { createSupabaseSamplingGateway } from "@/modules/research/sampling/server/sampling-gateway";
-import { listSamplingRuns } from "@/modules/research/sampling/server/sampling-service";
+import type { SamplingRun } from "@/modules/research/sampling/server/sampling-gateway";
+import { listSamplingRuns, loadSamplingRunEvidence } from "@/modules/research/sampling/server/sampling-service";
 import { SamplingWorkbench } from "@/modules/research/sampling/ui/sampling-workbench";
 import styles from "../../app-shell.module.css";
 
@@ -52,9 +53,10 @@ export default async function SamplingPage() {
   if (session.status === "configuration_error") return <ConfigurationErrorState />;
   if (session.status !== "authorized") return <ForbiddenState />;
 
+  const samplingGateway = createSupabaseSamplingGateway(clientResult.client);
   const result = await listSamplingRuns({
     session,
-    gateway: createSupabaseSamplingGateway(clientResult.client),
+    gateway: samplingGateway,
   });
   if (result.status === "forbidden") return <ForbiddenState />;
   if (result.status === "conflict" || result.status === "replay_mismatch") {
@@ -64,6 +66,19 @@ export default async function SamplingPage() {
 
   const backHref = session.profile.role === "research_manager" ? "/app/research" : "/app";
   const canManageSampling = session.profile.role === "research_manager";
+  let initialRunDetails: SamplingRun[] = [];
+  if (canManageSampling) {
+    const evidenceResult = await loadSamplingRunEvidence(result.runs, {
+      session,
+      gateway: samplingGateway,
+    });
+    if (evidenceResult.status === "forbidden") return <ForbiddenState />;
+    if (evidenceResult.status === "conflict" || evidenceResult.status === "replay_mismatch") {
+      return <SamplingListState status={evidenceResult.status} />;
+    }
+    if (evidenceResult.status !== "ready") return <ConfigurationErrorState />;
+    initialRunDetails = evidenceResult.runs;
+  }
   let initialImports: PopulationReceipt[] = [];
   if (session.profile.role === "research_manager" || session.profile.role === "admin") {
     const populationResult = await listPopulationImports({
@@ -83,6 +98,7 @@ export default async function SamplingPage() {
       <SamplingWorkbench
         initialImports={initialImports}
         initialRuns={result.runs}
+        initialRunDetails={initialRunDetails}
         canMutate={canManageSampling}
         previewAction={previewSamplingAction}
         createDraftAction={createSamplingDraftAction}
