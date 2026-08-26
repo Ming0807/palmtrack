@@ -87,6 +87,7 @@ select throws_ok(
   '42501', null,
   '[SEC-02] admin cannot mutate sampling lifecycle'
 );
+select lives_ok($$ select * from public.list_sampling_runs() $$, '[RLS-09] admin receives aggregate sampling summaries');
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000801';
@@ -280,6 +281,22 @@ select throws_ok(
   '22023', null,
   '[SEC-02] forged allocation totals fail atomically'
 );
+select throws_ok(
+  $$ select * from public.create_sampling_draft(
+    (select id from public.population_import where source_label = 'FX-SAMPLING'),
+    'sample-seed', 0.5, 'stratum-definition-v1', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    '[
+      {"stratum_code":"EAST","eligible_count":2,"quota":1,"floor_allocation":1,"remainder":0,"final_allocation":1},
+      {"stratum_code":"NORTH","eligible_count":0,"quota":0,"floor_allocation":0,"remainder":0,"final_allocation":0},
+      {"stratum_code":"SOUTH","eligible_count":2,"quota":1,"floor_allocation":1,"remainder":0,"final_allocation":1}
+    ]'::jsonb,
+    (select result_evidence from public.sampling_run where status = 'active' limit 1),
+    '00000000-0000-0000-0000-000000000916'::uuid
+  ) $$,
+  '22023', null,
+  '[SEC-02] forged per-stratum N_h is rejected even when aggregate allocation totals match'
+);
 
 insert into public.workspace (id, name, status)
 values ('00000000-0000-0000-0000-000000000990', 'Synthetic cross workspace', 'inactive');
@@ -397,6 +414,22 @@ select throws_ok(
     (select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
     'sample-seed', 0.5, 'stratum-definition-v3', 'sha256-mulberry32-fy-v1', 2,
     '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
+    '[
+      {"stratum_code":"EAST","eligible_count":2,"quota":1,"floor_allocation":1,"remainder":0,"final_allocation":1},
+      {"stratum_code":"NORTH","eligible_count":0,"quota":0,"floor_allocation":0,"remainder":0,"final_allocation":0},
+      {"stratum_code":"SOUTH","eligible_count":2,"quota":1,"floor_allocation":1,"remainder":0,"final_allocation":1}
+    ]'::jsonb,
+    (select result_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    '00000000-0000-0000-0000-000000000916'::uuid
+  ) $$,
+  '22023', null,
+  '[SEC-02] draft update rejects forged per-stratum N_h'
+);
+select throws_ok(
+  $$ select * from public.update_sampling_draft(
+    (select id from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
+    'sample-seed', 0.5, 'stratum-definition-v3', 'sha256-mulberry32-fy-v1', 2,
+    '5bcf10eb932b231d0b1bca281a788c1d4b907d841b72ba77a1b02d6df0903d22',
     (select allocation_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
     (select result_evidence from public.sampling_run where idempotency_key = '00000000-0000-0000-0000-000000000913'::uuid),
     '00000000-0000-0000-0000-000000000914'::uuid
@@ -408,6 +441,14 @@ select lives_ok($$ select * from public.get_sampling_run_evidence((select id fro
 select throws_ok($$ select * from public.get_sampling_candidates((select id from public.sampling_run where status = 'cancelled' limit 1)) $$, '42501', null, '[SEC-02] cancelled runs cannot provide selectable candidate projections');
 reset role;
 select is((select count(*) from public.audit_event where action_code = 'sampling.run_regenerated'), 1::bigint, '[AUD-01] regeneration appends one allowlisted audit event per change');
+
+set local role authenticated;
+set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000801';
+set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000801","role":"authenticated"}';
+select lives_ok($$ select * from public.list_sampling_runs() $$, '[RLS-09] admin receives aggregate summaries after runs exist');
+select throws_ok($$ select * from public.get_sampling_candidates((select id from public.sampling_run where status = 'active' limit 1)) $$, '42501', null, '[RLS-09] admin cannot read active member-level candidates');
+select throws_ok($$ select * from public.get_sampling_run_evidence((select id from public.sampling_run where status = 'active' limit 1)) $$, '42501', null, '[RLS-09] admin cannot read active detailed evidence');
+reset role;
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000803';
@@ -424,6 +465,7 @@ set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000805';
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-000000000805","role":"authenticated"}';
 select lives_ok($$ select * from public.list_sampling_runs() $$, '[RLS-09] evaluator receives safe run projections');
 select throws_ok($$ select * from public.get_sampling_candidates((select id from public.list_sampling_runs() where status = 'active')) $$, '42501', null, '[RLS-09] evaluator cannot read member-level candidates');
+select throws_ok($$ select * from public.get_sampling_run_evidence((select id from public.list_sampling_runs() where status = 'active')) $$, '42501', null, '[RLS-09] evaluator cannot read detailed sampling evidence');
 select ok(
   not ((select to_jsonb(row) from public.list_sampling_runs() as row where status = 'active' limit 1)
     ?| array['population_import_id', 'result_evidence', 'seed_text', 'seed_digest_hex', 'ordered_candidate_set_hash']),

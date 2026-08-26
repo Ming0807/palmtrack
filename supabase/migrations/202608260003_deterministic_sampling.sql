@@ -918,11 +918,23 @@ begin
         and eligible_member.workspace_id = v_workspace_id
         and eligible_member.eligible
     )
-    or v_allocation_count <> (
-      select count(distinct allocation.stratum_code)
-      from jsonb_to_recordset(p_allocation_evidence) as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)
-    )
-    or (select sum(allocation.eligible_count) from jsonb_to_recordset(p_allocation_evidence) as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)) <> v_n
+     or v_allocation_count <> (
+       select count(distinct allocation.stratum_code)
+       from jsonb_to_recordset(p_allocation_evidence) as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)
+     )
+     or exists (
+       select 1
+       from jsonb_to_recordset(p_allocation_evidence) as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)
+       where allocation.eligible_count <> (
+         select count(*)
+         from public.population_member as eligible_member
+         where eligible_member.population_import_id = v_import.id
+           and eligible_member.workspace_id = v_workspace_id
+           and eligible_member.eligible
+           and eligible_member.stratum_code = allocation.stratum_code
+       )
+     )
+     or (select sum(allocation.eligible_count) from jsonb_to_recordset(p_allocation_evidence) as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)) <> v_n
     or (select sum(allocation.final_allocation) from jsonb_to_recordset(p_allocation_evidence) as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)) <> p_target_n
     or exists (
       select 1 from jsonb_to_recordset(p_allocation_evidence) as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)
@@ -1238,11 +1250,23 @@ begin
   if (select count(*) from jsonb_to_recordset(p_allocation_evidence)
       as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint))
       <> (select count(distinct member.stratum_code) from public.population_member as member where member.population_import_id = v_import.id and member.workspace_id = v_workspace and member.eligible)
-    or (select count(*) from jsonb_to_recordset(p_allocation_evidence)
-      as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint))
-      <> (select count(distinct allocation.stratum_code) from jsonb_to_recordset(p_allocation_evidence)
-      as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint))
-    or (select sum(allocation.eligible_count) from jsonb_to_recordset(p_allocation_evidence)
+     or (select count(*) from jsonb_to_recordset(p_allocation_evidence)
+       as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint))
+       <> (select count(distinct allocation.stratum_code) from jsonb_to_recordset(p_allocation_evidence)
+       as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint))
+    or exists (
+      select 1
+      from jsonb_to_recordset(p_allocation_evidence) as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)
+      where allocation.eligible_count <> (
+        select count(*)
+        from public.population_member as eligible_member
+        where eligible_member.population_import_id = v_import.id
+          and eligible_member.workspace_id = v_workspace
+          and eligible_member.eligible
+          and eligible_member.stratum_code = allocation.stratum_code
+      )
+    )
+     or (select sum(allocation.eligible_count) from jsonb_to_recordset(p_allocation_evidence)
       as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)) <> v_n
     or (select sum(allocation.final_allocation) from jsonb_to_recordset(p_allocation_evidence)
       as allocation(stratum_code text, eligible_count bigint, quota numeric, floor_allocation bigint, remainder numeric, final_allocation bigint)) <> p_target_n
@@ -1570,7 +1594,7 @@ declare
   v_workspace uuid := public.current_workspace_id();
   v_role public.app_role := public.current_role();
 begin
-  if v_role is null or v_role not in ('admin', 'research_manager') or v_workspace is null then
+  if v_role is distinct from 'research_manager'::public.app_role or v_workspace is null then
     raise exception using errcode = '42501', message = 'operation is not permitted';
   end if;
   if not exists (
@@ -1606,7 +1630,7 @@ declare
   v_workspace uuid := public.current_workspace_id();
   v_role public.app_role := public.current_role();
 begin
-  if v_role is null or v_role not in ('admin', 'research_manager') or v_workspace is null then
+  if v_role is distinct from 'research_manager'::public.app_role or v_workspace is null then
     raise exception using errcode = '42501', message = 'operation is not permitted';
   end if;
   if not exists (select 1 from public.sampling_run as run where run.id = p_run_id and run.workspace_id = v_workspace) then

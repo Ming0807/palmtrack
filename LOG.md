@@ -690,8 +690,8 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Environment | Supabase local sampling migration TDD |
 | Severity | medium |
 | Component | deterministic sampling migration and pgTAP suite |
-| Error code / sanitized message | `MIGRATION_RED_PHASE` — the required RED run reported missing sampling objects; subsequent local migration attempts exposed PostgreSQL NFC syntax and ambiguous output-column references before the focused suite could execute |
+| Error code / sanitized message | `MIGRATION_RED_PHASE` — the required RED run reported missing sampling objects; subsequent review RED assertions exposed forged per-stratum `N_h` acceptance and admin access to member/detail projections before the focused suite could execute |
 | Impact | Sampling migration application and lifecycle assertions were temporarily blocked; no persistent production or real-person data was involved |
-| Reproduction / evidence | `npm run test:db` first failed on absent sampling objects; `npx supabase db reset --local --debug` identified the parser/qualification failures; rollback rehearsal removed the sampling objects cleanly |
-| Resolution / status | `resolved` — use PostgreSQL `normalize(..., NFC)`, qualify lifecycle table references, rerun the clean reset, and verify 161 pgTAP assertions plus database lint pass |
-| Related commit | pending `feat: persist deterministic sampling lifecycle` |
+| Reproduction / evidence | `npm run test:db` first failed on absent sampling objects; review `npm run test:db` RED caught accepted forged `N_h` and admin candidate/detail access; clean reset, focused pgTAP, and `npm run lint:db` completed successfully |
+| Resolution / status | `resolved` — enforce exact eligible-member counts per stratum in create/update, restrict candidate/detail RPCs to `research_manager`, and verify 191 pgTAP assertions plus database lint pass |
+| Related commit | `dbb2f74`, `7911c59`, `a4af2e8`, and final boundary-fix commit |
