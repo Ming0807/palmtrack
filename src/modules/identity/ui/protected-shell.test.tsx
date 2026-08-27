@@ -3,7 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ pathname: "/app" }));
 
+vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname }));
+vi.mock("@/modules/identity/server/actions", () => ({
+  signOutAction: vi.fn(),
+}));
 
 import { ProtectedShell } from "./protected-shell";
 
@@ -67,5 +71,19 @@ describe("authorized protected shell", () => {
 
     expect(screen.getByRole("link", { name: "ข้ามไปยังเนื้อหาหลัก" })).toHaveAttribute("href", "#main-content");
     expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("renders keyboard-accessible sign-out button in the header for all roles", () => {
+    render(
+      <ProtectedShell role="farmer" currentPath="/app">
+        <h1>ภาพรวม</h1>
+      </ProtectedShell>,
+    );
+
+    const signOutButton = screen.getByRole("button", { name: "ออกจากระบบ" });
+    expect(signOutButton).toBeInTheDocument();
+    expect(signOutButton).toBeEnabled();
+    expect(signOutButton).toHaveAttribute("type", "submit");
+    expect(signOutButton).not.toHaveAttribute("tabindex", "-1");
   });
 });

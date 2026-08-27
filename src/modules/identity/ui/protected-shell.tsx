@@ -11,6 +11,7 @@ import {
   ROLE_LABELS,
 } from "@/modules/navigation/role-navigation";
 import type { Role } from "@/modules/identity/domain/roles";
+import { SignOutButton } from "./sign-out-button";
 
 import styles from "./protected-shell.module.css";
 
@@ -42,9 +43,12 @@ export function ProtectedShell({ role, currentPath, children }: ProtectedShellPr
           </Link>
           <span className={styles.context}>พื้นที่ทำงานหลัก</span>
         </div>
-        <div className={styles.role}>
-          <ShieldCheck size={18} aria-hidden="true" />
-          <span>{ROLE_LABELS[role]}</span>
+        <div className={styles.userSection}>
+          <div className={styles.role}>
+            <ShieldCheck size={18} aria-hidden="true" />
+            <span>{ROLE_LABELS[role]}</span>
+          </div>
+          <SignOutButton />
         </div>
       </header>
       <div className={styles.body}>

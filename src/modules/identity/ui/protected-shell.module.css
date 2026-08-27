@@ -55,6 +55,12 @@
   font-size: 0.82rem;
 }
 
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .role {
   display: flex;
   min-height: 40px;
@@ -64,6 +70,70 @@
   font-size: 0.85rem;
   font-weight: 650;
   white-space: nowrap;
+}
+
+.signOutForm {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.signOutButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.signOutButton:hover {
+  color: var(--rust);
+  border-color: color-mix(in srgb, var(--rust) 40%, var(--line));
+  background: color-mix(in srgb, var(--rust) 5%, var(--surface));
+}
+
+.signOutButton:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.signOutButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.signOutLabel {
+  display: inline;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinning {
+    animation: none;
+  }
 }
 
 .body {
@@ -149,8 +219,17 @@
     font-size: 0.72rem;
   }
 
+  .userSection {
+    gap: 8px;
+  }
+
   .role {
     font-size: 0.74rem;
+  }
+
+  .signOutButton {
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
 
   .body {
@@ -196,8 +275,12 @@
 
 @media (max-width: 390px) {
   .role span {
-    max-width: 9ch;
+    max-width: 8ch;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .signOutButton {
+    padding: 8px 8px;
   }
 }

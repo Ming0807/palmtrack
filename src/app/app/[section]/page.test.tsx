@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   notFound: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
   notFound: mocks.notFound,

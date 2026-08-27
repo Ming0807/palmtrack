@@ -102,6 +102,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | E2E-16 | authorized attachment list/read/download receipts audit actor/time/action/entity/object ID; collector/farmer authorized delete adds reason/before-after result; collector post-submit and cross-owner access/delete are denied |
 | E2E-17 | synthetic dashboard proves farm-first heading order, visible synthetic label, role/scenario controls, table equivalent, loading without fabricated totals, no 360px overflow and no serious/critical axe finding |
 | E2E-18 | global not-found fallback renders Thai 404 recovery, reaches the home link by keyboard Tab, has no 360px horizontal overflow and passes a complete axe scan including color contrast |
+| E2E-19 | authenticated user clicks sign-out button in header, securely terminates session, redirects to /sign-in, direct access to /app redirects to /sign-in, touch target ≥44px, and passes axe scan |
 
 ## Specialized tests
 
