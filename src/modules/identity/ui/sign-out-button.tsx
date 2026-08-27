@@ -15,20 +15,16 @@ function SubmitButton() {
       type="submit"
       disabled={pending}
       className={styles.signOutButton}
-      aria-label="ออกจากระบบ"
       aria-disabled={pending}
     >
       {pending ? (
-        <>
-          <Loader2 size={16} className={styles.spinning} aria-hidden="true" />
-          <span className={styles.signOutLabel}>กำลังออกจากระบบ...</span>
-        </>
+        <Loader2 size={16} className={styles.spinning} aria-hidden="true" />
       ) : (
-        <>
-          <LogOut size={16} aria-hidden="true" />
-          <span className={styles.signOutLabel}>ออกจากระบบ</span>
-        </>
+        <LogOut size={16} aria-hidden="true" />
       )}
+      <span className={styles.signOutLabel} aria-live="polite">
+        {pending ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}
+      </span>
     </button>
   );
 }

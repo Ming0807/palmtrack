@@ -30,7 +30,7 @@ vi.mock("@/modules/identity/server/actions", () => ({
 
 import { SignOutButton } from "./sign-out-button";
 
-describe("SignOutButton", () => {
+describe("[UNIT-12] SignOutButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.useFormStatus.mockReturnValue({
@@ -60,9 +60,12 @@ describe("SignOutButton", () => {
 
     render(<SignOutButton />);
 
-    const button = screen.getByRole("button", { name: "ออกจากระบบ" });
+    const button = screen.getByRole("button", { name: "กำลังออกจากระบบ..." });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByText("กำลังออกจากระบบ...")).toBeInTheDocument();
+    expect(screen.getByText("กำลังออกจากระบบ...")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
   });
 });

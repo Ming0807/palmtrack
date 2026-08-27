@@ -50,6 +50,8 @@ Global application fallback states ใน Next.js (`loading.tsx`, `error.tsx`, `
 - `not-found.tsx`: แสดงรหัส 404 และคำอธิบายภาษาไทย พร้อมลิงก์กลับหน้าหลัก (`/app`) ใช้งานได้จริงและปลอดภัยจาก overflow ที่ 360px
 - Route สถานะโมดูลตามสิทธิ์ (`/app/[section]` สำหรับ `settings`, `audit`, `my-work`, `reports`, `evaluation`): แสดงชื่อภาษาไทย ขอบเขตที่วางแผนไว้ สถานะ "ยังไม่เปิดใช้งาน" และเหตุผล/ขั้นตอนถัดไปอย่างซื่อสัตย์ โดย direct URL จาก role ที่ไม่มีสิทธิ์ได้รับ non-enumerating forbidden state และไม่มีปุ่มหลอก (no dead action)
 
+Authenticated shell แสดงปุ่ม “ออกจากระบบ” ที่เข้าถึงด้วย keyboard และมี touch target อย่างน้อย 44×44 CSS px ระหว่างส่งคำขอปุ่มถูกปิดเพื่อป้องกันการส่งซ้ำและประกาศ “กำลังออกจากระบบ...” ต่อ assistive technology การออกจากระบบยุติเฉพาะ session ของ browser ปัจจุบันด้วย explicit local scope แล้วนำไป `/sign-in`; configuration/provider failure ใช้ข้อความผิดพลาดแบบทั่วไปและไม่เปิดเผย provider detail หรือ secret
+
 Form ใช้ inline error เชื่อม label และมี error summary; ปุ่ม submit ป้องกันกดซ้ำแต่ idempotency อยู่ server Confirmation จำเป็นสำหรับ lock sample, withdrawal, full-PII export, delete/restore และ verified correction Success สำคัญแสดง reference ID/time และ next state
 
 ## Validation and warnings

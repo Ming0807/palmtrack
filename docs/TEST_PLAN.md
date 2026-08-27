@@ -48,6 +48,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | UNIT-09 | dashboard model keeps money as canonical decimal strings, filters research support by role, does not call research gateways for farmer/collector, and renders truthful loading/not-enabled states without fabricated production values |
 | UNIT-10 | global fallback states (loading, error, not-found) render sanitized Thai copy, provide screen reader status/alert roles, retry action calling reset(), working navigation link, and do not leak raw error messages or secrets through DOM/client console |
 | UNIT-11 | pending section metadata and route components for settings, audit, my-work, reports, evaluation provide truthful Thai copy, an accessible 'ยังไม่เปิดใช้งาน' status, non-empty capabilities, evidence-gated next steps without unverified runtime/delivery claims, and exact role allowlist matching navigation |
+| UNIT-12 | sign-out uses the request-scoped public Supabase client with explicit current-session-only scope, sanitizes configuration/provider returned and thrown failures, and exposes idle/pending Thai labels to assistive technology while preventing duplicate submission |
 
 ## RLS and authorization tests
 
@@ -102,7 +103,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | E2E-16 | authorized attachment list/read/download receipts audit actor/time/action/entity/object ID; collector/farmer authorized delete adds reason/before-after result; collector post-submit and cross-owner access/delete are denied |
 | E2E-17 | synthetic dashboard proves farm-first heading order, visible synthetic label, role/scenario controls, table equivalent, loading without fabricated totals, no 360px overflow and no serious/critical axe finding |
 | E2E-18 | global not-found fallback renders Thai 404 recovery, reaches the home link by keyboard Tab, has no 360px horizontal overflow and passes a complete axe scan including color contrast |
-| E2E-19 | authenticated user clicks sign-out button in header, securely terminates session, redirects to /sign-in, direct access to /app redirects to /sign-in, touch target ≥44px, and passes axe scan |
+| E2E-19 | authenticated user reaches and activates the header sign-out button by keyboard, terminates only the current browser session, redirects to /sign-in, cannot directly re-enter /app, has a ≥44×44 CSS px touch target without horizontal overflow, and passes a complete axe scan with zero violations |
 
 ## Specialized tests
 

@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 import { signOutAction } from "./actions";
 
-describe("signOutAction", () => {
+describe("[UNIT-12] signOutAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.redirect.mockImplementation((url: string) => {
@@ -36,7 +36,7 @@ describe("signOutAction", () => {
   it("successfully signs out and redirects to /sign-in when configured", async () => {
     await expect(signOutAction()).rejects.toThrow("NEXT_REDIRECT:/sign-in");
     expect(mocks.createClient).toHaveBeenCalled();
-    expect(mocks.signOut).toHaveBeenCalled();
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
     expect(mocks.redirect).toHaveBeenCalledWith("/sign-in");
   });
 
@@ -61,12 +61,37 @@ describe("signOutAction", () => {
     expect(mocks.redirect).toHaveBeenCalledWith("/sign-in?error=configuration");
   });
 
+  it("handles a thrown client-configuration failure without leaking raw error details", async () => {
+    mocks.createClient.mockRejectedValue(
+      new Error("Cookie configuration failed secret-token-24680"),
+    );
+
+    await expect(signOutAction()).rejects.toThrow(
+      "NEXT_REDIRECT:/sign-in?error=configuration",
+    );
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/sign-in?error=configuration",
+    );
+  });
+
   it("handles provider signOut error safely without leaking raw error message or secret", async () => {
     mocks.signOut.mockResolvedValue({
       error: new Error("PostgREST network timeout secret-token-12345"),
     });
 
     await expect(signOutAction()).rejects.toThrow("NEXT_REDIRECT:/sign-in?error=invalid");
+    expect(mocks.redirect).toHaveBeenCalledWith("/sign-in?error=invalid");
+  });
+
+  it("handles a thrown provider failure without leaking raw error details", async () => {
+    mocks.signOut.mockRejectedValue(
+      new Error("Auth transport failed secret-token-67890"),
+    );
+
+    await expect(signOutAction()).rejects.toThrow(
+      "NEXT_REDIRECT:/sign-in?error=invalid",
+    );
     expect(mocks.redirect).toHaveBeenCalledWith("/sign-in?error=invalid");
   });
 });

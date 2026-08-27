@@ -4,7 +4,7 @@
 
 | Requirement | Objective | Role | Flow / screen | Data entity | Test IDs | Expected research evidence |
 |---|---|---|---|---|---|---|
-| FR-01 | access control | ทุกบทบาท | sign-in / protected route / pending module status | user_profile, role navigation metadata | UNIT-11, RLS-01, RLS-09, E2E-01, SEC-01 | exact role allowlist, truthful authorized status และ non-enumerating deny without module metadata |
+| FR-01 | access control | ทุกบทบาท | sign-in / sign-out / protected route / pending module status | user_profile, role navigation metadata, Auth session | UNIT-11, UNIT-12, RLS-01, RLS-09, E2E-01, E2E-19, SEC-01 | exact role allowlist, current-browser-session termination, truthful authorized status และ non-enumerating deny without module metadata |
 | FR-02 | valid population | admin, research_manager | population import/validation | population_import, population_member | INT-01, E2E-02, E2E-15, SEC-02 | successful actor-specific imports, input digest, accepted/rejected counts/reasons |
 | FR-03 | reproducible active sample | research_manager | sampling draft/lock/activate/cancel | sampling_run, sample_member | UNIT-01, UNIT-02, UNIT-08, INT-02, E2E-03, AUD-01 | canonical `margin_of_error_text` (`0.050→0.05`), N/e/n, allocation, NFC/seed/digest/algorithm, candidate hash, ordered result plus `ordered-result-sha256-v1` hash, independently replayed locked membership/order, lifecycle audit |
 | FR-04 | controlled field work | research_manager, field_collector | assignment / งานของฉัน | assignment | RLS-02, INT-03, E2E-04, AUD-05 | assignment/reassignment actor/time/before-after and required reason |
@@ -21,12 +21,12 @@
 | FR-15 | Thai locale/time | ทุกบทบาท | all screens/evidence detail | date/timestamp fields | UNIT-07, E2E-13 | พ.ศ./Asia-Bangkok display mapped to UTC/Gregorian |
 | FR-16 | shared-base staged funnel | research_manager, evaluator_readonly | active default / explicit superseded history | population_member, sample_member, assignment, consent_record, response | INT-02, REP-02, E2E-14 | same workspace/run/cohort-date base, exact seven stage counts, early-stage independence, withdrawal removal, export reconciliation |
 | FR-17 | farm-first role dashboard | ทุกบทบาท | `/app` / `/prototype/dashboard` | authorized aggregate read models | UNIT-09, E2E-17, A11Y-02 | role navigation begins at overview; production has no synthetic fixture; unavailable ledger remains explicit; prototype label/states/table/mobile-desktop evidence |
-| NFR-01 | deny-by-default | ทุกบทบาท | all protected operations | all scoped tables/storage | RLS-01–RLS-10, SEC-01–SEC-07 | complete exact-role/status negative matrix including combined resume mutation deny |
+| NFR-01 | deny-by-default | ทุกบทบาท | all protected operations and session termination | all scoped tables/storage, Auth session | UNIT-12, RLS-01–RLS-10, E2E-19, SEC-01–SEC-07 | complete exact-role/status negative matrix including combined resume mutation deny; sign-out uses request-scoped public client, local scope, and sanitized failure boundary |
 | NFR-02 | privacy compliance | admin, research_manager | export/file/retention review | export_job, file_object, audit_event | SEC-05, SEC-07, ACC-01 | signed release checklist and anonymized manifest |
 | NFR-03 | complete audit | privileged roles | semantic changes/audit viewer | audit_event, review_event | AUD-01–AUD-09 | actor UUID/UTC/action/entity plus event-specific fields: both export modes, attachment access/delete, reasons, status/answer before-after, correction resume/edit/resubmit/re-verify, withdrawal |
 | NFR-04 | sampling reproducibility | research_manager, evaluator_readonly | replay/evidence | sampling_run, sample_member | UNIT-01, UNIT-02, UNIT-08, INT-02, AUD-01 | database independently reconstructs candidate ordering, allocation, Mulberry32/Fisher–Yates swaps, quota selection and full ordered membership/hash from the accepted snapshot; forged selection RPC fails |
-| NFR-05 | mobile Thai usability | ทุกบทบาท | primary mobile flows/global fallback/pending module status | UI state | E2E-01, E2E-13, E2E-18, A11Y-01, ACC-01 | 360 px screenshots, module/fallback overflow checks and task completion record |
-| NFR-06 | accessible operation | ทุกบทบาท | forms/dialogs/charts/global fallback/pending module status | semantic UI | UNIT-10, UNIT-11, E2E-01, E2E-18, A11Y-01, A11Y-02 | sanitized status/error announcements, truthful status semantics, complete automated scan and keyboard/manual checklist |
+| NFR-05 | mobile Thai usability | ทุกบทบาท | primary mobile flows/global fallback/pending module status/authenticated shell | UI state | E2E-01, E2E-13, E2E-18, E2E-19, A11Y-01, ACC-01 | 360 px screenshots, module/fallback/sign-out overflow and 44×44 touch-target checks, and task completion record |
+| NFR-06 | accessible operation | ทุกบทบาท | forms/dialogs/charts/global fallback/pending module status/authenticated shell | semantic UI | UNIT-10, UNIT-11, UNIT-12, E2E-01, E2E-18, E2E-19, A11Y-01, A11Y-02 | sanitized status/error announcements, truthful status semantics, keyboard sign-out, complete automated scan and keyboard/manual checklist |
 | NFR-07 | free-tier recovery | admin | clean-target DB/storage/Auth restore | user_profile, identity/storage/database backup | BAK-01, BAK-02, BAK-03, OPS-01 | encrypted manifests/checksums, stable profile/Auth relink, sign-in/RLS reconciliation |
 | NFR-08 | transaction integrity | ทุกเขียนข้อมูล | submit/transition/ledger | response, sale, expense | UNIT-04–UNIT-06, RLS-10, INT-04–INT-09, INT-11, SEC-03 | duplicate/invalid/orphan/combined-transition attempts denied; separated transition succeeds |
 | NFR-09 | maintainable delivery | ทีมพัฒนา | migration/module/review | schema/docs | DOC-01, OPS-01 | link/trace scan, migration review and rollback evidence |
@@ -96,3 +96,14 @@ Evidence นี้เป็น tracer-bullet progress ไม่ใช่ FR-02/V
 | NFR-06 | status accessible name includes module title plus “ยังไม่เปิดใช้งาน”; every authorized route has semantic headings, no pending buttons, and a complete axe scan | `UNIT-11` focused component/metadata tests pass 50/50; local module-status Playwright runs full axe with zero violations on all five authorized routes in both viewports |
 
 หลักฐานนี้ยืนยันเฉพาะ truthful unavailable-state และ authorization boundary ของห้า route เท่านั้น ไม่ได้อ้างว่าโมดูลตั้งค่า Audit งานภาคสนาม รายงาน หรือการประเมินพร้อมใช้งาน
+
+## Authenticated sign-out evidence — 2026-08-27
+
+| Requirement | Implemented evidence in this increment | Status boundary |
+|---|---|---|
+| FR-01 | authenticated shell exposes sign-out for all five role projections; server action uses explicit `{ scope: "local" }`, redirects successful termination to `/sign-in`, and protected `/app` rejects the terminated session | `UNIT-12` focused component/server assertions and `E2E-19` local mobile/desktop journeys pass |
+| NFR-01 | request-scoped public Supabase client only; unconfigured, invalid configuration, returned provider error, thrown provider failure, and thrown client failure follow sanitized redirects without exposing sentinel details | focused server-action assertions pass; no service-role credential or hosted Auth resource was used |
+| NFR-05 | Thai header control remains free of document overflow and measures at least 44×44 CSS px in both configured viewports | focused local Playwright passes 2/2 |
+| NFR-06 | idle/pending accessible names, polite pending announcement, disabled duplicate-submit state, keyboard focus/Enter activation, and complete axe scan with zero violations | focused unit/component run passes 13/13 and focused local Playwright passes 2/2 |
+
+หลักฐานนี้ครอบคลุมเฉพาะ sign-out vertical slice บน local synthetic accounts ไม่ใช่ V1 acceptance sign-off และ intentionally ยังไม่รัน full test suite; final full-suite gate รอหลัง Prompt 7 ตามแผนตรวจรับ

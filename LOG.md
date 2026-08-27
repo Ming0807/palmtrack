@@ -975,3 +975,45 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | `npm run test:e2e:local -- e2e/module-status.spec.ts e2e/population-import.spec.ts` finished with 24 passed and two identical `toBeFocused` failures after one Tab press |
 | Resolution / status | `resolved locally` — instrumentation proved Tab remained on body because no stable pre-first-control position existed; starting at the adjacent real brand link and using `Shift+Tab` reached the skip link in separate mobile and desktop runs, each 1/1 passed |
 | Related commit | pending module-status review-fix commit |
+
+### DEV-20260827-071 — Sign-out defaulted to every device and leaked thrown failure control flow
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T04:53:47Z` |
+| Environment | local review of commit `b4a230c` |
+| Severity | high |
+| Component | `src/modules/identity/server/actions.ts` |
+| Error code / sanitized message | `SIGN_OUT_GLOBAL_SCOPE_AND_THROW_BOUNDARY` — Supabase `signOut()` used its global default and rejected client/provider promises bypassed the sanitized redirect contract |
+| Impact | A normal header action could terminate refresh sessions on every device; an unexpected client/provider exception could reach the framework error path instead of the documented generic recovery route. Only synthetic sentinel messages were used during reproduction |
+| Reproduction / evidence | `UNIT-12` regressions expected `{ scope: "local" }` and sanitized redirects; three focused assertions failed against the reviewed implementation before the fix |
+| Resolution / status | `resolved locally` — explicitly terminate only the current browser session, contain client creation and provider rejections separately, and keep Next redirects outside caught provider calls |
+| Related commit | sign-out review-fix commit |
+
+### DEV-20260827-072 — Sign-out acceptance evidence was weaker than its claim
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T04:53:47Z` |
+| Environment | static review of commit `b4a230c` |
+| Severity | medium |
+| Component | `e2e/sign-out.spec.ts` and documentation traceability |
+| Error code / sanitized message | `SIGN_OUT_EVIDENCE_DRIFT` — the test used undefined `SEC-08`, accepted 40 px height, omitted width, and filtered axe results while documentation claimed ≥44 px and zero violations |
+| Impact | A too-small or moderately inaccessible sign-out control could pass, and the run could not be mapped to the authoritative test plan |
+| Reproduction / evidence | diff review against `TEST_PLAN.md`, `UX_SPEC.md`, and `TRACEABILITY_MATRIX.md`; no production data or hosted resource involved |
+| Resolution / status | `resolved locally` — use `E2E-19`, assert both dimensions ≥44 CSS px, require the complete axe result to be empty, prove keyboard activation, and map `UNIT-12`/`E2E-19` to FR-01/NFR-01/NFR-05/NFR-06 |
+| Related commit | sign-out review-fix commit |
+
+### DEV-20260827-073 — Static accessible name hid sign-out pending status
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T04:53:47Z` |
+| Environment | local component review of commit `b4a230c` |
+| Severity | medium |
+| Component | `src/modules/identity/ui/sign-out-button.tsx` |
+| Error code / sanitized message | `SIGN_OUT_PENDING_NAME_HIDDEN` — fixed `aria-label="ออกจากระบบ"` replaced the visible pending label in the accessibility tree |
+| Impact | Screen-reader users could not identify that sign-out was in progress even though sighted users saw the disabled pending state |
+| Reproduction / evidence | the `UNIT-12` role query could only find the pending button by its stale idle name before the fix |
+| Resolution / status | `resolved locally` — derive the accessible name from a stable polite live region whose Thai text switches between idle and pending states |
+| Related commit | sign-out review-fix commit |

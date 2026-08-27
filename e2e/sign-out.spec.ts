@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { signInAs } from "./support/local-supabase";
 
 test.describe("Secure Sign-Out Flow", () => {
-  test("[SEC-08] authenticated user can sign out securely and gets redirected to /sign-in", async ({
+  test("[E2E-19] authenticated user can sign out securely and gets redirected to /sign-in", async ({
     page,
   }) => {
     // 1. Sign in as a valid role
@@ -21,7 +21,8 @@ test.describe("Secure Sign-Out Flow", () => {
     const buttonBox = await signOutButton.boundingBox();
     expect(buttonBox).not.toBeNull();
     if (buttonBox) {
-      expect(buttonBox.height).toBeGreaterThanOrEqual(40); // CSS min-height 44px, bounding box check
+      expect(buttonBox.width).toBeGreaterThanOrEqual(44);
+      expect(buttonBox.height).toBeGreaterThanOrEqual(44);
     }
 
     // 4. Verify 360px overflow safety with sign-out button present
@@ -31,10 +32,13 @@ test.describe("Secure Sign-Out Flow", () => {
 
     // 5. Run Axe accessibility scan
     const axeResults = await new AxeBuilder({ page }).analyze();
-    expect(axeResults.violations.filter(({ impact }) => impact === "critical" || impact === "serious")).toEqual([]);
+    expect(axeResults.violations).toEqual([]);
 
-    // 6. Click sign out
-    await signOutButton.click();
+    // 6. Reach and activate sign out through the keyboard
+    await page.getByRole("link", { name: "PalmTrack" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(signOutButton).toBeFocused();
+    await page.keyboard.press("Enter");
 
     // 7. Verify redirection to /sign-in
     await expect(page).toHaveURL(/\/sign-in/u);

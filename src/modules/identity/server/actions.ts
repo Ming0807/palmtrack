@@ -13,15 +13,22 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * - Handles unconfigured / provider failure without leaking secrets or raw provider error messages.
  */
 export async function signOutAction(): Promise<never> {
-  const clientResult = await createSupabaseServerClient();
+  const clientResult = await createSupabaseServerClient().catch(() => null);
 
-  if (clientResult.status !== "configured") {
+  if (!clientResult || clientResult.status !== "configured") {
     redirect("/sign-in?error=configuration");
   }
 
-  const { error } = await clientResult.client.auth.signOut();
+  let providerError: unknown;
 
-  if (error) {
+  try {
+    const result = await clientResult.client.auth.signOut({ scope: "local" });
+    providerError = result.error;
+  } catch {
+    redirect("/sign-in?error=invalid");
+  }
+
+  if (providerError) {
     redirect("/sign-in?error=invalid");
   }
 

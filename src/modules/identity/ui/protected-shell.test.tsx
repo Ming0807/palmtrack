@@ -73,7 +73,7 @@ describe("authorized protected shell", () => {
     expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
   });
 
-  it("renders keyboard-accessible sign-out button in the header for all roles", () => {
+  it("[UNIT-12] renders keyboard-accessible sign-out button in the header for all roles", () => {
     render(
       <ProtectedShell role="farmer" currentPath="/app">
         <h1>ภาพรวม</h1>
