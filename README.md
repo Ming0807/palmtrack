@@ -34,6 +34,6 @@ npm run dev
 
 ## เทคโนโลยี
 
-ระบบใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright พร้อม Supabase SSR/JavaScript clients, Zod และ Supabase CLI ที่ pin version แล้ว Supabase hosted มีเฉพาะ Safety Skeleton schema/RLS/audit foundation จาก migration `202608250001` และยังไม่มีข้อมูลจริง; migrations ประชากร/การสุ่ม `202608250002`–`202608260004`, private Storage, Vercel deployment และ CI เป็นขั้นถัดไปตามแผน GitHub remote ใช้ HTTPS และ push เฉพาะ commit ที่ผ่าน verification ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
+ระบบใช้ Next.js App Router, React, TypeScript, Tailwind CSS, Fontsource, Lucide, Vitest และ Playwright พร้อม Supabase SSR/JavaScript clients, Zod และ Supabase CLI ที่ pin version แล้ว มี Web App Manifest สำหรับ PWA install metadata (standalone display mode และ theme tokens) โดยไม่มี offline service worker หรือ background sync Supabase hosted มีเฉพาะ Safety Skeleton schema/RLS/audit foundation จาก migration `202608250001` และยังไม่มีข้อมูลจริง; migrations ประชากร/การสุ่ม `202608250002`–`202608260004`, private Storage, Vercel deployment และ CI เป็นขั้นถัดไปตามแผน GitHub remote ใช้ HTTPS และ push เฉพาะ commit ที่ผ่าน verification ข้อจำกัด free tier และวิธีสำรองแบบ zero-cost อยู่ใน [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
 
 แนวทางการเปลี่ยนเอกสารและข้อห้ามด้านข้อมูลอยู่ใน [AGENTS.md](AGENTS.md)

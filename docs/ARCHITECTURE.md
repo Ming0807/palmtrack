@@ -75,6 +75,15 @@ Client ขอ upload intent → server ตรวจ role/purpose/aggregate → �
 
 Authorized query ใช้ shared funnel base cohort/predicates จาก [Research protocol](RESEARCH_PROTOCOL.md) ใน database view/RPC โดยส่ง workspace, selected run และ date filters ชุดเดียว → stage aggregate → UI/CSV Early stages ไม่ reuse export-eligible predicate การ export ปริยายเลือก anonymized projection Full PII ใช้ explicit privileged action และ audit ก่อนสร้างผลลัพธ์ ไม่ cache PII ใน public/CDN layer
 
+### Web App Manifest and PWA install boundary
+
+PalmTrack กำหนด Web App Manifest (`manifest.webmanifest`) และ Root Viewport metadata (`theme_color: #233b68`, `background_color: #f7f2e8`, `display: standalone`) เพื่อรองรับการติดตั้งเป็น Web App บนหน้าจอหลัก (Home Screen) ของอุปกรณ์
+
+**ข้อจำกัดและขอบเขตที่ชัดเจน:**
+- เป็น **Install Metadata เท่านั้น**
+- **ไม่มี Service Worker, ไม่มี Cache Strategy, ไม่มี Background Sync, และไม่มี Offline Submission**
+- การทำงานทุกอย่างยังคงปฏิบัติตามมาตรฐานความปลอดภัยและสิทธิ์การเข้าถึงแบบ Online / Server-validated อย่างเคร่งครัด
+
 ## Auth, RLS, and tenancy seam
 
 Auth UID เชื่อม `user_profiles`. Database helper แบบ `current_workspace_id()` และ `current_role()` ให้ policy ใช้ membership ที่ active V1 provision workspace เดียวและไม่มี tenant selector Root aggregate ได้แก่ population import/run, farmer/farm, questionnaire version, export job และ audit partition key มี `workspace_id`; child row สืบ scope ผ่าน foreign key และ policy join ที่ index แล้ว ADR-0002 กำหนด extension seam

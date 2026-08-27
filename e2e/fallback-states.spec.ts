@@ -35,4 +35,27 @@ test.describe("Global Application Fallback States", () => {
     const axeResults = await new AxeBuilder({ page }).analyze();
     expect(axeResults.violations).toEqual([]);
   });
+
+  test("[PWA-01] manifest.webmanifest serves valid install metadata without offline claims", async ({
+    request,
+  }) => {
+    const response = await request.get("/manifest.webmanifest");
+    expect(response.status()).toBe(200);
+    const manifestJson = await response.json();
+
+    expect(manifestJson.name).toBe("PalmTrack");
+    expect(manifestJson.short_name).toBe("PalmTrack");
+    expect(manifestJson.lang).toBe("th");
+    expect(manifestJson.start_url).toBe("/");
+    expect(manifestJson.display).toBe("standalone");
+    expect(manifestJson.background_color).toBe("#f7f2e8");
+    expect(manifestJson.theme_color).toBe("#233b68");
+    expect(manifestJson.icons).toEqual([
+      {
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+      },
+    ]);
+  });
 });
