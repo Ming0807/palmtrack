@@ -47,7 +47,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | UNIT-08 | `sha256-mulberry32-fy-v1` test vector proves NFC→UTF-8→SHA-256→big-endian seed, Mulberry32 outputs, Fisher–Yates `(i,j)`, candidate hash and final order match across implementations |
 | UNIT-09 | dashboard model keeps money as canonical decimal strings, filters research support by role, does not call research gateways for farmer/collector, and renders truthful loading/not-enabled states without fabricated production values |
 | UNIT-10 | global fallback states (loading, error, not-found) render sanitized Thai copy, provide screen reader status/alert roles, retry action calling reset(), working navigation link, and do not leak raw error messages or secrets through DOM/client console |
-| UNIT-11 | pending section metadata for settings, audit, my-work, reports, evaluation provides truthful Thai copy, status 'ยังไม่เปิดใช้งาน', non-empty capabilities, next steps, and exact role allowlist matching navigation |
+| UNIT-11 | pending section metadata and route components for settings, audit, my-work, reports, evaluation provide truthful Thai copy, an accessible 'ยังไม่เปิดใช้งาน' status, non-empty capabilities, evidence-gated next steps without unverified runtime/delivery claims, and exact role allowlist matching navigation |
 
 ## RLS and authorization tests
 
@@ -84,7 +84,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 
 | ID | User-visible journey |
 |---|---|
-| E2E-01 | sign in each role, see correct Thai navigation, direct forbidden URL gives non-enumerating state |
+| E2E-01 | sign in each role, see correct Thai navigation and authorized truthful module-status route; direct forbidden URL gives a non-enumerating state without module metadata |
 | E2E-02 | manager imports fixture, reviews row errors, accepts corrected snapshot |
 | E2E-03 | manager previews formula/allocation, locks sample 93, activates it, supersedes prior run and views exact algorithm/candidate/result evidence |
 | E2E-04 | manager assigns/reassigns; collector sees only “งานของฉัน” |

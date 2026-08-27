@@ -29,7 +29,7 @@ vi.mock("@/modules/identity/server/session", () => ({
 
 import ApplicationSectionPage from "@/app/app/[section]/page";
 
-describe("ApplicationSectionPage ([section])", () => {
+describe("[UNIT-11] ApplicationSectionPage ([section])", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.notFound.mockImplementation(() => {
@@ -99,6 +99,7 @@ describe("ApplicationSectionPage ([section])", () => {
         ApplicationSectionPage({ params: Promise.resolve({ section: "unknown-section" }) }),
       ).rejects.toThrow("NEXT_NOT_FOUND");
       expect(mocks.notFound).toHaveBeenCalled();
+      expect(mocks.resolveSession).not.toHaveBeenCalled();
     });
   });
 
@@ -152,15 +153,22 @@ describe("ApplicationSectionPage ([section])", () => {
         if (isAllowed) {
           const meta = PENDING_SECTIONS[section as PendingSectionKey];
           expect(screen.getByRole("heading", { level: 1, name: meta.title })).toBeInTheDocument();
-          expect(screen.getByRole("status")).toHaveTextContent("ยังไม่เปิดใช้งาน");
+          expect(
+            screen.getByRole("status", {
+              name: `สถานะโมดูล ${meta.title}: ยังไม่เปิดใช้งาน`,
+            }),
+          ).toHaveTextContent("ยังไม่เปิดใช้งาน");
           expect(screen.getByText(meta.description)).toBeInTheDocument();
           expect(screen.getByText(meta.statusReason)).toBeInTheDocument();
           expect(screen.getByRole("heading", { level: 2, name: "สิ่งที่โมดูลจะรองรับ" })).toBeInTheDocument();
           expect(screen.getByRole("heading", { level: 2, name: "ขั้นตอนและแผนงานถัดไป" })).toBeInTheDocument();
           expect(screen.getByRole("link", { name: "กลับสู่หน้าหลัก" })).toHaveAttribute("href", "/app");
         } else {
+          const meta = PENDING_SECTIONS[section as PendingSectionKey];
           expect(screen.getByRole("heading", { name: "ไม่สามารถเข้าถึงหน้านี้ได้" })).toBeInTheDocument();
           expect(screen.queryByRole("status")).not.toBeInTheDocument();
+          expect(screen.queryByText(meta.title)).not.toBeInTheDocument();
+          expect(screen.queryByText(meta.description)).not.toBeInTheDocument();
         }
 
         unmount();

@@ -12,15 +12,6 @@
   gap: 8px;
 }
 
-.eyebrow {
-  margin: 0;
-  color: var(--rust);
-  font-size: 0.78rem;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .title {
   margin: 0;
   color: var(--ink);
@@ -83,27 +74,32 @@
   line-height: 1.55;
 }
 
-.sectionGrid {
+.plan {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  border-block: 1px solid var(--line-strong);
 }
 
-@media (min-width: 640px) {
-  .sectionGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.card {
+.planSection {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  padding: 22px clamp(4px, 3vw, 24px);
+}
+
+.planSection + .planSection {
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 640px) {
+  .plan {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .planSection + .planSection {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
 }
 
 .cardHeader {

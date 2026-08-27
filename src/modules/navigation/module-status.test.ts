@@ -9,7 +9,7 @@ import {
 } from "./module-status";
 import { getRoleNavigation } from "./role-navigation";
 
-describe("module-status metadata & authorization", () => {
+describe("[UNIT-11] module-status metadata & authorization", () => {
   const expectedSections: readonly PendingSectionKey[] = [
     "settings",
     "audit",
@@ -27,12 +27,20 @@ describe("module-status metadata & authorization", () => {
     expect(meta).toBeDefined();
     expect(meta?.status).toBe("ยังไม่เปิดใช้งาน");
     expect(meta?.title).toBeTruthy();
-    expect(meta?.eyebrow).toBeTruthy();
     expect(meta?.description).toBeTruthy();
     expect(meta?.statusReason).toBeTruthy();
     expect(meta?.capabilities.length).toBeGreaterThanOrEqual(2);
     expect(meta?.nextSteps.length).toBeGreaterThanOrEqual(1);
     expect(meta?.allowedRoles.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it.each(expectedSections)("does not promise delivery dates or claim unverified runtime activity for '%s'", (sectionKey) => {
+    const meta = getModuleStatus(sectionKey);
+    const operationalCopy = [meta?.statusReason, ...(meta?.nextSteps ?? [])].join(" ");
+
+    expect(operationalCopy).not.toMatch(
+      /เหตุการณ์สำคัญทั้งหมด|อย่างต่อเนื่อง|จะเปิด(?:ให้ใช้งาน)?ในรอบ|ทันทีที่|หลังมีการส่งข้อมูล|เมื่อมีชุดข้อมูล/,
+    );
   });
 
   it("returns null for unknown section slugs", () => {

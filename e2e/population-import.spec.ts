@@ -69,7 +69,11 @@ test("[A11Y-01][A11Y-02] flow is keyboard-safe, offline-safe and accessible", as
   await page.goto("/app/research/population");
   await expect(page.getByLabel("ไฟล์ประชากร CSV")).toBeEnabled();
   const skipLink = page.getByRole("link", { name: "ข้ามไปยังเนื้อหาหลัก" });
-  await skipLink.focus();
+  // Authenticated navigation does not provide a stable "before the first control"
+  // focus origin in Chromium. Start from the next real link, never the target, then
+  // prove the skip link is keyboard-reachable with a genuine reverse Tab.
+  await page.getByRole("link", { name: "PalmTrack" }).focus();
+  await page.keyboard.press("Shift+Tab");
   await expect(skipLink).toBeFocused();
   await expect(skipLink).toBeVisible();
   const before = await databaseImportCount();

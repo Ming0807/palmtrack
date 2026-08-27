@@ -26,14 +26,17 @@ export default async function ApplicationSectionPage({ params }: { params: Promi
   return (
     <section className={styles.container} aria-labelledby="section-title">
       <header className={styles.header}>
-        <p className={styles.eyebrow}>{metadata.eyebrow}</p>
         <h1 id="section-title" className={styles.title}>{metadata.title}</h1>
         <p className={styles.lead}>{metadata.description}</p>
       </header>
 
-      <div className={styles.statusCard} role="status" aria-label={`สถานะโมดูล ${metadata.title}`}>
+      <div className={styles.statusCard}>
         <div className={styles.statusHeader}>
-          <span className={styles.statusBadge}>
+          <span
+            className={styles.statusBadge}
+            role="status"
+            aria-label={`สถานะโมดูล ${metadata.title}: ${metadata.status}`}
+          >
             <Clock size={14} aria-hidden="true" />
             {metadata.status}
           </span>
@@ -42,30 +45,30 @@ export default async function ApplicationSectionPage({ params }: { params: Promi
         <p className={styles.statusDescription}>{metadata.statusReason}</p>
       </div>
 
-      <div className={styles.sectionGrid}>
-        <div className={styles.card}>
+      <div className={styles.plan}>
+        <section className={styles.planSection}>
           <div className={styles.cardHeader}>
             <Layers size={18} className={styles.cardIcon} aria-hidden="true" />
             <h2 className={styles.cardHeading}>สิ่งที่โมดูลจะรองรับ</h2>
           </div>
           <ul className={styles.list}>
-            {metadata.capabilities.map((item, idx) => (
-              <li key={idx} className={styles.listItem}>{item}</li>
+            {metadata.capabilities.map((item) => (
+              <li key={item} className={styles.listItem}>{item}</li>
             ))}
           </ul>
-        </div>
+        </section>
 
-        <div className={styles.card}>
+        <section className={styles.planSection}>
           <div className={styles.cardHeader}>
             <Milestone size={18} className={styles.cardIcon} aria-hidden="true" />
             <h2 className={styles.cardHeading}>ขั้นตอนและแผนงานถัดไป</h2>
           </div>
           <ul className={styles.list}>
-            {metadata.nextSteps.map((item, idx) => (
-              <li key={idx} className={styles.listItem}>{item}</li>
+            {metadata.nextSteps.map((item) => (
+              <li key={item} className={styles.listItem}>{item}</li>
             ))}
           </ul>
-        </div>
+        </section>
       </div>
 
       <div className={styles.actions}>

@@ -4,7 +4,7 @@
 
 | Requirement | Objective | Role | Flow / screen | Data entity | Test IDs | Expected research evidence |
 |---|---|---|---|---|---|---|
-| FR-01 | access control | ทุกบทบาท | sign-in / protected route | user_profile | RLS-01, RLS-09, E2E-01, SEC-01 | exact role allowlist และ deny log สังเคราะห์ |
+| FR-01 | access control | ทุกบทบาท | sign-in / protected route / pending module status | user_profile, role navigation metadata | UNIT-11, RLS-01, RLS-09, E2E-01, SEC-01 | exact role allowlist, truthful authorized status และ non-enumerating deny without module metadata |
 | FR-02 | valid population | admin, research_manager | population import/validation | population_import, population_member | INT-01, E2E-02, E2E-15, SEC-02 | successful actor-specific imports, input digest, accepted/rejected counts/reasons |
 | FR-03 | reproducible active sample | research_manager | sampling draft/lock/activate/cancel | sampling_run, sample_member | UNIT-01, UNIT-02, UNIT-08, INT-02, E2E-03, AUD-01 | canonical `margin_of_error_text` (`0.050→0.05`), N/e/n, allocation, NFC/seed/digest/algorithm, candidate hash, ordered result plus `ordered-result-sha256-v1` hash, independently replayed locked membership/order, lifecycle audit |
 | FR-04 | controlled field work | research_manager, field_collector | assignment / งานของฉัน | assignment | RLS-02, INT-03, E2E-04, AUD-05 | assignment/reassignment actor/time/before-after and required reason |
@@ -25,8 +25,8 @@
 | NFR-02 | privacy compliance | admin, research_manager | export/file/retention review | export_job, file_object, audit_event | SEC-05, SEC-07, ACC-01 | signed release checklist and anonymized manifest |
 | NFR-03 | complete audit | privileged roles | semantic changes/audit viewer | audit_event, review_event | AUD-01–AUD-09 | actor UUID/UTC/action/entity plus event-specific fields: both export modes, attachment access/delete, reasons, status/answer before-after, correction resume/edit/resubmit/re-verify, withdrawal |
 | NFR-04 | sampling reproducibility | research_manager, evaluator_readonly | replay/evidence | sampling_run, sample_member | UNIT-01, UNIT-02, UNIT-08, INT-02, AUD-01 | database independently reconstructs candidate ordering, allocation, Mulberry32/Fisher–Yates swaps, quota selection and full ordered membership/hash from the accepted snapshot; forged selection RPC fails |
-| NFR-05 | mobile Thai usability | ทุกบทบาท | primary mobile flows/global fallback | UI state | E2E-13, E2E-18, A11Y-01, ACC-01 | 360 px screenshots, fallback overflow check and task completion record |
-| NFR-06 | accessible operation | ทุกบทบาท | forms/dialogs/charts/global fallback | semantic UI | UNIT-10, E2E-18, A11Y-01, A11Y-02 | sanitized status/error announcements, complete automated scan and keyboard/manual checklist |
+| NFR-05 | mobile Thai usability | ทุกบทบาท | primary mobile flows/global fallback/pending module status | UI state | E2E-01, E2E-13, E2E-18, A11Y-01, ACC-01 | 360 px screenshots, module/fallback overflow checks and task completion record |
+| NFR-06 | accessible operation | ทุกบทบาท | forms/dialogs/charts/global fallback/pending module status | semantic UI | UNIT-10, UNIT-11, E2E-01, E2E-18, A11Y-01, A11Y-02 | sanitized status/error announcements, truthful status semantics, complete automated scan and keyboard/manual checklist |
 | NFR-07 | free-tier recovery | admin | clean-target DB/storage/Auth restore | user_profile, identity/storage/database backup | BAK-01, BAK-02, BAK-03, OPS-01 | encrypted manifests/checksums, stable profile/Auth relink, sign-in/RLS reconciliation |
 | NFR-08 | transaction integrity | ทุกเขียนข้อมูล | submit/transition/ledger | response, sale, expense | UNIT-04–UNIT-06, RLS-10, INT-04–INT-09, INT-11, SEC-03 | duplicate/invalid/orphan/combined-transition attempts denied; separated transition succeeds |
 | NFR-09 | maintainable delivery | ทีมพัฒนา | migration/module/review | schema/docs | DOC-01, OPS-01 | link/trace scan, migration review and rollback evidence |
@@ -86,3 +86,13 @@ Evidence นี้เป็น tracer-bullet progress ไม่ใช่ FR-02/V
 | NFR-08 | Transactional RPCs, canonical decimal strings across TypeScript/PostgREST, scaled BigInt client preview, PostgreSQL numeric formula/constraints และ active-only soft-delete reporting | Gateway regression, unit, pgTAP and authenticated E2E cover the local slice |
 
 หลักฐานนี้เป็น local synthetic evidence ของ Farm Core + Cash Ledger Foundation vertical slice ไม่ใช่ FR-08–FR-10 completion หรือ V1 acceptance sign-off และไม่อนุญาตให้สรุป hosted migration หรือ real-data readiness ผล final verification ของ review-fix commit ต้องบันทึกตาม evidence run จริงก่อน push
+
+## Pending module-status route evidence — 2026-08-27
+
+| Requirement | Implemented evidence in this increment | Status boundary |
+|---|---|---|
+| FR-01 | five authorized role/route projections, visible matching role navigation, one direct forbidden route per role, metadata absence on deny, and authenticated `/app/unknown-module` 404 | local component matrix covers all 25 role/section pairs; local Playwright module-status cases pass 10/10 across mobile and desktop |
+| NFR-05 | Thai status, reason, planned capability, evidence-gated prerequisite, and recovery link render without document overflow | every authorized pending route is checked at 360×800 and 1365×900; this is route readability evidence, not field-task usability sign-off |
+| NFR-06 | status accessible name includes module title plus “ยังไม่เปิดใช้งาน”; every authorized route has semantic headings, no pending buttons, and a complete axe scan | `UNIT-11` focused component/metadata tests pass 50/50; local module-status Playwright runs full axe with zero violations on all five authorized routes in both viewports |
+
+หลักฐานนี้ยืนยันเฉพาะ truthful unavailable-state และ authorization boundary ของห้า route เท่านั้น ไม่ได้อ้างว่าโมดูลตั้งค่า Audit งานภาคสนาม รายงาน หรือการประเมินพร้อมใช้งาน

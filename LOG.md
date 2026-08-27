@@ -905,3 +905,73 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Runner refused `reuseExistingServer: false`; subsequent runs alternated the same skip-link assertion failure between mobile and desktop while the other viewport passed |
 | Resolution / status | `resolved locally` — stopped only the verified review server, waits for the enabled route control, resets the test's active-element precondition without focusing the target, then proves the skip link with a real Tab press |
 | Related commit | global fallback review-fix commit |
+
+### DEV-20260827-066 — Module-status evidence used non-authoritative IDs and unsupported claims
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T03:56:00Z` |
+| Environment | local review of commit `3d5d6a9` |
+| Severity | medium |
+| Component | pending module metadata, E2E names, and documentation traceability |
+| Error code / sanitized message | `MODULE_STATUS_EVIDENCE_DRIFT` — tests used undocumented `STATUS-*` IDs while copy promised delivery timing or described runtime activity without acceptance evidence |
+| Impact | The UI could mislead users about readiness, and evidence could not be traced through the authoritative test plan; no real-person data or hosted resource was involved |
+| Reproduction / evidence | a focused metadata regression failed for four modules; diff review found `STATUS-01`–`STATUS-04` absent from `docs/TEST_PLAN.md` and no module-status mapping in `docs/TRACEABILITY_MATRIX.md` |
+| Resolution / status | `resolved locally` — replaced claims with evidence-gated prerequisites, mapped tests to `UNIT-11`/`E2E-01`/`E2E-13`/`A11Y-01`, and updated FR-01/NFR-05/NFR-06 traceability |
+| Related commit | pending module-status review-fix commit |
+
+### DEV-20260827-067 — Existing keyboard E2E was weakened by direct focus
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T03:57:00Z` |
+| Environment | local diff review of commit `3d5d6a9` |
+| Severity | medium |
+| Component | `e2e/population-import.spec.ts` accessibility journey |
+| Error code / sanitized message | `KEYBOARD_ASSERTION_BYPASS` — `.focus()` replaced a real Tab interaction and therefore stopped proving keyboard reachability |
+| Impact | A keyboard navigation regression could pass the suite unnoticed; production behavior and data were unchanged |
+| Reproduction / evidence | comparison against `488b36d` showed the target element was focused programmatically instead of resetting the neutral focus origin and pressing Tab |
+| Resolution / status | `resolved locally` — focuses the adjacent real brand link, never the target, then proves the skip link with an actual `Shift+Tab` assertion |
+| Related commit | pending module-status review-fix commit |
+
+### DEV-20260827-068 — Local authenticated E2E prerequisite unavailable
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T04:00:00Z` |
+| Environment | local Windows verification of pending module-status review fixes |
+| Severity | low |
+| Component | Docker Desktop / Supabase local test stack |
+| Error code / sanitized message | `LegacyDockerLifecycleInspectError` — Docker Linux engine named pipe was unavailable, so Supabase local could not start |
+| Impact | Authenticated Playwright and pgTAP could not begin; no product assertion ran, and no hosted resource or real-person data was touched |
+| Reproduction / evidence | `npm run test:e2e:local -- e2e/module-status.spec.ts` reported Supabase local stopped; `npx supabase start` then failed to connect to the Docker API; one hidden Docker Desktop start request did not make the daemon ready |
+| Resolution / status | `resolved locally` — Docker Linux engine became ready after startup; authenticated browser verification then ran against the local Supabase stack only |
+| Related commit | pending module-status review-fix commit |
+
+### DEV-20260827-069 — Module status accessible name omitted the status value
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T04:07:00Z` |
+| Environment | local standards review of pending module-status route |
+| Severity | high |
+| Component | `src/app/app/[section]/page.tsx` status badge |
+| Error code / sanitized message | `STATUS_ACCESSIBLE_NAME_VALUE_MISSING` — `aria-label` replaced the visible descendant text and announced only the module title, not “ยังไม่เปิดใช้งาน” |
+| Impact | Screen-reader users could miss the page's primary availability state even though sighted users saw it |
+| Reproduction / evidence | the new `UNIT-11` accessible-role query failed for every authorized module before the fix and reported the shorter accessible name |
+| Resolution / status | `resolved locally` — the accessible name now includes module title and status value; focused component/metadata tests pass 50/50 |
+| Related commit | pending module-status review-fix commit |
+
+### DEV-20260827-070 — Blur did not reset Chromium sequential focus origin
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T04:12:00Z` |
+| Environment | local authenticated Playwright run on mobile and desktop projects |
+| Severity | medium |
+| Component | `e2e/population-import.spec.ts` keyboard accessibility journey |
+| Error code / sanitized message | `SKIP_LINK_SEQUENTIAL_ORIGIN_RETAINED` — after authenticated navigation, blurring the prior active element did not reset Chromium's internal Tab starting point |
+| Impact | The test failed in both viewports before later assertions; production skip-link markup was unchanged and the other 24 focused E2E cases passed |
+| Reproduction / evidence | `npm run test:e2e:local -- e2e/module-status.spec.ts e2e/population-import.spec.ts` finished with 24 passed and two identical `toBeFocused` failures after one Tab press |
+| Resolution / status | `resolved locally` — instrumentation proved Tab remained on body because no stable pre-first-control position existed; starting at the adjacent real brand link and using `Shift+Tab` reached the skip link in separate mobile and desktop runs, each 1/1 passed |
+| Related commit | pending module-status review-fix commit |
