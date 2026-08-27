@@ -30,6 +30,7 @@
 | NFR-07 | free-tier recovery | admin | clean-target DB/storage/Auth restore | user_profile, identity/storage/database backup | BAK-01, BAK-02, BAK-03, OPS-01 | encrypted manifests/checksums, stable profile/Auth relink, sign-in/RLS reconciliation |
 | NFR-08 | transaction integrity | ทุกเขียนข้อมูล | submit/transition/ledger | response, sale, expense | UNIT-04–UNIT-06, RLS-10, INT-04–INT-09, INT-11, SEC-03 | duplicate/invalid/orphan/combined-transition attempts denied; separated transition succeeds |
 | NFR-09 | maintainable delivery | ทีมพัฒนา | migration/module/review | schema/docs | DOC-01, OPS-01 | link/trace scan, migration review and rollback evidence |
+| NFR-10 | truthful install metadata | ทุกบทบาท | app launch / browser install metadata | manifest, root viewport metadata, app icon | PWA-01 | manifest/head/icon endpoints agree on identity and theme, no Service Worker registration, and no native/offline/install-prompt guarantee |
 
 ## Coverage rule
 
@@ -107,3 +108,11 @@ Evidence นี้เป็น tracer-bullet progress ไม่ใช่ FR-02/V
 | NFR-06 | idle/pending accessible names, polite pending announcement, disabled duplicate-submit state, keyboard focus/Enter activation, and complete axe scan with zero violations | focused unit/component run passes 13/13 and focused local Playwright passes 2/2 |
 
 หลักฐานนี้ครอบคลุมเฉพาะ sign-out vertical slice บน local synthetic accounts ไม่ใช่ V1 acceptance sign-off และ intentionally ยังไม่รัน full test suite; final full-suite gate รอหลัง Prompt 7 ตามแผนตรวจรับ
+
+## Web App Manifest evidence — 2026-08-27
+
+| Requirement | Implemented evidence in this increment | Status boundary |
+|---|---|---|
+| NFR-10 | Next.js metadata route serves the Thai PalmTrack manifest as `application/manifest+json`; the referenced `/icon.svg` route serves `image/svg+xml`; rendered root metadata links the manifest and exposes the matching theme color; browser context has no Service Worker registration | `PWA-01` unit contract passes 1/1 and focused local Playwright passes 2/2 across mobile/desktop |
+
+หลักฐานนี้ยืนยันเฉพาะ install metadata ไม่ใช่การรับประกัน install prompt, native-app behavior หรือ offline capability และ intentionally ยังไม่รัน full test suite; final full-suite gate รอหลัง Prompt 7

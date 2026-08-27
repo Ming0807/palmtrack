@@ -43,6 +43,7 @@ V1 มี research workspace เดียวและไม่มี UI จั�
 | NFR-07 | Reliability on free tier: ไม่มี SLA; มี manual verified backup/restore และแผนรับ cold start/quota/outage โดยไม่อ้าง provider guarantee |
 | NFR-08 | Data integrity: transaction/constraint/idempotency ป้องกัน duplicate submit, invalid transition, orphan และ precision drift |
 | NFR-09 | Maintainability: modular monolith, schema migration แบบ reviewable, stable identifier และเอกสาร traceability ที่ปรับพร้อม requirement |
+| NFR-10 | Install metadata: ให้บริการ Web App Manifest, theme metadata และ app icon ที่ browser อ่านได้จริง โดยไม่อ้างว่า install prompt ใช้ได้ทุก browser, ไม่อ้าง native app และไม่เพิ่ม Service Worker, Cache Strategy, Background Sync หรือการ submit ขณะ offline |
 
 ## Out of scope
 
@@ -53,4 +54,4 @@ V1 มี research workspace เดียวและไม่มี UI จั�
 
 ## V1 acceptance criteria
 
-V1 ยอมรับได้เมื่อทุก FR/NFR มี test ใน [traceability matrix](TRACEABILITY_MATRIX.md), ชุด acceptance fixture สังเคราะห์ผ่าน, RLS/security negative ไม่มีช่องข้ามสิทธิ์, ตัวอย่าง Yamane `N=121,e=0.05` ปัดขึ้นเป็น 93 และ strata รวม 93, algorithm `sha256-mulberry32-fy-v1` ทำซ้ำจาก evidence ได้, withdrawal หายจาก report/export ทันที, สูตร profit ตรงกับ active ledger, offline draft ไม่ส่งขณะ offline, database/storage/Auth identity manifest ถูก restore ใน clean target พร้อม sign-in/RLS linkage และ questionnaire version ที่ใช้ผ่าน approval gateแล้ว
+V1 ยอมรับได้เมื่อทุก FR/NFR มี test ใน [traceability matrix](TRACEABILITY_MATRIX.md), ชุด acceptance fixture สังเคราะห์ผ่าน, RLS/security negative ไม่มีช่องข้ามสิทธิ์, ตัวอย่าง Yamane `N=121,e=0.05` ปัดขึ้นเป็น 93 และ strata รวม 93, algorithm `sha256-mulberry32-fy-v1` ทำซ้ำจาก evidence ได้, withdrawal หายจาก report/export ทันที, สูตร profit ตรงกับ active ledger, offline draft ไม่ส่งขณะ offline, Web App Manifest/head metadata/icon route ตรงกันโดยไม่สร้าง offline/install guarantee, database/storage/Auth identity manifest ถูก restore ใน clean target พร้อม sign-in/RLS linkage และ questionnaire version ที่ใช้ผ่าน approval gateแล้ว

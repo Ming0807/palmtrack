@@ -1017,3 +1017,45 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | the `UNIT-12` role query could only find the pending button by its stale idle name before the fix |
 | Resolution / status | `resolved locally` — derive the accessible name from a stable polite live region whose Thai text switches between idle and pending states |
 | Related commit | sign-out review-fix commit |
+
+### DEV-20260827-074 — PWA evidence used an unregistered ID and did not verify the icon route
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T05:16:22Z` |
+| Environment | local review of commit `b2d1b21` |
+| Severity | medium |
+| Component | Web App Manifest tests and requirement traceability |
+| Error code / sanitized message | `PWA_EVIDENCE_ORPHAN` — `PWA-01` was absent from the authoritative test plan/traceability, while tests asserted only the icon path string and omitted the manifest Content-Type, icon response, rendered head metadata, and service-worker boundary |
+| Impact | A broken icon route or missing browser metadata could pass while the commit claimed install metadata was complete; the evidence could not be traced to a product requirement |
+| Reproduction / evidence | static ID comparison found `PWA-01` only in E2E; the reviewed test never requested `/icon.svg` or inspected root metadata |
+| Resolution / status | `resolved locally` — add `NFR-10` and `PWA-01`, map acceptance/evidence, and verify manifest/icon media types, root manifest/theme tags, truthful description, and zero Service Worker registrations in focused browser runs |
+| Related commit | Web App Manifest review-fix commit |
+
+### DEV-20260827-075 — Manifest documentation blurred viewport and offline-draft boundaries
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T05:16:22Z` |
+| Environment | documentation review of commit `b2d1b21` |
+| Severity | low |
+| Component | `docs/ARCHITECTURE.md` and `README.md` |
+| Error code / sanitized message | `PWA_BOUNDARY_TERMINOLOGY_DRIFT` — manifest-only fields were described as Root Viewport metadata and the online statement could be read as excluding the accepted IndexedDB device-local draft |
+| Impact | Readers could misunderstand which browser surface owns each field or assume ADR-0003 had been superseded without a replacement ADR |
+| Reproduction / evidence | comparison with Next.js 16.3.2 local metadata docs and accepted ADR-0003 |
+| Resolution / status | `resolved locally` — distinguish manifest fields from Root Viewport `themeColor`, keep offline draft as a separate boundary, require online server-authoritative submission, and avoid guaranteeing install prompts across browsers/devices |
+| Related commit | Web App Manifest review-fix commit |
+
+### DEV-20260827-076 — Ad-hoc Markdown link scan parsed inline regex as links
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-08-27T05:21:30Z` |
+| Environment | local documentation verification |
+| Severity | low |
+| Component | temporary read-only Markdown link checker |
+| Error code / sanitized message | `DOC_LINK_SCAN_CODE_FALSE_POSITIVE` — regex examples such as a non-capturing group inside inline code were interpreted as Markdown link targets |
+| Impact | The first two documentation-check commands exited non-zero even though no repository link was broken; no application state, hosted resource, or data changed |
+| Reproduction / evidence | reported pseudo-targets originated from inline regex contracts in `DATA_MODEL.md`, `RESEARCH_PROTOCOL.md`, and the deterministic-sampling design |
+| Resolution / status | `resolved for verification` — exclude fenced and inline code before matching Markdown links; the corrected full relative-link scan passes |
+| Related commit | Web App Manifest review-fix commit |

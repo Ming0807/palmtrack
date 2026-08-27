@@ -120,6 +120,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | BAK-03 | Auth recovery | Admin API recreates synthetic Auth users with temporary credentials, sets `must_change_password=true`, phone requires admin-assisted reset; recovered fixture signs in and proves stable profile/role/workspace linkage, allowed RLS success and cross-role deny; password hashes/sessions/tokens are absent |
 | OPS-01 | deployment | migration forward/rollback rehearsal, previous app compatibility, health checks and secret absence scan pass |
 | DOC-01 | documentation | relative links resolve; banned/secret/PII patterns absent; product IDs exactly match traceability; draft status, exact roles, notice/consent ordering, response/correction transitions, workspace-only sampling, AUD-01–AUD-09 fields, sale ownership and decimal/formula strings consistent |
+| PWA-01 | install metadata | manifest endpoint returns `application/manifest+json` with truthful Thai identity, standalone/theme fields and the existing SVG icon only; referenced icon returns `image/svg+xml`; rendered root metadata links the manifest and theme color; no Service Worker registration or offline/background-sync claim exists |
 | ACC-01 | acceptance | all acceptance criteria and privacy/release checklist signed against FX-BASE with no severity-high defect |
 
 ## Audit tests

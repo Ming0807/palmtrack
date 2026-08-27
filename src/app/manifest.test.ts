@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import manifest from "./manifest";
 
-describe("Web App Manifest", () => {
+describe("[PWA-01] Web App Manifest", () => {
   it("provides truthful install metadata without claiming offline sync", () => {
     const result = manifest();
 
@@ -25,6 +25,6 @@ describe("Web App Manifest", () => {
 
     // Description must be truthful and never claim offline capability
     expect(result.description).toBe("ระบบบริหารงานวิจัยและสวนปาล์มสำหรับโครงการศรีสาคร");
-    expect(result.description?.toLowerCase()).not.toContain("offline");
+    expect(result.description).not.toMatch(/offline|ออฟไลน์|background sync|ซิงก์/iu);
   });
 });

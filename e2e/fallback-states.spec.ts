@@ -37,10 +37,14 @@ test.describe("Global Application Fallback States", () => {
   });
 
   test("[PWA-01] manifest.webmanifest serves valid install metadata without offline claims", async ({
+    page,
     request,
   }) => {
     const response = await request.get("/manifest.webmanifest");
     expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain(
+      "application/manifest+json",
+    );
     const manifestJson = await response.json();
 
     expect(manifestJson.name).toBe("PalmTrack");
@@ -50,6 +54,12 @@ test.describe("Global Application Fallback States", () => {
     expect(manifestJson.display).toBe("standalone");
     expect(manifestJson.background_color).toBe("#f7f2e8");
     expect(manifestJson.theme_color).toBe("#233b68");
+    expect(manifestJson.description).toBe(
+      "ระบบบริหารงานวิจัยและสวนปาล์มสำหรับโครงการศรีสาคร",
+    );
+    expect(manifestJson.description).not.toMatch(
+      /offline|ออฟไลน์|background sync|ซิงก์/iu,
+    );
     expect(manifestJson.icons).toEqual([
       {
         src: "/icon.svg",
@@ -57,5 +67,26 @@ test.describe("Global Application Fallback States", () => {
         type: "image/svg+xml",
       },
     ]);
+
+    const iconResponse = await request.get(manifestJson.icons[0].src);
+    expect(iconResponse.status()).toBe(200);
+    expect(iconResponse.headers()["content-type"]).toContain("image/svg+xml");
+
+    await page.goto("/unknown-pwa-metadata-check");
+    await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+      "href",
+      "/manifest.webmanifest",
+    );
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+      "content",
+      "#233b68",
+    );
+
+    const serviceWorkerRegistrations = await page.evaluate(async () =>
+      "serviceWorker" in navigator
+        ? (await navigator.serviceWorker.getRegistrations()).length
+        : 0,
+    );
+    expect(serviceWorkerRegistrations).toBe(0);
   });
 });

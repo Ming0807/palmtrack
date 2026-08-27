@@ -77,12 +77,13 @@ Authorized query ใช้ shared funnel base cohort/predicates จาก [Resea
 
 ### Web App Manifest and PWA install boundary
 
-PalmTrack กำหนด Web App Manifest (`manifest.webmanifest`) และ Root Viewport metadata (`theme_color: #233b68`, `background_color: #f7f2e8`, `display: standalone`) เพื่อรองรับการติดตั้งเป็น Web App บนหน้าจอหลัก (Home Screen) ของอุปกรณ์
+PalmTrack กำหนด Web App Manifest (`manifest.webmanifest`) ที่มี `theme_color: #233b68`, `background_color: #f7f2e8` และ `display: standalone` พร้อม Root Viewport `themeColor: #233b68` เพื่อส่ง install metadata ให้ browser โดยไม่รับประกันว่า install prompt หรือการเพิ่มไปยังหน้าจอหลักจะพร้อมใช้บนทุก browser/device
 
 **ข้อจำกัดและขอบเขตที่ชัดเจน:**
+
 - เป็น **Install Metadata เท่านั้น**
-- **ไม่มี Service Worker, ไม่มี Cache Strategy, ไม่มี Background Sync, และไม่มี Offline Submission**
-- การทำงานทุกอย่างยังคงปฏิบัติตามมาตรฐานความปลอดภัยและสิทธิ์การเข้าถึงแบบ Online / Server-validated อย่างเคร่งครัด
+- Manifest นี้ **ไม่เพิ่ม Service Worker, Cache Strategy, Background Sync หรือการ submit ขณะ offline**; IndexedDB device-local draft ยังคงเป็นคนละ boundary ตาม [ADR-0003](adr/0003-indexeddb-offline-draft.md)
+- การ submit และ operation ที่เป็น server-authoritative ต้อง online และผ่าน server validation/authorization เสมอ
 
 ## Auth, RLS, and tenancy seam
 
