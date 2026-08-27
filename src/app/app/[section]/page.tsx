@@ -1,24 +1,17 @@
+import { ArrowLeft, Clock, Layers, Milestone } from "lucide-react";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { getRoleNavigation } from "@/modules/navigation/role-navigation";
 import { resolveIdentitySession } from "@/modules/identity/server/session";
 import { ConfigurationErrorState, ForbiddenState, UnconfiguredState } from "@/modules/identity/ui";
+import { getModuleStatus, isRoleAllowedForSection } from "@/modules/navigation/module-status";
 
-import styles from "../app-shell.module.css";
-
-const SECTION_COPY = {
-  settings: ["ตั้งค่าระบบ", "จัดการขอบเขตพื้นที่ทำงานและสิทธิ์ที่อนุมัติ"],
-  audit: ["ตรวจสอบเหตุการณ์", "ตรวจสอบหลักฐานการทำงานที่ผ่านการลดข้อมูลส่วนบุคคล"],
-  reports: ["รายงาน", "เตรียมรายงานแบบไม่ระบุตัวตนและหลักฐานการวิจัย"],
-  "my-work": ["งานของฉัน", "ดูเฉพาะงานภาคสนามที่ได้รับมอบหมาย"],
-  evaluation: ["ภาพรวมประเมิน", "ดูข้อมูลสรุปแบบไม่ระบุตัวตนโดยไม่แก้ไขข้อมูลฐาน"],
-} as const;
-
-type SectionKey = keyof typeof SECTION_COPY;
+import styles from "./module-status.module.css";
 
 export default async function ApplicationSectionPage({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
-  if (!(section in SECTION_COPY)) notFound();
+  const metadata = getModuleStatus(section);
+  if (!metadata) notFound();
 
   const session = await resolveIdentitySession();
   if (session.status === "anonymous") redirect("/sign-in");
@@ -26,18 +19,60 @@ export default async function ApplicationSectionPage({ params }: { params: Promi
   if (session.status === "configuration_error") return <ConfigurationErrorState />;
   if (session.status === "inactive" || session.status === "forbidden") return <ForbiddenState />;
 
-  const route = `/app/${section}` as const;
-  if (!getRoleNavigation(session.profile.role).some((item) => item.href === route)) return <ForbiddenState />;
+  if (!isRoleAllowedForSection(session.profile.role, section)) {
+    return <ForbiddenState />;
+  }
 
-  const [title, description] = SECTION_COPY[section as SectionKey];
   return (
-    <section className={styles.content}>
-      <p className={styles.eyebrow}>โมดูลตามสิทธิ์</p>
-      <h1>{title}</h1>
-      <p className={styles.lead}>{description}</p>
-      <div className={styles.notice}>
-        <h2>สถานะปัจจุบัน</h2>
-        <p>เส้นทางและสิทธิ์ฝั่งเซิร์ฟเวอร์พร้อมแล้ว ฟังก์ชันข้อมูลของโมดูลจะเพิ่มเป็น vertical slice ถัดไปหลังฐานข้อมูลผ่านการทดสอบ RLS</p>
+    <section className={styles.container} aria-labelledby="section-title">
+      <header className={styles.header}>
+        <p className={styles.eyebrow}>{metadata.eyebrow}</p>
+        <h1 id="section-title" className={styles.title}>{metadata.title}</h1>
+        <p className={styles.lead}>{metadata.description}</p>
+      </header>
+
+      <div className={styles.statusCard} role="status" aria-label={`สถานะโมดูล ${metadata.title}`}>
+        <div className={styles.statusHeader}>
+          <span className={styles.statusBadge}>
+            <Clock size={14} aria-hidden="true" />
+            {metadata.status}
+          </span>
+          <h2 className={styles.statusHeading}>สถานะการดำเนินงาน</h2>
+        </div>
+        <p className={styles.statusDescription}>{metadata.statusReason}</p>
+      </div>
+
+      <div className={styles.sectionGrid}>
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <Layers size={18} className={styles.cardIcon} aria-hidden="true" />
+            <h2 className={styles.cardHeading}>สิ่งที่โมดูลจะรองรับ</h2>
+          </div>
+          <ul className={styles.list}>
+            {metadata.capabilities.map((item, idx) => (
+              <li key={idx} className={styles.listItem}>{item}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <Milestone size={18} className={styles.cardIcon} aria-hidden="true" />
+            <h2 className={styles.cardHeading}>ขั้นตอนและแผนงานถัดไป</h2>
+          </div>
+          <ul className={styles.list}>
+            {metadata.nextSteps.map((item, idx) => (
+              <li key={idx} className={styles.listItem}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className={styles.actions}>
+        <Link href="/app" className={styles.backLink}>
+          <ArrowLeft size={16} aria-hidden="true" />
+          กลับสู่หน้าหลัก
+        </Link>
       </div>
     </section>
   );

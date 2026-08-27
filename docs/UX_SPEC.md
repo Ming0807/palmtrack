@@ -48,6 +48,7 @@ Global application fallback states ใน Next.js (`loading.tsx`, `error.tsx`, `
 - `loading.tsx`: มี `role="status"` และ `aria-live="polite"` ประกาศต่อ assistive technology และรองรับ `prefers-reduced-motion`
 - `error.tsx`: เป็น Client Component พร้อมปุ่มลองใหม่อีกครั้งที่เรียก `reset()` และลิงก์กลับหน้าหลัก โดยไม่แสดงหรือส่ง raw error ไป browser console ซึ่งอาจเปิดเผย stack trace, message ภายใน, UUID, environment หรือ secret
 - `not-found.tsx`: แสดงรหัส 404 และคำอธิบายภาษาไทย พร้อมลิงก์กลับหน้าหลัก (`/app`) ใช้งานได้จริงและปลอดภัยจาก overflow ที่ 360px
+- Route สถานะโมดูลตามสิทธิ์ (`/app/[section]` สำหรับ `settings`, `audit`, `my-work`, `reports`, `evaluation`): แสดงชื่อภาษาไทย ขอบเขตที่วางแผนไว้ สถานะ "ยังไม่เปิดใช้งาน" และเหตุผล/ขั้นตอนถัดไปอย่างซื่อสัตย์ โดย direct URL จาก role ที่ไม่มีสิทธิ์ได้รับ non-enumerating forbidden state และไม่มีปุ่มหลอก (no dead action)
 
 Form ใช้ inline error เชื่อม label และมี error summary; ปุ่ม submit ป้องกันกดซ้ำแต่ idempotency อยู่ server Confirmation จำเป็นสำหรับ lock sample, withdrawal, full-PII export, delete/restore และ verified correction Success สำคัญแสดง reference ID/time และ next state
 

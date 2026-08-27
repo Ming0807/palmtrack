@@ -10,6 +10,7 @@ export default defineConfig({
     "**/sampling.spec.ts",
     "**/farm-core-ledger.spec.ts",
     "**/fallback-states.spec.ts",
+    "**/module-status.spec.ts",
   ],
   timeout: 180_000,
   fullyParallel: false,

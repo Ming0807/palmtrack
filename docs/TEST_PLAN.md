@@ -47,6 +47,7 @@ Deterministic test-vector artifact ของ fixture ต้องผ่าน re
 | UNIT-08 | `sha256-mulberry32-fy-v1` test vector proves NFC→UTF-8→SHA-256→big-endian seed, Mulberry32 outputs, Fisher–Yates `(i,j)`, candidate hash and final order match across implementations |
 | UNIT-09 | dashboard model keeps money as canonical decimal strings, filters research support by role, does not call research gateways for farmer/collector, and renders truthful loading/not-enabled states without fabricated production values |
 | UNIT-10 | global fallback states (loading, error, not-found) render sanitized Thai copy, provide screen reader status/alert roles, retry action calling reset(), working navigation link, and do not leak raw error messages or secrets through DOM/client console |
+| UNIT-11 | pending section metadata for settings, audit, my-work, reports, evaluation provides truthful Thai copy, status 'ยังไม่เปิดใช้งาน', non-empty capabilities, next steps, and exact role allowlist matching navigation |
 
 ## RLS and authorization tests
 
