@@ -30,6 +30,8 @@
 | [Population import visual evidence](assets/population-import/README.md) | Verified local evidence | research_manager | ภาพ accepted synthetic snapshot ที่ 360px/desktop พร้อม fixture digest และขอบเขต local-only |
 | [Sampling design](superpowers/specs/2026-09-23-palmtrack-sampling-design.md) | Approved for implementation | research_manager | FR-03/NFR-04 trustless server replay, lifecycle, trust boundary และ production UI |
 | [Sampling plan](superpowers/plans/2026-09-23-palmtrack-sampling.md) | Approved for execution | admin | แผน TDD สำหรับ domain, lifecycle migration + replay hardening, server action, Thai UI และ local/hosted evidence |
+| [Farmer ledger design](superpowers/specs/2026-09-23-palmtrack-farmer-ledger-design.md) | Approved for implementation | farmer | FR-08–FR-11 farm/plot/ledger/profit + 3 หน้าวิเคราะห์ งานตามหัวข้อหลัก (พักงานวิจัย) |
+| [Farmer ledger plan](superpowers/plans/2026-09-23-palmtrack-farmer-ledger.md) | Approved for execution | admin | แผน TDD สำหรับ farm foundation, ledger, sale formula, profit report, analysis views และ farmer E2E |
 
 ไฟล์ระดับ root: [product context](../PRODUCT.md), [implemented design system](../DESIGN.md), [project overview](../README.md), [contribution instructions](../AGENTS.md) และ [sanitized development error/incident ledger](../LOG.md) (ไม่ใช่ application runtime log)
 

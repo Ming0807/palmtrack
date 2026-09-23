@@ -17,10 +17,10 @@ Roadmap นี้จัดให้ทีม 2–3 คนทำงาน 4–6 �
 ## V1 increments
 
 1. **Safety skeleton** — repository/runtime plan, schema migration harness, Auth/profile/5 roles, workspace seam, RLS test harness, audit foundation, Thai shell ด้วย synthetic data
-2. **Research population and sample** — admin/manager import validation, eligibility snapshot, Yamane, largest remainder, `sha256-mulberry32-fy-v1`, exact sampling lifecycle และ audit evidence
-3. **Field collection** — assignment, consent hard gate, approved questionnaire renderer, typed answer, IndexedDB device draft/online idempotent submit
-4. **Review and privacy** — return/verify/revision correction, withdrawal lock/exclusion, private file object policy, anonymized/full-PII export control
-5. **Farm cash ledger** — farmer/farm/plot, activity/expense/harvest/sale, precision/formula, profit report
+2. **Research population and sample** — admin/manager import validation, eligibility snapshot, Yamane, largest remainder, `sha256-mulberry32-fy-v1`, exact sampling lifecycle และ audit evidence (local เสร็จ; hosted pending; พักงานวิจัยต่อจากนี้ตามคำสั่ง 2026-09-23)
+3. **Farmer ledger and analysis dashboard (เลื่อนขึ้นก่อน)** — farmer/farm/plot ของตน, activity/expense/harvest/sale พร้อม precision/formula, รายงานกำไร/ขาดทุน + drill-down และหน้าวิเคราะห์ 3 แบบ (กำไรรายเดือน + ต้นทุนตามหมวด, ราคาขาย + ผลผลิตแนวโน้ม, เปรียบเทียบแปลง) ด้วยข้อมูลจริง — ย้ายขึ้นก่อน Field collection เพราะเป็นงานตามหัวข้อหลัก
+4. **Field collection (พัก)** — assignment, consent hard gate, approved questionnaire renderer, typed answer, IndexedDB device draft/online idempotent submit
+5. **Review and privacy (พัก)** — return/verify/revision correction, withdrawal lock/exclusion, private file object policy, anonymized/full-PII export control
 6. **Acceptance and readiness** — anonymized evaluator views/funnel, accessibility/mobile QA, security negatives, backup/storage restore drill, acceptance with synthetic fixture, limited launch approval
 
 Safety Skeleton increment เริ่ม implementation planning หลัง prototype ผ่าน verification เมื่อ 2026-08-25 รายละเอียดและลำดับ test-first อยู่ใน [Safety Skeleton implementation plan](superpowers/plans/2026-08-25-palmtrack-safety-skeleton.md) โดยยังไม่อนุมัติ cloud provisioning หรือข้อมูลจริง
