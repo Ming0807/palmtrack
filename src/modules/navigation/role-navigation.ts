@@ -25,12 +25,14 @@ export type RoleNavigationItem = {
 export const ROLE_NAVIGATION = {
   admin: [
     { label: "นำเข้าประชากร", href: "/app/research/population", icon: DatabaseZap },
+    { label: "รอบสุ่มตัวอย่าง", href: "/app/research/sampling", icon: BarChart3 },
     { label: "ตั้งค่าระบบ", href: "/app/settings", icon: Settings2 },
     { label: "ตรวจสอบเหตุการณ์", href: "/app/audit", icon: ClipboardCheck },
   ],
   research_manager: [
     { label: "งานวิจัย", href: "/app/research", icon: LayoutDashboard },
     { label: "ประชากร", href: "/app/research/population", icon: DatabaseZap },
+    { label: "การสุ่มตัวอย่าง", href: "/app/research/sampling", icon: BarChart3 },
     { label: "รายงาน", href: "/app/reports", icon: FileChartColumn },
   ],
   field_collector: [
@@ -42,6 +44,7 @@ export const ROLE_NAVIGATION = {
   ],
   evaluator_readonly: [
     { label: "ภาพรวมประเมิน", href: "/app/evaluation", icon: BarChart3 },
+    { label: "รอบสุ่มตัวอย่าง", href: "/app/research/sampling", icon: FileChartColumn },
   ],
 } as const satisfies Record<Role, readonly RoleNavigationItem[]>;
 

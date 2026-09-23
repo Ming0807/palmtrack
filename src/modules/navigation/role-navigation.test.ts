@@ -4,11 +4,11 @@ import { getRoleNavigation } from "./role-navigation";
 
 describe("protected role navigation", () => {
   it.each([
-    ["admin", ["นำเข้าประชากร", "ตั้งค่าระบบ", "ตรวจสอบเหตุการณ์"]],
-    ["research_manager", ["งานวิจัย", "ประชากร", "รายงาน"]],
+    ["admin", ["นำเข้าประชากร", "รอบสุ่มตัวอย่าง", "ตั้งค่าระบบ", "ตรวจสอบเหตุการณ์"]],
+    ["research_manager", ["งานวิจัย", "ประชากร", "การสุ่มตัวอย่าง", "รายงาน"]],
     ["field_collector", ["งานของฉัน"]],
     ["farmer", ["สวนของฉัน", "บัญชีสวน"]],
-    ["evaluator_readonly", ["ภาพรวมประเมิน"]],
+    ["evaluator_readonly", ["ภาพรวมประเมิน", "รอบสุ่มตัวอย่าง"]],
   ] as const)("keeps the exact Thai destinations for %s", (role, labels) => {
     expect(getRoleNavigation(role).map((item) => item.label)).toEqual(labels);
   });
@@ -37,6 +37,15 @@ describe("protected role navigation", () => {
     }
     for (const role of ["field_collector", "farmer", "evaluator_readonly"] as const) {
       expect(getRoleNavigation(role).some((item) => item.href === "/app/research/population")).toBe(false);
+    }
+  });
+
+  it("exposes sampling runs to admin, manager and evaluator only", () => {
+    for (const role of ["admin", "research_manager", "evaluator_readonly"] as const) {
+      expect(getRoleNavigation(role).some((item) => item.href === "/app/research/sampling")).toBe(true);
+    }
+    for (const role of ["field_collector", "farmer"] as const) {
+      expect(getRoleNavigation(role).some((item) => item.href === "/app/research/sampling")).toBe(false);
     }
   });
 });

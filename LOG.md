@@ -681,3 +681,73 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | Earlier idempotency coverage intentionally left another validated receipt in the shared per-run database |
 | Resolution / status | `resolved` — retain the clicked element handle and wait for that exact element to become hidden instead of re-evaluating a collection locator |
 | Related commit | population import evidence documentation commit |
+
+### DEV-20260913-001 — Local Supabase ports occupied by another project
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-09-13T17:00:00Z` (entry time) |
+| Environment | sampling slice database verification |
+| Severity | medium |
+| Component | Supabase local container lifecycle |
+| Error code / sanitized message | `LOCAL_PORT_CONFLICT` — `supabase start` for project `palmtrack` cannot bind `54321/54322` while containers for project `scidas-local` occupy them |
+| Impact | Migration `202608250003`, pgTAP `003` (23 assertions) and local authenticated E2E (`sampling.spec.ts`, `population-import.spec.ts` rerun) cannot be claimed; TypeScript, lint, 184 unit tests, production build and 27 default browser tests remain green |
+| Reproduction / evidence | `docker ps` shows `supabase_*_scidas-local` healthy on the same ports; `supabase status` reports no `supabase_db_palmtrack` container |
+| Resolution / status | `resolved` — remapped palmtrack local ports to `55321/55322` (+ `55323/55324`) in uncommitted `supabase/config.toml` to coexist with `scidas-local`; local `supabase start`, `db reset`, 120 pgTAP, `db lint`, rollback rehearsal and both local E2E suites passed; never touched the unrelated stack |
+| Related commit | uncommitted sampling slice (no commit/push per user instruction) |
+
+### DEV-20260914-001 — Sampling draft receipt omitted two RPC columns
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-09-14T01:00:00Z` (entry time) |
+| Environment | authenticated local Playwright sampling suite |
+| Severity | medium |
+| Component | `create_sampling_draft` receipt projection |
+| Error code / sanitized message | `GATEWAY_PARSE_MISMATCH` — the draft RPC returned 7 columns while the TypeScript receipt contract requires 9 (`population_import_id`, `locked_at` missing), so every valid draft mapped to `service_unavailable` |
+| Impact | Draft E2E failed after a correct preview; no row was miswritten and database pgTAP stayed green |
+| Reproduction / evidence | Trace showed complete FormData evidence with `service_unavailable`; temporary server logging proved the RPC succeeded but `runRowSchema.safeParse` rejected the narrow projection |
+| Resolution / status | `resolved` — widened the draft return to the full 9-column receipt, reset/reverified 120 pgTAP, removed all temporary logging, and reran local E2E to 10/10 with visual evidence |
+| Related commit | uncommitted sampling slice (no commit/push per user instruction) |
+
+### DEV-20260914-002 — Sampling E2E shared one workspace across tests
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-09-14T01:00:00Z` (entry time) |
+| Environment | two-project authenticated Playwright suite |
+| Severity | low |
+| Component | sampling E2E count assertions and evaluator sign-in |
+| Error code / sanitized message | `SHARED_WORKSPACE_COUNT_DRIFT` — absolute `sampling_run` counts grew across tests sharing one local workspace, and a second in-test sign-in landed on `/app` instead of `/sign-in` |
+| Impact | Desktop and evaluator journeys failed although every database transition was correct |
+| Reproduction / evidence | Counts showed +N drift from earlier tests; evaluator fill timed out because no email field rendered while already signed in |
+| Resolution / status | `resolved` — assert relative count deltas plus the exact-one-active/supersede invariant, and clear cookies before the second sign-in; full local suite passes 10/10 sampling and 16/16 population |
+| Related commit | uncommitted sampling slice (no commit/push per user instruction) |
+
+### DEV-20260923-001 — Sampling draft trusted caller randomness
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-09-23T02:40:00Z` (entry time) |
+| Environment | local Supabase pgTAP suite |
+| Severity | high |
+| Component | `create_sampling_draft` evidence verification |
+| Error code / sanitized message | `TRUSTED_CALLER_EVIDENCE` — the draft RPC checked only array lengths, allocation totals and hash formats, so substituted members, forged allocations and forged hashes were accepted |
+| Impact | NFR-04 reproducibility could not be claimed; any caller could persist a non-replayable sample that sums to the Yamane target |
+| Reproduction / evidence | New pgTAP replay tests (seed `palmtrack-acceptance-seed-v1`, 6-member fixture, target 4) showed 5 forged-evidence calls raising no exception where `22023` was required |
+| Resolution / status | `resolved` — server recomputes the full chain from the accepted snapshot (seed digest/u32, byte-ordered candidate hash, float8 largest remainder, unsigned mulberry32 Fisher–Yates, member selection) and rejects mismatches with `22023`; pgTAP `003` grew 22 → 34 assertions and all 132 database tests pass |
+| Related commit | uncommitted sampling slice (commit/push authorized 2026-09-23) |
+
+### DEV-20260923-002 — Sampling lock-state check rejected locked cancel
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-09-23T02:40:00Z` (entry time) |
+| Environment | local Supabase pgTAP suite |
+| Severity | high |
+| Component | `sampling_run_lock_state_check` vs `cancel_sampling_run` |
+| Error code / sanitized message | `23514` — cancelling a locked run violated `sampling_run_lock_state_check` because `cancelled` required `locked_at IS NULL` while cancel retains the lock timestamp |
+| Impact | `locked → cancelled` was unreachable although the guard trigger and AGENTS lifecycle allow draft/locked cancellation |
+| Reproduction / evidence | pgTAP `lives_ok(cancel locked run)` died with the check-constraint violation and the run stayed `locked` |
+| Resolution / status | `resolved` — the check now allows `cancelled` with or without `locked_at` (draft cancel keeps null, locked cancel retains evidence); guard-trigger semantics unchanged; cancelled-from-locked and cancelled-from-draft both covered by pgTAP |
+| Related commit | uncommitted sampling slice (commit/push authorized 2026-09-23) |

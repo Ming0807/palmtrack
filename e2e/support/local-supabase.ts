@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
 export type LocalE2ERole =
@@ -179,4 +179,23 @@ export async function completeValidPopulationImport(page: Page, fixturePath: str
 
 export async function databaseImportCount(): Promise<number> {
   return Number(runPsql("select count(*) from public.population_import;"));
+}
+
+const SAMPLING_STATUSES = ["draft", "locked", "active", "superseded", "cancelled"] as const;
+
+export async function databaseSamplingRunCount(status?: (typeof SAMPLING_STATUSES)[number]): Promise<number> {
+  if (!status) return Number(runPsql("select count(*) from public.sampling_run;"));
+  if (!SAMPLING_STATUSES.includes(status)) throw new Error("unsupported sampling status filter");
+  return Number(runPsql(`select count(*) from public.sampling_run where status = '${status}';`));
+}
+
+export async function completeValidSamplingDraft(page: Page): Promise<void> {
+  await page.goto("/app/research/sampling");
+  await page.getByLabel("snapshot ประชากรที่รับแล้ว").selectOption({ index: 0 });
+  await page.getByLabel("ค่าคลาดเคลื่อน (e)").fill("0.05");
+  await page.getByLabel("seed ข้อความ").fill("palmtrack-acceptance-seed-v1");
+  const draftButton = page.getByRole("button", { name: "สร้างฉบับร่าง" });
+  await expect(draftButton).toBeEnabled({ timeout: 15000 });
+  await draftButton.click();
+  await expect(page.getByText("สร้างฉบับร่างและบันทึกหลักฐานแล้ว")).toBeVisible();
 }

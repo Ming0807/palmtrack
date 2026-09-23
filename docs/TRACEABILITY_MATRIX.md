@@ -57,3 +57,16 @@ Evidence นี้เป็น progress ของ increment ไม่ใช่ V
 | NFR-09 | ordered migration, 98 assertions, schema lint, reviewed compensating rollback and sanitized incident ledger | local implementation evidence complete; deploy/restore/hosted migration evidence remains pending |
 
 Evidence นี้เป็น tracer-bullet progress ไม่ใช่ FR-02/V1 acceptance sign-off และไม่อนุญาตข้อมูลจริง
+
+## Sampling evidence status — 2026-09-14 (uncommitted)
+
+| Requirement | Implemented evidence in this slice | Status boundary |
+|---|---|---|
+| FR-03 | `sampling-yamane/allocation/deterministic` domain 13 tests; migration `202608250003` (`sampling_run` lifecycle `draft\|locked\|active\|superseded\|cancelled`, single-active constraint, `sample_member`, 9 RPCs รวม read/detail/member/snapshot, audit allowlists); service/gateway/actions 20 tests; Thai `/app/research/sampling` flow 5 tests + navigation; pgTAP 22 assertions ผ่าน; local E2E 10/10 (draft→lock→activate, supersede invariant, role negatives, axe/overflow) | local ครบถึง browser + [visual evidence](assets/sampling/README.md); hosted migration `202608250002/003` ยัง pending |
+| NFR-04 | `sha256-mulberry32-fy-v1` byte contract (NFC→UTF-8→SHA-256→big-endian seed→Mulberry32→Fisher–Yates), candidate hash, replay-on-lock hash comparison, allocation frozen at lock | domain replay + local lock replay (hash match) เขียว; hosted replay pending |
+| NFR-01 | sampling transitions จำกัด `research_manager` เท่านั้น (รวม `admin` ถูก deny), read จำกัด `admin\|research_manager\|evaluator_readonly`, RLS force + owner-only policies, mutation guards, exact function ACLs | application matrix + pgTAP role assertions เขียว local; hosted ACL evidence pending |
+| NFR-03 | audit `sampling.draft_created/locked/activated/superseded/cancelled` เก็บ actor/workspace/status before-after/target/digest/hash พร้อม `cancel_reason_digest` แทน raw reason | local lifecycle audit ผ่าน pgTAP/E2E; hosted audit pending |
+| NFR-05/NFR-06 | Thai evidence sheet 360px/desktop ไม่มี overflow, axe serious/critical ว่าง, keyboard focus มองเห็น | local browser evidence ผ่าน; field usability sign-off ยัง pending |
+| NFR-09 | ordered migration `003`, 120 pgTAP รวม, schema lint ผ่าน, compensating rollback rehearse (001+002 กลับมาเขียว 98) | local evidence ครบ; deploy/restore/hosted evidence ยัง pending |
+
+Evidence นี้เป็น slice progress ไม่ใช่ FR-03/V1 acceptance sign-off และไม่อนุญาตข้อมูลจริง

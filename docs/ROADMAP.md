@@ -27,6 +27,8 @@ Safety Skeleton increment เริ่ม implementation planning หลัง p
 
 สถานะ increment 2 เมื่อ 2026-08-25: tracer bullet **population import** เสร็จใน local environment ตั้งแต่ parser → RPC/RLS/audit → server action → Thai responsive UI → authenticated E2E และมี [visual evidence](assets/population-import/README.md) แล้ว ส่วน Yamane, proportional allocation, seeded shuffle, sampling run lifecycle และ hosted migration `202608250002` ยัง pending จึงยังไม่ถือว่า increment 2 หรือ FR-02 ทั้งวงจรเสร็จบน hosted environment
 
+สถานะ sampling เมื่อ 2026-09-23 (uncommitted, ไม่ push): เพิ่ม trustless server replay ใน `create_sampling_draft` (recompute seed chain/candidate hash/largest remainder/mulberry32 shuffle/selection จาก accepted snapshot, forged evidence ถูกปฏิเสธ `22023`), แก้ `lock_state_check` ให้ cancel-from-locked ได้โดยเก็บ `locked_at`, pgTAP `003` ขยาย 22 → 34 assertions ผ่านรวม 132/132 local; spec/plan อนุมัติใน [sampling design](superpowers/specs/2026-09-23-palmtrack-sampling-design.md) และ [sampling plan](superpowers/plans/2026-09-23-palmtrack-sampling.md) ส่วน hosted migration `202608250002/003` ยังไม่ apply จึงยังไม่ถือว่า increment 2 หรือ FR-03/NFR-04 ทั้งวงจรเสร็จบน hosted environment
+
 แต่ละ increment ต้องมี requirement/test IDs, migration rollback, no-real-data review และ evidence ก่อนเริ่ม increment ต่อไป Slice ควรส่ง UI→server→RLS→audit→test ครบ ไม่สร้าง layer ทั้งก้อนล่วงหน้า
 
 ## V1.1 candidates
