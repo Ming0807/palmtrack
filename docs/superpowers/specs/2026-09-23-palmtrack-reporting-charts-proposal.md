@@ -1,7 +1,7 @@
 # PalmTrack reporting charts proposal (design review gate)
 
 - Date: 2026-09-23
-- Status: **Proposed — awaiting design review, DO NOT install yet** (`AGENTS.md` ห้ามเพิ่ม dependency จนกว่า gate ผ่านและมี implementation plan ที่อนุมัติ)
+- Status: **Approved by user 2026-09-23 — proceed to implementation plan + install** (gate ผ่านด้วยคำสั่ง `ok ลุยเลย`; scope ล็อตแรกคือ sampling allocation chart ด้วยข้อมูลจริงเท่านั้น funnel/profit รอ backend ของ increment ถัดไป)
 - Scope: FR-11 (profit report), FR-13 (anonymized dashboard), FR-16 (7-stage funnel); synthetic data only
 
 ## Problem

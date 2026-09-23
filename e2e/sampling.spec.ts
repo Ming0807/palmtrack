@@ -32,6 +32,9 @@ test("[E2E-03] research manager drafts, locks and activates a synthetic sampling
 
   await expect(page.getByText("sha256-mulberry32-fy-v1").first()).toBeVisible();
   await expect(page.getByRole("button", { name: /แก้ไขผลสุ่ม/u })).toHaveCount(0);
+  await expect(page.getByTestId("allocation-chart").first()).toBeVisible();
+  await page.getByText("ดูตารางข้อมูล").first().click();
+  await expect(page.getByRole("table", { name: /ตารางกราฟการจัดสรร/u }).first()).toBeVisible();
   if (process.env.PALMTRACK_E2E_CAPTURE_EVIDENCE === "1") {
     await page.getByRole("heading", { name: "สุ่มตัวอย่าง" }).click();
     await page.screenshot({

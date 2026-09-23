@@ -69,3 +69,7 @@ The local state lab exposes `default`, `loading`, `empty`, `validation`, `forbid
 ## Prototype boundary
 
 All fixtures are synthetic and visibly labeled `ข้อมูลตัวอย่าง`. The prototype has no authentication, Supabase connection, live API, real farmer data, questionnaire renderer, external storage, deployment configuration, or cloud resource. Those capabilities require the next approved vertical-slice plan and the existing research/privacy/restore gates.
+
+## Reporting charts
+
+Sampling allocation charts (`src/modules/reporting/`) extend the receipt thesis to visuals: Recharts horizontal bars loaded through `next/dynamic` (`ssr: false`) with a `role=status` loading message, while the allocation table always renders server-side beside the figure so evidence stays readable without the chart bundle. Numbers use Thai digits (`th-TH-u-nu-thai`; bare `th-TH` keeps Latin digits), headings use Bai Jamjuree, and every figure carries a Thai `aria-label` summary plus a visible `<details>` data table — color is never the only channel. Series colors follow `CHART_PALETTE`: indigo-first `#3b3f8c`, then color-blind-safe `#0072b2 #009e73 #d55e00 #cc79a7 #e69f00`. Reduced-motion preferences disable bar animation, and the 360px no-overflow contract applies to chart regions.

@@ -751,3 +751,31 @@ Severity ใช้ `low | medium | high | critical`; status ใช้ `open | mi
 | Reproduction / evidence | pgTAP `lives_ok(cancel locked run)` died with the check-constraint violation and the run stayed `locked` |
 | Resolution / status | `resolved` — the check now allows `cancelled` with or without `locked_at` (draft cancel keeps null, locked cancel retains evidence); guard-trigger semantics unchanged; cancelled-from-locked and cancelled-from-draft both covered by pgTAP |
 | Related commit | uncommitted sampling slice (commit/push authorized 2026-09-23) |
+
+### DEV-20260923-003 — Bare th-TH locale kept Latin digits in charts
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-09-23T03:35:00Z` (entry time) |
+| Environment | Vitest reporting domain suite |
+| Severity | low |
+| Component | `reporting` Thai number formatting |
+| Error code / sanitized message | `LATIN_DIGITS_UNDER_TH_LOCALE` — `Intl.NumberFormat("th-TH")` formatted counts as `93` instead of `๙๓` because the ICU default numbering system for `th` is Latin |
+| Impact | Chart labels and summaries would have shown Arabic digits against the Thai-digit receipt thesis; 4 of 5 new formatter tests failed |
+| Reproduction / evidence | Vitest red run showed `expected '93' to be '๙๓'` for `formatThaiInt` and `formatThaiDecimal4` |
+| Resolution / status | `resolved` — use `th-TH-u-nu-thai` explicitly; all 5 formatter tests pass and the allocation chart/table render Thai digits end to end |
+| Related commit | pending reporting charts commit |
+
+### DEV-20260923-004 — E2E table assertion ignored the closed details element
+
+| Field | Value |
+|---|---|
+| UTC timestamp | `2026-09-23T03:50:00Z` (entry time) |
+| Environment | authenticated local Playwright sampling suite |
+| Severity | low |
+| Component | sampling chart table fallback assertion |
+| Error code / sanitized message | `CLOSED_DETAILS_TABLE_NOT_FOUND` — the new chart-table assertion searched while its `<details>` wrapper was still closed, so the table role was not exposed |
+| Impact | 2 draft-flow browser cases failed although the chart region rendered and the SSR allocation table was visible |
+| Reproduction / evidence | Both viewports timed out on `getByRole('table', /ตารางกราฟการจัดสรร/)` while `allocation-chart` was already visible |
+| Resolution / status | `resolved` — expand `ดูตารางข้อมูล` before asserting the table (the honest user path); local E2E passes 10/10 sampling with axe/overflow gates intact |
+| Related commit | pending reporting charts commit |

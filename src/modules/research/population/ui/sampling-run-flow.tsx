@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { Check, Clipboard, FileCheck2, FileUp, LockKeyhole } from "lucide-react";
+import dynamic from "next/dynamic";
 
 import { allocateLargestRemainder } from "@/modules/research/population/domain/sampling-allocation";
 import {
@@ -21,6 +22,14 @@ import type {
 import type { SamplingActionState } from "@/modules/research/population/server/sampling-service";
 
 import styles from "./sampling-run.module.css";
+
+const AllocationChart = dynamic(
+  () => import("@/modules/reporting/ui/allocation-chart").then((module) => module.AllocationChart),
+  {
+    ssr: false,
+    loading: () => <p className={styles.systemStatus} role="status">กำลังโหลดกราฟ…</p>,
+  },
+);
 
 type SamplingAction = (
   previous: SamplingActionState,
@@ -257,6 +266,15 @@ function DraftForm({
               ))}
             </tbody>
           </table>
+          <AllocationChart
+            title="กราฟการจัดสรรก่อนสร้าง"
+            rows={preview.allocation.allocations.map((item) => ({
+              stratumCode: item.stratumCode,
+              allocated: item.finalAllocation,
+              eligible: item.eligibleCount,
+            }))}
+            emptyLabel="ยังไม่มีข้อมูลการจัดสรร"
+          />
         </div>
       ) : null}
       <input type="hidden" name="seedNormalized" value={evidence?.seedNormalized ?? ""} />
@@ -331,6 +349,14 @@ function RunCard({
           ))}
         </tbody>
       </table>
+      <AllocationChart
+        title="กราฟการจัดสรรที่ล็อก"
+        rows={detail.allocations.map((item) => ({
+          stratumCode: item.stratumCode,
+          allocated: item.finalAllocation,
+        }))}
+        emptyLabel="ยังไม่มีข้อมูลการจัดสรร"
+      />
       <div className={styles.receiptFooter}>
         <p>ผลสุ่ม {members.length} รายการ · {detail.lockedAt ? formatThaiTimestamp(detail.lockedAt) : "ยังไม่ล็อก"}</p>
       </div>

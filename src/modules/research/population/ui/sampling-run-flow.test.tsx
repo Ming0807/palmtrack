@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SamplingMember, SamplingRunDetail } from "@/modules/research/population/server/sampling-gateway";
@@ -82,5 +82,13 @@ describe("sampling run flow", () => {
     expect(screen.getByText("NORTH")).toBeVisible();
     expect(screen.getByLabelText("คัดลอก candidate hash แบบเต็ม")).toBeEnabled();
     expect(screen.queryByRole("button", { name: /แก้ไขผลสุ่ม/u })).not.toBeInTheDocument();
+  });
+
+  it("[NFR-05/NFR-06] keeps allocation evidence readable without the chart bundle", () => {
+    renderFlow();
+    expect(screen.getAllByText("กำลังโหลดกราฟ…").length).toBeGreaterThan(0);
+    const table = screen.getByRole("table", { name: "การจัดสรรที่ล็อก รวม 93" });
+    expect(within(table).getByRole("row", { name: "NORTH 40" })).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: "SOUTH 53" })).toBeInTheDocument();
   });
 });
