@@ -18,12 +18,12 @@
 
 ---
 
-### Task 1: farmer/farm/plot foundation — [ ] pending
+### Task 1: farmer/farm/plot foundation — [x] done 2026-09-23
 
 **Files:** `supabase/migrations/202608250004_farm_ledger.sql`, `supabase/rollback/`, `supabase/tests/database/004_farm_ledger.test.sql`, `src/modules/farm/...`
 
-- [ ] **Step 1: RED/GREEN tables + RLS** — `farmer` (owner FK profile), `farm`, `plot` พร้อม workspace FK, attribution, soft-delete + FORCE RLS owner-only + pgTAP (owner allow, cross-owner/admin/manager deny)
-- [ ] **Step 2: RED/GREEN domain + service** — validation ชื่อ/พื้นที่ `decimal(14,3)` + service/gateway/actions (UNIT-04 เริ่มที่นี่)
+- [x] **Step 1: RED/GREEN tables + RLS** — `farmer` (owner-unique), `farm`/`plot` (name/area/soft-delete + guard triggers + delete/truncate reject), FORCE RLS + owner-only policies, audit `farm.*` allowlist, 5 RPCs (farmer create, farm create/list/delete, plot create) + pgTAP 20 (RED เห็น fail 20/20 ตรงจุด) + rollback rehearsed — GREEN pgTAP 152/152 รวม, lint:db clean
+- [x] **Step 2: RED/GREEN domain + service** — `validateFarmName`/`validateAreaRai` (decimal 14,3 + Thai names) + `farm-service` (farmer-only gate, fail-closed) — RED เห็น missing-module fail แล้ว GREEN 18/18 (รวม unit 212)
 
 ### Task 2: activity/expense ledger — [ ] pending
 

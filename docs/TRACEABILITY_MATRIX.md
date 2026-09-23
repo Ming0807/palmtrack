@@ -70,3 +70,15 @@ Evidence นี้เป็น tracer-bullet progress ไม่ใช่ FR-02/V
 | NFR-09 | ordered migration `003`, 120 pgTAP รวม, schema lint ผ่าน, compensating rollback rehearse (001+002 กลับมาเขียว 98) | local evidence ครบ; deploy/restore/hosted evidence ยัง pending |
 
 Evidence นี้เป็น slice progress ไม่ใช่ FR-03/V1 acceptance sign-off และไม่อนุญาตข้อมูลจริง
+
+## Farmer ledger evidence status — 2026-09-23 (uncommitted)
+
+| Requirement | Implemented evidence in this slice | Status boundary |
+|---|---|---|
+| FR-08 | `farmer` (owner-unique), `farm`/`plot` (name/`decimal(14,3)` area/soft-delete + guard triggers), FORCE RLS + owner-only RPCs, Thai name validation; migration `202608250004` + rollback rehearsed, pgTAP 20 ผ่าน, domain/service unit 18 ผ่าน | local ครบถึง database + service; farm/plot Thai UI และ hosted migration `004` ยัง pending |
+| NFR-01 | farmer-only writes (admin/manager/collector/evaluator denied `42501`), cross-owner denied, no direct table privileges, exact function ACLs | local pgTAP negative matrix เขียว; hosted evidence pending |
+| NFR-03 | audit `farm.farmer_created/farm_created/plot_created/farm_deleted` เก็บ actor/workspace/status + name/area/reason digests | local pgTAP ผ่าน; hosted audit pending |
+| NFR-08 | area scale/precision validation ทั้ง SQL + domain, duplicate profile → `23505` conflict, soft-delete only (hard delete/truncate ปฏิเสธ) | local เขียวทั้งสองชั้น |
+| NFR-09 | ordered migration `004`, 152 pgTAP รวม, schema lint ผ่าน, compensating rollback rehearse ผ่าน | local evidence ครบ; deploy/restore/hosted evidence ยัง pending |
+
+Evidence นี้เป็น slice progress ไม่ใช่ FR-08/V1 acceptance sign-off และไม่อนุญาตข้อมูลจริง
